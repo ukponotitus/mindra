@@ -60,17 +60,17 @@ Calendar and Billing show a "Coming soon" page (`src/components/ComingSoon.tsx`)
 
 ## Deploy
 
-The live site is the static build (`dist/`) on Cloudflare Pages, connected to this repo.
+The live site is the static build (`dist/`) served by a Cloudflare Worker named `mindra` (static assets only, no server code), connected to this repo so every push to `main` deploys: https://mindra.titusukpono0.workers.dev. `wrangler.jsonc` holds its settings: the `dist/` folder, the `workers.dev` address switched on, and `not_found_handling: "single-page-application"` so every path that isn't a file gets `index.html` and React Router's deep links work.
 
-- Pages build settings: framework preset None (or React (Vite)), build command `pnpm run build`, build output directory `dist`, root directory the repo root.
-- Environment variables (Production, and Preview if used): `VITE_API_URL`, the live API's URL with no trailing slash. Vite writes it into the build, so redeploy after changing it; a build without it calls `http://localhost:8000`. Optionally `PNPM_VERSION=10.34.3` to match `.mise.toml` (Pages' default pnpm also installs this lockfile). Leave `FIGMA_PUBLIC_URL` unset so the base is `/`.
-- Node: `.node-version` pins 22.23.3, which Pages reads. React Router 8 needs Node 22.22 or newer, and Pages' default (22.16) is older.
-- Install: Pages installs from `pnpm-lock.yaml`. Commit that lockfile and not `package-lock.json`, and update it (`pnpm install`) whenever `package.json` changes.
-- Deep links (`/projects/<id>`, `/privacy`): with no top-level `404.html` in `dist/`, Pages answers every path that isn't a file with `index.html`, and React Router takes it from there. Don't add a `404.html`, and don't add a `/* /index.html 200` rule to `_redirects`: Pages ignores it as an infinite loop.
+- Build settings (Workers & Pages → mindra → Settings → Build): build command `pnpm run build`, deploy command `npx wrangler deploy`, root directory `/`.
+- Environment variables (Production, and Preview if used): `VITE_API_URL`, the live API's URL with no trailing slash. Vite writes it into the build, so redeploy after changing it; a build without it calls `http://localhost:8000`. Optionally `PNPM_VERSION=10.34.3` to match `.mise.toml` (Cloudflare's default pnpm also installs this lockfile). Leave `FIGMA_PUBLIC_URL` unset so the base is `/`.
+- Node: `.node-version` pins 22.23.3, which Cloudflare's build reads. React Router 8 needs Node 22.22 or newer, and Cloudflare's default (22.16) is older.
+- Install: the build installs from `pnpm-lock.yaml`. Commit that lockfile and not `package-lock.json`, and update it (`pnpm install`) whenever `package.json` changes.
+- Deep links (`/projects/<id>`, `/privacy`) come from `not_found_handling` in `wrangler.jsonc`. Keep its `compatibility_date` no newer than the local wrangler supports, or `wrangler dev` won't start.
 - The API must accept the site's origin: set `CORS_ALLOWED_ORIGINS` and `FRONTEND_URL` on the backend (see `../mindra-backend/README.md`).
 - Search engines: `.figma/make/site.json` has `"robots": { "index": false }`, so the build adds `noindex` and a `robots.txt` that blocks crawlers. Change it when the landing page should appear in search.
 - Sign-up asks for an invite code when the API says so (`GET /api/auth/signup-options/`, on when the backend's `BETA_INVITE_CODES` is set).
-- Legal pages: `/privacy` and `/terms` (`src/pages/Privacy.tsx`, `src/pages/Terms.tsx`, laid out by `src/components/landing/LegalLayout.tsx`), linked from the landing footer and the sign-up form. The company name, contact email and governing country are placeholders in `src/lib/legal.ts`; fill them in before launch, and change `LEGAL_LAST_UPDATED` whenever either page changes.
+- Legal pages: `/privacy` and `/terms` (`src/pages/Privacy.tsx`, `src/pages/Terms.tsx`, laid out by `src/components/landing/LegalLayout.tsx`), linked from the landing footer and the sign-up form. The company name, contact email and governing country are in `src/lib/legal.ts` (the email is a personal address for the beta); change `LEGAL_LAST_UPDATED` whenever either page changes.
 - Try a production build locally: `VITE_API_URL=http://localhost:8000 pnpm build`, then `pnpm preview --port 4173` (without `--port` it tries the dev server's port).
 
 ## Marketing video
