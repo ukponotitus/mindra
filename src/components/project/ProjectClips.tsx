@@ -296,7 +296,7 @@ function ClipEditor({ clip, project }: { clip: Clip; project: Project }) {
             onConfirm={() => remove.mutate(clip.id)}
           />
           <p role="status" className="w-full text-sm text-pretty text-muted-foreground">
-            {rendering && "Cutting, framing and captioning. This usually takes under a minute; you can leave this page."}
+            {rendering && "Cutting, framing and captioning. This usually takes one to two minutes; you can leave this page."}
             {!rendering && timingChanged && "Save the new timing before making the clip."}
             {!rendering && !timingChanged && clip.is_stale && "You changed this clip since it was made. Make it again to update the video."}
           </p>
