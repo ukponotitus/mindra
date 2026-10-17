@@ -62,6 +62,29 @@ export function clipStatusLabel(clip: Clip) {
 /** Where a clip can be posted: the platforms that take short vertical video. */
 export const CLIP_PLATFORMS: Platform[] = ["instagram", "tiktok", "youtube_shorts", "facebook", "whatsapp", "x", "linkedin"];
 
+/** Whether this browser can hand a video file to the phone's share menu (most phones can; most computers can't). */
+export function canShareFiles(): boolean {
+  try {
+    return typeof navigator.canShare === "function" && navigator.canShare({ files: [new File([""], "clip.mp4", { type: "video/mp4" })] });
+  } catch {
+    return false;
+  }
+}
+
+/** The made clip as a file, for sharing. The API gives its direct address; fetching the playback link would follow a
+ * redirect that the storage bucket refuses for pages. */
+export async function clipFile(clipId: string): Promise<File> {
+  const info = await apiRequest<{ url: string; filename: string; content_type: string }>(`/api/clips/${clipId}/file/`);
+  let response: Response;
+  try {
+    response = await fetch(info.url);
+  } catch {
+    throw new Error("Couldn't download the clip. Check your connection and try again.");
+  }
+  if (!response.ok) throw new Error("Couldn't download the clip. Try again in a moment.");
+  return new File([await response.blob()], info.filename, { type: info.content_type });
+}
+
 /** Shortest clip the API accepts. */
 export const SHORTEST_CLIP_SECONDS = 3;
 

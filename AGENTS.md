@@ -54,7 +54,7 @@ The app talks to the Django API in the separate `mindra-backend` repo (`../mindr
 - `src/lib/clips.ts` - hooks for video clips (every clip, a project's clips, find, make by hand, trim, caption style, render, delete), polling while clips are found or rendered
 - `src/pages/Clips.tsx` - the Clips page: every clip across videos, linking to each one in its project's Clips tab (`/projects/<id>?tab=clips&clip=<clipId>`)
 - `src/components/project/` - the project page's parts (Next steps, analysis, transcript, posts, clips, the "New clip" dialog, and a clip's posts in `ClipPosts.tsx`)
-- `src/components/content/` - post card, the "write posts" form, platform badge, the editor's suggestions panel
+- `src/components/content/` - post card (a post for a made clip shows the video and a Share button), the "write posts" form, platform badge, the editor's suggestions panel, and `ShareButton.tsx` (phone share menu with the video and caption; download and copy elsewhere)
 
 Calendar and Billing show a "Coming soon" page (`src/components/ComingSoon.tsx`); `src/pages/Calendar.tsx` and `src/pages/Billing.tsx` keep the original designs for when those features are built (milestones in `../mindra-backend/IMPLEMENTATION_PLAN.md`).
 

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Check, Clapperboard, Copy, Download, LoaderCircle, Minus, Plus, RefreshCw, Trash2 } from "lucide-react";
 import EmptyState from "../EmptyState";
 import ConfirmDialog from "../ui/ConfirmDialog";
+import ShareButton from "../content/ShareButton";
 import ClipPosts from "./ClipPosts";
 import NewClipDialog from "./NewClipDialog";
 import { buttonStyles } from "../ui/button";
@@ -268,10 +269,13 @@ function ClipEditor({ clip, project }: { clip: Clip; project: Project }) {
 
         <div className="flex flex-wrap items-center gap-3 border-t border-border pt-5">
           {rendered ? (
-            <a href={clip.download_url ?? undefined} download className={buttonStyles()}>
-              <Download aria-hidden="true" className="size-4" />
-              Download clip
-            </a>
+            <>
+              <a href={clip.download_url ?? undefined} download className={buttonStyles()}>
+                <Download aria-hidden="true" className="size-4" />
+                Download clip
+              </a>
+              <ShareButton clipId={clip.id} downloadUrl={null} text={clip.caption} title={clip.title} size="md" />
+            </>
           ) : (
             <button
               type="button"

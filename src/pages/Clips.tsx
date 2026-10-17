@@ -22,7 +22,7 @@ function ClipTile({ clip }: { clip: Clip }) {
   const status = clipStatusLabel(clip);
   const downloadable = clip.status === "ready" && clip.download_url && !clip.is_stale;
   return (
-    <article className="flex gap-4 rounded-xl border border-border bg-white p-4">
+    <article className="flex min-w-0 gap-4 rounded-xl border border-border bg-white p-4">
       <Link
         to={clipPath(clip)}
         tabIndex={-1}

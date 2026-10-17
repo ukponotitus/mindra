@@ -5,6 +5,7 @@ import AiWriterNotice from "../components/content/AiWriterNotice";
 import PlatformBadge from "../components/content/PlatformBadge";
 import SuggestionsPanel from "../components/content/SuggestionsPanel";
 import { ClipStrip } from "../components/content/ContentCard";
+import ShareButton from "../components/content/ShareButton";
 import ConfirmDialog from "../components/ui/ConfirmDialog";
 import { buttonStyles } from "../components/ui/button";
 import { cn } from "../lib/cn";
@@ -45,7 +46,7 @@ function EditorSkeleton() {
 
 /** Edit one post, with AI help to shorten, lengthen, rephrase or change its tone. */
 /** The clip this post is the caption for: watch and download it next to the text. */
-function PostClip({ clip, project }: { clip: ClipSummary; project: string }) {
+function PostClip({ clip, project, text, title }: { clip: ClipSummary; project: string; text: string; title: string }) {
   const made = clip.status === "ready" && clip.video_url && !clip.is_stale;
   return (
     <section aria-labelledby="post-clip" className="rounded-xl border border-border bg-white p-5">
@@ -64,6 +65,11 @@ function PostClip({ clip, project }: { clip: ClipSummary; project: string }) {
         />
       )}
       <ClipStrip clip={clip} project={project} />
+      {made && (
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <ShareButton clipId={clip.id} downloadUrl={clip.download_url} text={text} title={title || clip.title} variant="primary" size="md" />
+        </div>
+      )}
       {!made && (
         <p className="mt-2 text-sm text-pretty text-muted-foreground">
           Make the clip in its project's Clips tab to download it with this post.
@@ -326,7 +332,7 @@ export default function ContentEditor() {
         </div>
 
         <div className="space-y-4">
-          {piece.clip && <PostClip clip={piece.clip} project={piece.project} />}
+          {piece.clip && <PostClip clip={piece.clip} project={piece.project} text={body} title={piece.title} />}
           <SuggestionsPanel
             key={piece.id}
             pieceId={piece.id}

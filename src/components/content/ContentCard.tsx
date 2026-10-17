@@ -9,12 +9,14 @@ import { useDeletePiece, useUpdatePiece } from "../../lib/content";
 import { formatDate, formatDuration } from "../../lib/format";
 import type { ClipSummary, ContentPiece } from "../../lib/types";
 import PlatformBadge from "./PlatformBadge";
+import ShareButton from "./ShareButton";
 
 interface Props {
   piece: ContentPiece;
   /** Show which project the post came from (in the library, not on the project page). */
   showProject?: boolean;
-  /** Show the clip the post goes with (not in that clip's own list of posts). */
+  /** Name the clip the post goes with, and say when it isn't made yet (not needed in that clip's own list of posts).
+   * A made clip's video is shown either way: the post is the video and its caption. */
   showClip?: boolean;
 }
 
@@ -57,6 +59,8 @@ export default function ContentCard({ piece, showProject = false, showClip = tru
   const bodyId = useId();
   const long = piece.body.length > 320 || piece.body.split("\n").length > 7;
   const actionError = remove.error ?? update.error;
+  const clip = piece.clip;
+  const videoReady = Boolean(clip && clip.status === "ready" && clip.video_url && !clip.is_stale);
 
   const copy = async () => {
     await navigator.clipboard.writeText(piece.body);
@@ -65,7 +69,8 @@ export default function ContentCard({ piece, showProject = false, showClip = tru
   };
 
   return (
-    <article className="flex flex-col rounded-xl border border-border bg-white p-5">
+    // min-w-0: in a grid, a long one-line title would otherwise make the card wider than a phone screen.
+    <article className="flex min-w-0 flex-col rounded-xl border border-border bg-white p-5">
       <div className="mb-3 flex items-start gap-3">
         <div className="min-w-0 flex-1">
           <PlatformBadge platform={piece.platform} />
@@ -88,6 +93,34 @@ export default function ContentCard({ piece, showProject = false, showClip = tru
         </button>
       </div>
 
+      {videoReady && clip && (
+        <div className="mb-3">
+          <div className="overflow-hidden rounded-lg bg-black">
+            <video
+              src={clip.video_url ?? undefined}
+              poster={clip.thumbnail_url ?? undefined}
+              controls
+              playsInline
+              preload="none"
+              aria-label={`Clip: ${clip.title}`}
+              className="mx-auto block aspect-[9/16] h-72 bg-black"
+            />
+          </div>
+          {showClip && (
+            <p className="mt-1.5 truncate text-xs text-muted-foreground tabular-nums">
+              Clip{" "}
+              <Link
+                to={clipPath({ id: clip.id, project: piece.project })}
+                className="rounded font-medium text-foreground hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              >
+                {clip.title}
+              </Link>{" "}
+              · {formatDuration(clip.start)}–{formatDuration(clip.end)}
+            </p>
+          )}
+        </div>
+      )}
+
       <p
         id={bodyId}
         className={cn("flex-1 text-sm leading-relaxed whitespace-pre-wrap text-gray-700", !expanded && "line-clamp-6")}
@@ -106,7 +139,7 @@ export default function ContentCard({ piece, showProject = false, showClip = tru
         </button>
       )}
 
-      {showClip && piece.clip && <ClipStrip clip={piece.clip} project={piece.project} />}
+      {showClip && clip && !videoReady && <ClipStrip clip={clip} project={piece.project} />}
 
       {showProject && (
         <p className="mt-3 truncate text-xs text-muted-foreground">
@@ -121,7 +154,19 @@ export default function ContentCard({ piece, showProject = false, showClip = tru
         </p>
       )}
 
-      <div className="mt-4 flex items-center gap-2 border-t border-border pt-4">
+      {videoReady && clip && (
+        <div className="mt-4 flex flex-wrap gap-2 border-t border-border pt-4">
+          <ShareButton
+            clipId={clip.id}
+            downloadUrl={clip.download_url}
+            text={piece.body}
+            title={piece.title || clip.title}
+            variant="primary"
+            wide
+          />
+        </div>
+      )}
+      <div className={cn("flex items-center gap-2", videoReady ? "mt-2" : "mt-4 border-t border-border pt-4")}>
         <button type="button" onClick={copy} className={buttonStyles({ variant: "secondary", size: "sm", className: "h-9" })}>
           {copied ? <Check aria-hidden="true" className="size-4" /> : <Copy aria-hidden="true" className="size-4" />}
           {copied ? "Copied" : "Copy"}
