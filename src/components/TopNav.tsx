@@ -1,50 +1,74 @@
-import type { Page } from "../App";
+import { Menu } from "@base-ui/react/menu";
+import { LogOut, PanelLeft, Settings } from "lucide-react";
+import { Link, useNavigate } from "react-router";
+import { fullName, useAuth } from "../auth/context";
+import { cn } from "../lib/cn";
+import { initials } from "../lib/format";
 
 interface Props {
   title: string;
-  onToggleSidebar: () => void;
-  navigate: (p: Page) => void;
+  /** Shows or hides the navigation: a collapsing column on large screens, a drawer on small ones. */
+  onToggleNavigation: () => void;
+  navigationLabel: string;
 }
 
-export default function TopNav({ title, onToggleSidebar, navigate }: Props) {
+const itemClass =
+  "flex w-full cursor-default items-center gap-2 px-3 py-2 text-sm text-foreground outline-none select-none data-[highlighted]:bg-secondary";
+
+export default function TopNav({ title, onToggleNavigation, navigationLabel }: Props) {
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+  const name = user ? fullName(user) : "";
+
+  const logOut = async () => {
+    await signOut();
+    navigate("/login");
+  };
+
   return (
-    <header className="h-14 bg-white border-b border-[#E5E7EB] px-6 flex items-center justify-between flex-shrink-0">
-      <div className="flex items-center gap-4">
+    <header className="flex h-14 shrink-0 items-center justify-between border-b border-border bg-white px-4 sm:px-6">
+      <div className="flex min-w-0 items-center gap-3">
         <button
-          onClick={onToggleSidebar}
-          className="text-[#9CA3AF] hover:text-[#374151] transition-colors p-1.5 rounded-lg hover:bg-[#F3F4F6]"
-          aria-label="Toggle sidebar"
+          type="button"
+          onClick={onToggleNavigation}
+          aria-label={navigationLabel}
+          className="grid size-9 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
         >
-          ☰
+          <PanelLeft aria-hidden="true" className="size-[18px]" />
         </button>
-        <h1 className="font-semibold text-[#111827] text-sm">{title}</h1>
+        <h1 className="truncate text-sm font-semibold text-foreground">{title}</h1>
       </div>
 
-      <div className="flex items-center gap-3">
-        {/* Search */}
-        <div className="hidden md:flex items-center gap-2 bg-[#F3F4F6] rounded-xl px-3 py-2 w-52">
-          <span className="text-[#9CA3AF] text-sm">🔍</span>
-          <input
-            type="text"
-            placeholder="Search content..."
-            className="bg-transparent text-sm text-[#374151] placeholder-[#9CA3AF] focus:outline-none w-full"
-          />
-        </div>
-
-        {/* Notifications */}
-        <button className="relative w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#F3F4F6] transition-colors text-[#6B7280]">
-          🔔
-          <span className="absolute top-1 right-1 w-2 h-2 bg-[#6D5EF5] rounded-full border border-white" />
-        </button>
-
-        {/* Avatar */}
-        <button
-          onClick={() => navigate("settings")}
-          className="w-8 h-8 rounded-full bg-gradient-to-br from-[#6D5EF5] to-[#3ECFCE] flex items-center justify-center text-white text-xs font-bold"
-        >
-          SC
-        </button>
-      </div>
+      {user && (
+        <Menu.Root>
+          <Menu.Trigger
+            aria-label="Account menu"
+            className="grid size-8 place-items-center rounded-full bg-primary/10 text-xs font-semibold text-primary transition-colors hover:bg-primary/15"
+          >
+            {initials(name)}
+          </Menu.Trigger>
+          <Menu.Portal>
+            <Menu.Positioner side="bottom" align="end" sideOffset={8} className="z-50">
+              <Menu.Popup className="w-60 origin-[var(--transform-origin)] rounded-xl border border-border bg-white py-1.5 shadow-lg outline-none transition-[opacity,scale] duration-150 ease-out data-[ending-style]:scale-95 data-[ending-style]:opacity-0 data-[starting-style]:scale-95 data-[starting-style]:opacity-0">
+                <div className="border-b border-border px-3 pt-1 pb-2.5">
+                  <p className="truncate text-sm font-semibold text-foreground">{name}</p>
+                  <p className="truncate text-xs text-muted-foreground">{user.email}</p>
+                </div>
+                <div className="pt-1.5">
+                  <Menu.LinkItem render={<Link to="/settings" />} className={itemClass}>
+                    <Settings aria-hidden="true" className="size-4 text-muted-foreground" />
+                    Settings
+                  </Menu.LinkItem>
+                  <Menu.Item onClick={logOut} className={cn(itemClass, "text-red-600 data-[highlighted]:bg-red-50")}>
+                    <LogOut aria-hidden="true" className="size-4" />
+                    Log out
+                  </Menu.Item>
+                </div>
+              </Menu.Popup>
+            </Menu.Positioner>
+          </Menu.Portal>
+        </Menu.Root>
+      )}
     </header>
   );
 }

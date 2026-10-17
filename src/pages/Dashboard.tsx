@@ -1,162 +1,192 @@
-import type { Page } from "../App";
+import { AudioLines, Clock, FileText, FolderOpen, Hourglass, PenLine, Video, type LucideIcon } from "lucide-react";
+import { Link } from "react-router";
+import { displayName, useAuth } from "../auth/context";
+import EmptyState from "../components/EmptyState";
+import StatusBadge from "../components/StatusBadge";
+import { buttonStyles } from "../components/ui/button";
+import { formatDate, formatDuration, formatExtensions, formatMegabytes } from "../lib/format";
+import { projectPath, SOURCE_ICONS, useProjects, useProjectSummary, useUploadOptions } from "../lib/projects";
+import type { SourceType } from "../lib/types";
 
-interface Props {
-  navigate: (p: Page) => void;
+
+function greeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 17) return "Good afternoon";
+  return "Good evening";
 }
 
-const stats = [
-  { label: "Total Projects", value: "24", change: "+3 this week", icon: "📁", color: "#6D5EF5", bg: "#EDE9FE" },
-  { label: "Content Generated", value: "1,284", change: "+127 today", icon: "📝", color: "#3ECFCE", bg: "#E0FAFA" },
-  { label: "AI Credits Left", value: "73", change: "out of 100", icon: "✨", color: "#F59E0B", bg: "#FEF3C7" },
-  { label: "Processing Jobs", value: "3", change: "2 in queue", icon: "⚙", color: "#10B981", bg: "#D1FAE5" },
-];
+function plural(count: number, word: string): string {
+  return `${count} ${word}${count === 1 ? "" : "s"}`;
+}
 
-const projects = [
-  { name: "Founder Story EP42", platform: "Video", duration: "47:32", generated: 28, status: "completed", date: "Aug 22" },
-  { name: "Q3 Webinar Recap", platform: "Webinar", duration: "1:12:04", generated: 41, status: "processing", date: "Aug 23" },
-  { name: "Product Deep Dive", platform: "Podcast", duration: "34:18", generated: 0, status: "queued", date: "Aug 24" },
-  { name: "Marketing Strategy Talk", platform: "YouTube", duration: "28:45", generated: 19, status: "completed", date: "Aug 20" },
-  { name: "Team AMA Session", platform: "Audio", duration: "52:10", generated: 33, status: "completed", date: "Aug 18" },
-];
+export default function Dashboard() {
+  const { user } = useAuth();
+  const summary = useProjectSummary();
+  const projects = useProjects();
+  const uploadOptions = useUploadOptions();
 
-const statusColors: Record<string, { bg: string; text: string; label: string }> = {
-  completed: { bg: "#D1FAE5", text: "#059669", label: "Completed" },
-  processing: { bg: "#EDE9FE", text: "#6D5EF5", label: "Processing" },
-  queued: { bg: "#FEF3C7", text: "#D97706", label: "Queued" },
-};
+  const s = summary.data;
+  const recent = projects.data?.results.slice(0, 5) ?? [];
+  const options = uploadOptions.data;
+  const maxSize = options ? ` up to ${formatMegabytes(options.max_upload_mb)}` : "";
+  const videoFormats = options ? formatExtensions(options.extensions.video) : "Video files";
+  const audioFormats = options ? formatExtensions(options.extensions.audio) : "Audio files";
 
-const quickActions = [
-  { label: "Upload Video", icon: "🎬", desc: "MP4, MOV, AVI up to 10GB", page: "create" as Page },
-  { label: "YouTube Link", icon: "▶️", desc: "Paste any YouTube URL", page: "create" as Page },
-  { label: "Upload Podcast", icon: "🎙", desc: "MP3, WAV, AAC supported", page: "create" as Page },
-  { label: "Paste Transcript", icon: "📄", desc: "Already have text? Start here", page: "create" as Page },
-];
+  const stats: { label: string; value?: number; note: string; icon: LucideIcon }[] = [
+    {
+      label: "Total Projects",
+      value: s?.total_projects,
+      note: s ? `${s.projects_this_week} new this week` : "",
+      icon: FolderOpen,
+    },
+    { label: "Minutes Processed", value: s?.minutes_processed, note: "All time", icon: Clock },
+    {
+      label: "Posts Written",
+      value: s?.content_pieces,
+      note: s ? `From ${plural(s.completed_projects, "recording")}` : "",
+      icon: PenLine,
+    },
+    {
+      label: "Processing Jobs",
+      value: s?.processing_jobs,
+      note: s ? `${s.queued_jobs} in queue` : "",
+      icon: Hourglass,
+    },
+  ];
 
-export default function Dashboard({ navigate }: Props) {
+  const quickActions: { label: string; icon: LucideIcon; desc: string; type: SourceType }[] = [
+    { label: "Upload Video", icon: Video, desc: `${videoFormats}${maxSize}`, type: "video" },
+    { label: "Upload Audio or Podcast", icon: AudioLines, desc: `${audioFormats}${maxSize}`, type: "audio" },
+    { label: "Paste Transcript", icon: FileText, desc: "Plain text, SRT or WebVTT", type: "transcript" },
+  ];
+
+  let subtitle = "Upload a recording to turn it into a transcript you can reuse.";
+  if (s && s.processing_jobs > 0) subtitle = `${plural(s.processing_jobs, "recording")} processing right now.`;
+  else if (s && s.total_projects > 0) subtitle = `${plural(s.completed_projects, "transcript")} ready to use.`;
+
   return (
-    <div className="space-y-8 animate-slide-in">
-      {/* Welcome */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-extrabold text-[#111827]">Good morning, Sarah 👋</h2>
-          <p className="text-[#6B7280] text-sm mt-1">You have 2 projects processing and 3 pieces ready to publish.</p>
-        </div>
-        <button
-          onClick={() => navigate("create")}
-          className="px-5 py-2.5 bg-gradient-to-r from-[#6D5EF5] to-[#5a4de0] text-white text-sm font-semibold rounded-xl hover:opacity-90 transition-opacity shadow-md shadow-purple-200"
-        >
-          + New Project
-        </button>
+    <div className="space-y-8">
+      <div>
+        <h2 className="text-2xl font-semibold text-balance text-foreground">
+          {greeting()}
+          {user ? `, ${displayName(user)}` : ""}
+        </h2>
+        <p className="mt-1 text-sm text-pretty text-muted-foreground">{subtitle}</p>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((s) => (
-          <div key={s.label} className="bg-white rounded-2xl border border-[#E5E7EB] p-5">
-            <div className="flex items-start justify-between mb-3">
-              <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center text-xl"
-                style={{ background: s.bg }}
-              >
-                {s.icon}
-              </div>
-              <span className="text-xs text-[#10B981] font-medium bg-[#D1FAE5] px-2 py-0.5 rounded-full">
-                {s.change}
-              </span>
-            </div>
-            <p className="text-2xl font-extrabold text-[#111827] mb-0.5">{s.value}</p>
-            <p className="text-xs text-[#9CA3AF] font-medium">{s.label}</p>
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4" aria-busy={summary.isPending}>
+        {stats.map((stat) => (
+          <div key={stat.label} className="rounded-xl border border-border bg-white p-4 sm:p-5">
+            <p className="flex items-center gap-2 text-xs font-medium text-muted-foreground sm:text-sm">
+              <stat.icon aria-hidden="true" className="size-4 shrink-0" />
+              {stat.label}
+            </p>
+            <p className="mt-3 text-2xl font-semibold text-foreground tabular-nums">
+              {stat.value ?? (summary.isError ? "—" : <span className="inline-block h-7 w-10 animate-pulse rounded bg-secondary align-middle" />)}
+            </p>
+            {stat.note && <p className="mt-1 text-xs text-muted-foreground tabular-nums">{stat.note}</p>}
           </div>
         ))}
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-6">
-        {/* Recent Projects */}
-        <div className="lg:col-span-2 bg-white rounded-2xl border border-[#E5E7EB]">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-[#F3F4F6]">
-            <h3 className="font-bold text-[#111827]">Recent Projects</h3>
-            <button
-              onClick={() => navigate("projects")}
-              className="text-sm text-[#6D5EF5] font-medium hover:underline"
-            >
-              View all
-            </button>
+      <div className="grid gap-6 lg:grid-cols-3">
+        <section aria-labelledby="recent-projects" className="overflow-hidden rounded-xl border border-border bg-white lg:col-span-2">
+          <div className="flex items-center justify-between gap-4 border-b border-border px-5 py-4 sm:px-6">
+            <h3 id="recent-projects" className="font-semibold text-balance text-foreground">
+              Recent Projects
+            </h3>
+            {!(projects.isSuccess && recent.length === 0) && (
+              <Link
+                to="/projects"
+                className="rounded text-sm font-medium text-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              >
+                View all
+              </Link>
+            )}
           </div>
-          <div className="divide-y divide-[#F3F4F6]">
-            {projects.map((p) => {
-              const st = statusColors[p.status];
-              return (
-                <button
-                  key={p.name}
-                  onClick={() => navigate("project-details")}
-                  className="w-full flex items-center gap-4 px-6 py-4 hover:bg-[#F8FAFC] transition-colors text-left"
-                >
-                  <div className="w-9 h-9 rounded-xl bg-[#EDE9FE] flex items-center justify-center text-base flex-shrink-0">
-                    {p.platform === "Video" ? "🎬" : p.platform === "Podcast" ? "🎙" : p.platform === "Webinar" ? "📡" : p.platform === "YouTube" ? "▶️" : "🔊"}
+
+          {projects.isPending ? (
+            <ul aria-busy="true" aria-label="Loading projects" className="divide-y divide-border">
+              {[0, 1, 2].map((i) => (
+                <li key={i} className="flex items-center gap-4 px-5 py-4 sm:px-6">
+                  <div className="size-9 animate-pulse rounded-lg bg-secondary" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-3 w-1/2 animate-pulse rounded bg-secondary" />
+                    <div className="h-2.5 w-1/4 animate-pulse rounded bg-secondary" />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-[#111827] truncate">{p.name}</p>
-                    <p className="text-xs text-[#9CA3AF] mt-0.5">{p.duration} · {p.date}</p>
-                  </div>
-                  <div className="flex items-center gap-3 flex-shrink-0">
-                    {p.generated > 0 && (
-                      <span className="text-xs text-[#6B7280]">{p.generated} pieces</span>
-                    )}
-                    <span
-                      className="text-xs font-semibold px-2.5 py-1 rounded-full"
-                      style={{ background: st.bg, color: st.text }}
+                </li>
+              ))}
+            </ul>
+          ) : projects.isError ? (
+            <p role="alert" className="px-6 py-8 text-sm text-red-600">
+              {projects.error.message}
+            </p>
+          ) : recent.length === 0 ? (
+            <div className="p-4 sm:p-6">
+              <EmptyState
+                className="border-0 py-8"
+                icon={Video}
+                title="No projects yet"
+                description="Upload a sermon, podcast episode or webinar and Mindra will transcribe it."
+                action={
+                  <Link to="/projects/new" className={buttonStyles()}>
+                    Upload your first recording
+                  </Link>
+                }
+              />
+            </div>
+          ) : (
+            <ul className="divide-y divide-border">
+              {recent.map((project) => {
+                const Icon = SOURCE_ICONS[project.source_type];
+                return (
+                  <li key={project.id}>
+                    <Link
+                      to={projectPath(project)}
+                      className="flex items-center gap-4 px-5 py-4 transition-colors hover:bg-background focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary sm:px-6"
                     >
-                      {st.label}
-                    </span>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
+                      <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-secondary text-muted-foreground">
+                        <Icon aria-hidden="true" className="size-4" />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-medium text-foreground">{project.name}</span>
+                        <span className="mt-0.5 block text-xs text-muted-foreground tabular-nums">
+                          {formatDuration(project.duration_seconds)} · {formatDate(project.created_at)}
+                        </span>
+                      </span>
+                      <StatusBadge status={project.status} />
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
 
-        {/* Quick Actions */}
-        <div>
-          <div className="bg-white rounded-2xl border border-[#E5E7EB] p-5">
-            <h3 className="font-bold text-[#111827] mb-4">Quick Actions</h3>
-            <div className="space-y-2">
-              {quickActions.map((a) => (
-                <button
-                  key={a.label}
-                  onClick={() => navigate(a.page)}
-                  className="w-full flex items-center gap-3 p-3 rounded-xl border border-[#E5E7EB] hover:border-[#6D5EF5]/30 hover:bg-[#EDE9FE]/30 transition-all text-left group"
+        <section aria-labelledby="start-project" className="h-fit rounded-xl border border-border bg-white p-5">
+          <h3 id="start-project" className="mb-4 font-semibold text-balance text-foreground">
+            Start a project
+          </h3>
+          <ul className="space-y-2">
+            {quickActions.map((action) => (
+              <li key={action.type}>
+                <Link
+                  to={`/projects/new?type=${action.type}`}
+                  className="flex w-full items-center gap-3 rounded-lg border border-border p-3 text-left transition-colors hover:bg-background focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                 >
-                  <span className="text-xl">{a.icon}</span>
-                  <div>
-                    <p className="text-sm font-semibold text-[#111827] group-hover:text-[#6D5EF5] transition-colors">
-                      {a.label}
-                    </p>
-                    <p className="text-xs text-[#9CA3AF]">{a.desc}</p>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Mini chart */}
-          <div className="bg-white rounded-2xl border border-[#E5E7EB] p-5 mt-4">
-            <h3 className="font-bold text-[#111827] mb-1">Content This Week</h3>
-            <p className="text-3xl font-extrabold text-[#111827] mb-4">127 <span className="text-sm font-normal text-[#10B981]">↑ 34%</span></p>
-            <div className="flex items-end gap-1.5 h-16">
-              {[40, 65, 30, 80, 55, 90, 70].map((h, i) => (
-                <div key={i} className="flex-1 rounded-t-sm" style={{
-                  height: `${h}%`,
-                  background: i === 5 ? "#6D5EF5" : "#EDE9FE",
-                }} />
-              ))}
-            </div>
-            <div className="flex justify-between mt-2">
-              {["M", "T", "W", "T", "F", "S", "S"].map((d, i) => (
-                <span key={i} className="text-[10px] text-[#9CA3AF] flex-1 text-center">{d}</span>
-              ))}
-            </div>
-          </div>
-        </div>
+                  <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-secondary text-muted-foreground">
+                    <action.icon aria-hidden="true" className="size-4" />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-sm font-medium text-foreground">{action.label}</span>
+                    <span className="block text-xs text-pretty text-muted-foreground">{action.desc}</span>
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
       </div>
     </div>
   );

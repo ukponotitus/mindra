@@ -1,4 +1,5 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+/* Inter with its optical-size axis: large text uses the tighter Display cut automatically, so no letter-spacing tweaks are needed. */
+@import url('https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap');
 @import 'tailwindcss';
 
 @theme inline {
@@ -24,7 +25,8 @@
   --foreground: #111827;
   --card: #ffffff;
   --card-foreground: #111827;
-  --primary: #6D5EF5;
+  /* Deep enough for AA contrast: 5.9:1 behind white text, 5.2:1 as text on its own 10% tint. */
+  --primary: #5B4DE0;
   --primary-foreground: #ffffff;
   --secondary: #F3F4F6;
   --secondary-foreground: #374151;
@@ -33,12 +35,13 @@
   --accent: #3ECFCE;
   --accent-foreground: #0F172A;
   --border: #E5E7EB;
-  --ring: #6D5EF5;
+  --ring: #5B4DE0;
   --radius: 12px;
 }
 
 * {
   font-family: 'Inter', sans-serif;
+  font-optical-sizing: auto;
   box-sizing: border-box;
 }
 
@@ -82,3 +85,51 @@ html, body, #root {
 .animate-spin-slow { animation: spin-slow 3s linear infinite; }
 .animate-pulse-ring { animation: pulse-ring 2s ease-in-out infinite; }
 .animate-slide-in { animation: slide-in 0.3s ease-out; }
+
+/* Landing page motion. Most landing animation lives in Framer Motion; these are the few CSS loops.
+   Every loop animates only transform or opacity, and pauses while its section is off-screen (see Landing.tsx). */
+html { scroll-behavior: smooth; }
+
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+@keyframes ping-soft {
+  0% { transform: scale(1); opacity: 0.6; }
+  100% { transform: scale(2.4); opacity: 0; }
+}
+
+/* The sound ribbon: its drawing repeats every half-width, so sliding by half loops seamlessly. */
+@keyframes ribbon-flow {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-9px); }
+}
+
+@keyframes breathe {
+  0%, 100% { opacity: 0.8; }
+  50% { opacity: 1; }
+}
+
+.animate-marquee { animation: marquee 45s linear infinite; }
+.animate-ping-soft { animation: ping-soft 2s ease-out infinite; }
+.animate-ribbon { animation: ribbon-flow var(--ribbon-duration, 10s) linear infinite; }
+.animate-float { animation: float 7s ease-in-out infinite; }
+.animate-breathe { animation: breathe 7s ease-in-out infinite; }
+.animate-spin-slower { animation: spin-slow 180s linear infinite; }
+
+[data-offscreen] *, [data-offscreen] { animation-play-state: paused !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

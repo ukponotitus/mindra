@@ -1,152 +1,431 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Check, ChevronRight, Copy, Maximize2, Minimize2, RefreshCw, Star, Trash2, Undo2 } from "lucide-react";
+import { Link, useNavigate, useParams } from "react-router";
+import AiWriterNotice from "../components/content/AiWriterNotice";
+import PlatformBadge from "../components/content/PlatformBadge";
+import SuggestionsPanel from "../components/content/SuggestionsPanel";
+import { ClipStrip } from "../components/content/ContentCard";
+import ConfirmDialog from "../components/ui/ConfirmDialog";
+import { buttonStyles } from "../components/ui/button";
+import { cn } from "../lib/cn";
+import { TONES, useContentPiece, useDeletePiece, useRewritePiece, useUpdatePiece, type RewriteAction } from "../lib/content";
+import { formatDate } from "../lib/format";
+import { platformInfo } from "../lib/projects";
+import type { ClipSummary } from "../lib/types";
 
-const toolbarActions = ["↻ Regenerate", "↓ Make Shorter", "↑ Make Longer", "✏ Rewrite", "🎭 Change Tone", "🌐 Translate"];
+const toolButton = buttonStyles({ variant: "secondary", size: "sm", className: "h-9" });
 
-const defaultContent = `My biggest lesson after 5 years building startups:
+const crumbLink =
+  "rounded hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary";
 
-Stop optimizing for vanity metrics.
+/** A grey stand-in shaped like the editor, shown while the post loads. */
+function EditorSkeleton() {
+  return (
+    <div aria-busy="true" className="space-y-6">
+      <p role="status" className="sr-only">
+        Loading post
+      </p>
+      <div className="space-y-3">
+        <div className="h-3.5 w-48 animate-pulse rounded bg-secondary" />
+        <div className="h-6 w-40 animate-pulse rounded bg-secondary" />
+      </div>
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="space-y-4 rounded-xl border border-border bg-white p-5 lg:col-span-2">
+          <div className="h-10 w-full animate-pulse rounded-lg bg-secondary" />
+          <div className="h-80 w-full animate-pulse rounded-lg bg-secondary" />
+        </div>
+        <div className="space-y-4 rounded-xl border border-border bg-white p-5">
+          <div className="h-4 w-20 animate-pulse rounded bg-secondary" />
+          <div className="h-40 w-full animate-pulse rounded-lg bg-secondary" />
+        </div>
+      </div>
+    </div>
+  );
+}
 
-Revenue is the only metric that doesn't lie.
-
-Here's what we got wrong in year 2 👇
-
-We had 50k monthly active users. We were growing 20% MoM. Investors were excited.
-
-Then 3 enterprise customers churned in the same week. $180k ARR — gone.
-
-We were building for the wrong customer the entire time.
-
-The lesson? Talk to your churned customers FIRST.
-
-What's your biggest startup lesson? Drop it below ↓
-
-#StartupLife #Entrepreneurship #ProductMarketFit`;
+/** Edit one post, with AI help to shorten, lengthen, rephrase or change its tone. */
+/** The clip this post is the caption for: watch and download it next to the text. */
+function PostClip({ clip, project }: { clip: ClipSummary; project: string }) {
+  const made = clip.status === "ready" && clip.video_url && !clip.is_stale;
+  return (
+    <section aria-labelledby="post-clip" className="rounded-xl border border-border bg-white p-5">
+      <h3 id="post-clip" className="mb-3 text-sm font-semibold text-foreground">
+        Clip
+      </h3>
+      {made && (
+        <video
+          src={clip.video_url ?? undefined}
+          poster={clip.thumbnail_url ?? undefined}
+          controls
+          playsInline
+          preload="metadata"
+          aria-label={`Clip: ${clip.title}`}
+          className="mx-auto mb-1 aspect-[9/16] max-h-80 rounded-lg bg-black"
+        />
+      )}
+      <ClipStrip clip={clip} project={project} />
+      {!made && (
+        <p className="mt-2 text-sm text-pretty text-muted-foreground">
+          Make the clip in its project's Clips tab to download it with this post.
+        </p>
+      )}
+    </section>
+  );
+}
 
 export default function ContentEditor() {
-  const [content, setContent] = useState(defaultContent);
+  const { pieceId } = useParams();
+  const navigate = useNavigate();
+  const { data: piece, isPending, error } = useContentPiece(pieceId);
+  const update = useUpdatePiece();
+  const remove = useDeletePiece();
+  const rewrite = useRewritePiece();
+
+  const [loadedId, setLoadedId] = useState<string | null>(null);
+  const [title, setTitle] = useState("");
+  const [body, setBody] = useState("");
+  const [tone, setTone] = useState("Warm");
+  const [beforeAi, setBeforeAi] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const postTextRef = useRef<HTMLTextAreaElement>(null);
+
+  // Fill the form once per post, so background refreshes don't overwrite what's being typed.
+  useEffect(() => {
+    if (piece && piece.id !== loadedId) {
+      setTitle(piece.title);
+      setBody(piece.body);
+      setTone(TONES.includes(piece.tone) ? piece.tone : "Warm");
+      setBeforeAi(null);
+      setLoadedId(piece.id);
+    }
+  }, [piece, loadedId]);
+
+  if (isPending) return <EditorSkeleton />;
+
+  if (error || !piece) {
+    return (
+      <div className="mx-auto max-w-md py-24 text-center">
+        <h2 className="mb-2 text-xl font-semibold text-balance text-foreground">We couldn't find that post</h2>
+        <p className="mb-6 text-sm text-pretty text-muted-foreground">{error?.message ?? "It may have been deleted."}</p>
+        <Link to="/library" className={buttonStyles({ variant: "secondary" })}>
+          Back to the library
+        </Link>
+      </div>
+    );
+  }
+
+  const info = platformInfo(piece.platform);
+  const dirty = title !== piece.title || body !== piece.body;
+  const overLimit = info.limit !== undefined && body.length > info.limit;
+  const approved = piece.status === "approved";
+  // Approve and favourite share the save mutation with the text; show its error by whichever button was used.
+  const lastChange = update.variables ?? {};
+  const sideError = update.isError && ("status" in lastChange || "is_favorite" in lastChange) ? update.error.message : "";
+  const saveError = update.isError && !sideError ? update.error.message : "";
+
+  const runAi = (action: RewriteAction) =>
+    rewrite.mutate(
+      { id: piece.id, action, tone, body },
+      {
+        onSuccess: (result) => {
+          setBeforeAi(body);
+          setBody(result.body);
+        },
+      },
+    );
+
+  // A suggestion from the side panel, kept undoable like an AI rewrite.
+  const applySuggestion = (next: string) => {
+    setBeforeAi(body);
+    setBody(next);
+  };
+
+  const copy = async () => {
+    await navigator.clipboard.writeText(body);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 2000);
+  };
+
+  const deletePiece = () =>
+    remove.mutate(piece.id, { onSuccess: () => navigate(`/projects/${piece.project}?tab=posts`, { replace: true }) });
+
+  let saveNote = <span className="text-muted-foreground">All changes saved</span>;
+  if (dirty && !body.trim()) saveNote = <span className="text-red-600">Add some text before saving</span>;
+  else if (dirty) saveNote = <span className="text-amber-700">Unsaved changes</span>;
 
   return (
-    <div className="animate-slide-in">
-      <div className="mb-6">
-        <h2 className="text-2xl font-extrabold text-[#111827] mb-1">Content Editor</h2>
-        <p className="text-sm text-[#6B7280]">LinkedIn Post · Founder Story EP42</p>
+    <div className="space-y-6">
+      <div>
+        <nav aria-label="Breadcrumb" className="mb-3">
+          <ol className="flex min-w-0 items-center gap-1.5 text-sm text-muted-foreground">
+            <li className="shrink-0">
+              <Link to="/library" className={crumbLink}>
+                Content Library
+              </Link>
+            </li>
+            <li aria-hidden="true">
+              <ChevronRight className="size-4 shrink-0" />
+            </li>
+            <li className="min-w-0 truncate">
+              <Link to={`/projects/${piece.project}?tab=posts`} className={crumbLink}>
+                {piece.project_name}
+              </Link>
+            </li>
+          </ol>
+        </nav>
+        <div className="flex flex-wrap items-center gap-3">
+          <h2 className="flex items-center gap-2.5 text-xl font-semibold text-balance text-foreground">
+            <PlatformBadge platform={piece.platform} withLabel={false} />
+            {info.label} post
+          </h2>
+          {approved && (
+            <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">Approved</span>
+          )}
+        </div>
       </div>
 
-      {/* Toolbar */}
-      <div className="flex flex-wrap gap-2 mb-5 bg-white rounded-2xl border border-[#E5E7EB] p-3">
-        {toolbarActions.map((action) => (
-          <button
-            key={action}
-            className="px-3 py-1.5 text-xs font-medium rounded-lg border border-[#E5E7EB] text-[#374151] hover:bg-[#EDE9FE] hover:border-[#6D5EF5]/30 hover:text-[#6D5EF5] transition-all"
-          >
-            {action}
-          </button>
-        ))}
-      </div>
+      <AiWriterNotice />
 
-      <div className="grid lg:grid-cols-3 gap-6">
-        {/* Editor */}
-        <div className="lg:col-span-2 space-y-4">
-          <div className="bg-white rounded-2xl border border-[#E5E7EB] p-5">
-            <div className="flex items-center gap-2 mb-4 pb-4 border-b border-[#F3F4F6]">
-              <span className="w-7 h-7 rounded text-[11px] font-bold flex items-center justify-center text-white bg-[#0A66C2]">in</span>
-              <span className="font-bold text-[#111827] text-sm">LinkedIn Post</span>
-              <span className="ml-auto text-xs text-[#9CA3AF]">{content.length} / 3000 characters</span>
-            </div>
-            <textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              className="w-full text-sm text-[#374151] leading-relaxed resize-none focus:outline-none min-h-[300px] font-sans"
-              placeholder="Your content here..."
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="space-y-5 rounded-xl border border-border bg-white p-5 lg:col-span-2">
+          <div>
+            <label htmlFor="post-label" className="mb-1.5 block text-sm font-medium text-foreground">
+              Label
+            </label>
+            <input
+              id="post-label"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              maxLength={200}
+              placeholder="Short label for this post"
+              className="h-10 w-full rounded-lg border border-border bg-white px-3 text-sm text-foreground placeholder:text-muted-foreground transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-hidden"
             />
           </div>
 
-          {/* Post preview */}
-          <div className="bg-white rounded-2xl border border-[#E5E7EB] p-5">
-            <h3 className="font-bold text-sm text-[#111827] mb-4">Post Preview</h3>
-            <div className="border border-[#E5E7EB] rounded-xl p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#6D5EF5] to-[#3ECFCE] flex items-center justify-center text-white text-xs font-bold">SC</div>
-                <div>
-                  <p className="text-sm font-bold text-[#111827]">Sarah Chen</p>
-                  <p className="text-xs text-[#9CA3AF]">Marketing Lead · 1st</p>
-                </div>
+          <div>
+            <label htmlFor="post-text" className="mb-1.5 block text-sm font-medium text-foreground">
+              Post text
+            </label>
+            <div className="overflow-hidden rounded-lg border border-border">
+              <div
+                role="group"
+                aria-label="Rewrite with AI"
+                className="flex flex-wrap items-center gap-2 border-b border-border bg-background p-2"
+              >
+                <span aria-hidden="true" className="px-1 text-xs font-medium text-muted-foreground">
+                  Rewrite
+                </span>
+                <button type="button" onClick={() => runAi("shorter")} disabled={rewrite.isPending} className={toolButton}>
+                  <Minimize2 aria-hidden="true" className="size-4" />
+                  Shorter
+                </button>
+                <button type="button" onClick={() => runAi("longer")} disabled={rewrite.isPending} className={toolButton}>
+                  <Maximize2 aria-hidden="true" className="size-4" />
+                  Longer
+                </button>
+                <button type="button" onClick={() => runAi("rephrase")} disabled={rewrite.isPending} className={toolButton}>
+                  <RefreshCw aria-hidden="true" className="size-4" />
+                  Rephrase
+                </button>
+                <span className="inline-flex h-9 items-center overflow-hidden rounded-lg border border-border bg-white">
+                  <label htmlFor="rewrite-tone" className="sr-only">
+                    Tone
+                  </label>
+                  <select
+                    id="rewrite-tone"
+                    value={tone}
+                    onChange={(e) => setTone(e.target.value)}
+                    className="h-full bg-white pr-1 pl-2.5 text-sm text-foreground focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary"
+                  >
+                    {TONES.map((option) => (
+                      <option key={option}>{option}</option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => runAi("tone")}
+                    disabled={rewrite.isPending}
+                    className="h-full border-l border-border px-3 text-sm font-medium text-foreground transition-colors hover:bg-secondary focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary disabled:opacity-50"
+                  >
+                    Change tone
+                  </button>
+                </span>
+                {beforeAi !== null && !rewrite.isPending && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBody(beforeAi);
+                      setBeforeAi(null);
+                    }}
+                    className={buttonStyles({ variant: "ghost", size: "sm", className: "h-9" })}
+                  >
+                    <Undo2 aria-hidden="true" className="size-4" />
+                    Undo
+                  </button>
+                )}
+                {rewrite.isPending && (
+                  <span role="status" className="inline-flex items-center gap-2 px-1 text-sm text-muted-foreground">
+                    <span aria-hidden="true" className="size-4 animate-spin rounded-full border-2 border-primary/30 border-t-primary" />
+                    Rewriting…
+                  </span>
+                )}
               </div>
-              <pre className="text-sm text-[#374151] leading-relaxed whitespace-pre-wrap font-sans line-clamp-8">
-                {content}
-              </pre>
+              <textarea
+                id="post-text"
+                ref={postTextRef}
+                value={body}
+                onChange={(e) => setBody(e.target.value)}
+                rows={16}
+                aria-describedby="post-text-count"
+                aria-invalid={overLimit || undefined}
+                className="block w-full resize-y bg-white px-3.5 py-3 text-sm leading-relaxed text-gray-700 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary"
+              />
             </div>
+            {rewrite.isError && (
+              <p role="alert" className="mt-2 text-sm text-pretty text-red-600">
+                {rewrite.error.message}
+              </p>
+            )}
           </div>
 
-          <div className="flex gap-3">
-            <button className="flex-1 py-3 bg-gradient-to-r from-[#6D5EF5] to-[#5a4de0] text-white font-semibold rounded-xl hover:opacity-90 transition-opacity text-sm">
-              Save Changes
-            </button>
-            <button className="px-5 py-3 bg-white border border-[#E5E7EB] text-[#374151] font-semibold rounded-xl hover:bg-[#F3F4F6] transition-colors text-sm">
-              Schedule Post
-            </button>
+          <div className="flex flex-wrap items-center gap-3 border-t border-border pt-4">
+            <p id="post-text-count" className={cn("text-sm tabular-nums", overLimit ? "font-medium text-red-600" : "text-muted-foreground")}>
+              {body.length.toLocaleString()}
+              {info.limit ? ` / ${info.limit.toLocaleString()}` : ""} characters
+              {overLimit && `, over ${info.label}'s limit`}
+            </p>
+            <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+              <p role="status" className="text-sm">
+                {saveNote}
+              </p>
+              <button type="button" onClick={copy} className={buttonStyles({ variant: "secondary" })}>
+                {copied ? <Check aria-hidden="true" className="size-4" /> : <Copy aria-hidden="true" className="size-4" />}
+                {copied ? "Copied" : "Copy"}
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  update.mutate(
+                    { id: piece.id, title, body },
+                    // Back to the library once it's saved; it shows a note naming the post.
+                    { onSuccess: () => navigate("/library", { state: { saved: { id: piece.id, label: title.trim() || `${info.label} post` } } }) },
+                  )
+                }
+                disabled={!dirty || update.isPending || !body.trim()}
+                className={buttonStyles()}
+              >
+                {update.isPending && "body" in lastChange ? "Saving…" : "Save"}
+              </button>
+            </div>
           </div>
+          {saveError && (
+            <p role="alert" className="text-sm text-pretty text-red-600">
+              {saveError}
+            </p>
+          )}
         </div>
 
-        {/* AI Suggestions sidebar */}
         <div className="space-y-4">
-          <div className="bg-white rounded-2xl border border-[#E5E7EB] p-5">
-            <h3 className="font-bold text-[#111827] text-sm mb-3">✨ AI Suggestions</h3>
-            <div className="space-y-2">
-              {[
-                "Add a specific number or statistic to the opening line for higher engagement.",
-                "Consider adding a personal story of vulnerability before the main lesson.",
-                "End with a stronger CTA — ask a specific question to boost comments.",
-              ].map((s, i) => (
-                <div key={i} className="text-xs text-[#6B7280] p-3 bg-[#F8FAFC] rounded-xl border border-[#F3F4F6] leading-relaxed">
-                  {s}
+          {piece.clip && <PostClip clip={piece.clip} project={piece.project} />}
+          <SuggestionsPanel
+            key={piece.id}
+            pieceId={piece.id}
+            platform={piece.platform}
+            body={body}
+            tone={tone}
+            textareaRef={postTextRef}
+            onChange={applySuggestion}
+            disabled={rewrite.isPending}
+          />
+
+          <section aria-labelledby="post-preview" className="rounded-xl border border-border bg-white p-5">
+            <h3 id="post-preview" className="mb-3 text-sm font-semibold text-foreground">
+              Preview
+            </h3>
+            <div className="rounded-lg border border-border p-4">
+              <div className="mb-3 flex items-center gap-2.5">
+                <span
+                  aria-hidden="true"
+                  className="grid size-8 shrink-0 place-items-center rounded-full text-xs font-semibold text-white"
+                  style={{ background: info.color }}
+                >
+                  {info.badge}
+                </span>
+                <div className="leading-tight">
+                  <p className="text-sm font-medium text-foreground">Your {info.label} page</p>
+                  <p className="text-xs text-muted-foreground">Just now</p>
                 </div>
-              ))}
+              </div>
+              <p className="max-h-96 overflow-y-auto text-sm leading-relaxed whitespace-pre-wrap text-gray-700">{body}</p>
             </div>
-          </div>
+          </section>
 
-          <div className="bg-white rounded-2xl border border-[#E5E7EB] p-5">
-            <h3 className="font-bold text-[#111827] text-sm mb-3">📣 CTA Ideas</h3>
-            <div className="space-y-1.5">
-              {[
-                "What's the hardest lesson you've learned as a founder?",
-                "Save this post for the next time you're chasing the wrong metrics.",
-                "Tag a founder who needs to read this today.",
-              ].map((cta) => (
-                <button key={cta} className="w-full text-left text-xs text-[#6B7280] p-2.5 rounded-lg hover:bg-[#EDE9FE] hover:text-[#6D5EF5] transition-colors leading-relaxed">
-                  {cta}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="bg-white rounded-2xl border border-[#E5E7EB] p-5">
-            <h3 className="font-bold text-[#111827] text-sm mb-3"># Hashtags</h3>
-            <div className="flex flex-wrap gap-1.5">
-              {["#StartupLife", "#Entrepreneurship", "#ProductMarketFit", "#Founder", "#GrowthHacking", "#B2B", "#SaaS", "#BusinessLessons"].map((h) => (
-                <button
-                  key={h}
-                  className="text-[10px] font-medium px-2 py-1 bg-[#EDE9FE] text-[#6D5EF5] rounded-full hover:bg-[#DDD6FE] transition-colors"
-                  onClick={() => setContent((c) => c + "\n" + h)}
-                >
-                  {h}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="bg-white rounded-2xl border border-[#E5E7EB] p-5">
-            <h3 className="font-bold text-[#111827] text-sm mb-3">😊 Emoji Suggestions</h3>
-            <div className="flex flex-wrap gap-2">
-              {["🚀", "💡", "🎯", "📈", "💰", "🔥", "👇", "✅", "⚡", "🧵"].map((e) => (
-                <button
-                  key={e}
-                  className="text-xl hover:scale-125 transition-transform"
-                  onClick={() => setContent((c) => c + " " + e)}
-                >
-                  {e}
-                </button>
-              ))}
+          <div className="space-y-3 rounded-xl border border-border bg-white p-5">
+            <button
+              type="button"
+              onClick={() => update.mutate({ id: piece.id, status: approved ? "draft" : "approved" })}
+              className={buttonStyles({
+                variant: "secondary",
+                className: cn(
+                  "w-full",
+                  approved && "border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100",
+                ),
+              })}
+            >
+              <Check aria-hidden="true" className={cn("size-4", !approved && "text-emerald-600")} />
+              {approved ? "Approved · mark as draft" : "Approve"}
+            </button>
+            <button
+              type="button"
+              onClick={() => update.mutate({ id: piece.id, is_favorite: !piece.is_favorite })}
+              className={buttonStyles({ variant: "secondary", className: "w-full" })}
+            >
+              <Star
+                aria-hidden="true"
+                className={cn("size-4", piece.is_favorite && "fill-amber-400 text-amber-500")}
+              />
+              {piece.is_favorite ? "Favourite" : "Add to favourites"}
+            </button>
+            {sideError && (
+              <p role="alert" className="text-sm text-pretty text-red-600">
+                {sideError}
+              </p>
+            )}
+            <dl className="space-y-1.5 pt-2 text-sm">
+              <div className="flex justify-between gap-4">
+                <dt className="text-muted-foreground">Written</dt>
+                <dd className="text-foreground tabular-nums">{formatDate(piece.created_at)}</dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt className="text-muted-foreground">Tone</dt>
+                <dd className="text-foreground">{piece.tone || "—"}</dd>
+              </div>
+            </dl>
+            <div className="border-t border-border pt-3">
+              <ConfirmDialog
+                trigger={
+                  <button
+                    type="button"
+                    disabled={remove.isPending}
+                    className={buttonStyles({
+                      variant: "ghost",
+                      className: "w-full text-red-600 hover:bg-red-50 hover:text-red-700",
+                    })}
+                  >
+                    <Trash2 aria-hidden="true" className="size-4" />
+                    {remove.isPending ? "Deleting…" : "Delete post"}
+                  </button>
+                }
+                title="Delete this post?"
+                description="This removes the post from your library and from its project. It can't be undone."
+                confirmLabel="Delete post"
+                onConfirm={deletePiece}
+              />
+              {remove.isError && (
+                <p role="alert" className="mt-2 text-sm text-pretty text-red-600">
+                  {remove.error.message}
+                </p>
+              )}
             </div>
           </div>
         </div>

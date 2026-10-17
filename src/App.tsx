@@ -1,51 +1,107 @@
-import { useState } from "react";
-import LandingPage from "./pages/Landing";
-import AuthPage from "./pages/Auth";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { CalendarDays, CreditCard } from "lucide-react";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router";
+import AuthProvider from "./auth/AuthProvider";
+import RequireAuth from "./auth/RequireAuth";
+import ComingSoon from "./components/ComingSoon";
 import DashboardShell from "./components/DashboardShell";
+import { ApiError } from "./lib/api";
+import AIStudio from "./pages/AIStudio";
+import AuthPage from "./pages/Auth";
+import BrandVoice from "./pages/BrandVoice";
+import ContentEditor from "./pages/ContentEditor";
+import Clips from "./pages/Clips";
+import ContentLibrary from "./pages/ContentLibrary";
+import CreateProject from "./pages/CreateProject";
+import Dashboard from "./pages/Dashboard";
+import LandingPage from "./pages/Landing";
+import PrivacyPage from "./pages/Privacy";
+import Processing from "./pages/Processing";
+import ProjectDetails from "./pages/ProjectDetails";
+import Projects from "./pages/Projects";
+import Settings from "./pages/Settings";
+import TermsPage from "./pages/Terms";
 
-export type Page =
-  | "landing"
-  | "login"
-  | "signup"
-  | "forgot"
-  | "dashboard"
-  | "projects"
-  | "create"
-  | "processing"
-  | "project-details"
-  | "ai-studio"
-  | "content-library"
-  | "content-editor"
-  | "calendar"
-  | "brand-voice"
-  | "billing"
-  | "settings";
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 10_000,
+      // Retry network blips, but not answers like "not found" or "not allowed".
+      retry: (failures, error) => !(error instanceof ApiError && error.status >= 400 && error.status < 500) && failures < 2,
+    },
+  },
+});
+
+// Vite's base can be a full URL on hosted previews; the router only needs its path.
+const basename = new URL(import.meta.env.BASE_URL, window.location.origin).pathname.replace(/\/$/, "") || "/";
 
 export default function App() {
-  const [page, setPage] = useState<Page>("landing");
-  const [authMode, setAuthMode] = useState<"login" | "signup" | "forgot">("login");
+  return (
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter basename={basename}>
+        <AuthProvider>
+          <Routes>
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/login" element={<AuthPage key="login" mode="login" />} />
+            <Route path="/signup" element={<AuthPage key="signup" mode="signup" />} />
+            <Route path="/forgot-password" element={<AuthPage key="forgot" mode="forgot" />} />
+            <Route path="/reset-password" element={<AuthPage key="reset" mode="reset" />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
+            <Route path="/terms" element={<TermsPage />} />
 
-  const navigate = (p: Page) => setPage(p);
+            <Route element={<RequireAuth />}>
+              <Route element={<DashboardShell />}>
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/projects" element={<Projects />} />
+                <Route path="/projects/new" element={<CreateProject />} />
+                <Route path="/projects/:projectId" element={<ProjectDetails />} />
+                <Route path="/projects/:projectId/processing" element={<Processing />} />
+                <Route path="/ai-studio" element={<AIStudio />} />
+                <Route path="/library" element={<ContentLibrary />} />
+                <Route path="/library/:pieceId" element={<ContentEditor />} />
+                <Route path="/clips" element={<Clips />} />
+                <Route
+                  path="/calendar"
+                  element={
+                    <ComingSoon
+                      icon={CalendarDays}
+                      title="Content Calendar"
+                      description="Plan a month of posts from every recording and publish them on schedule."
+                      points={[
+                        "Drag posts onto the days you want them to go out",
+                        "Publish to Facebook, Instagram, YouTube and more on schedule",
+                        "Share packs for WhatsApp Status and Channels",
+                        "See every scheduled post across your recordings in one place",
+                      ]}
+                    />
+                  }
+                />
+                <Route path="/brand-voice" element={<BrandVoice />} />
+                <Route
+                  path="/billing"
+                  element={
+                    <ComingSoon
+                      icon={CreditCard}
+                      title="Plans & Billing"
+                      description="Mindra is free while it's in beta. Paid plans arrive after the beta."
+                      points={[
+                        "Plans priced by hours of video, never per post",
+                        "Pay in naira with Paystack, or in dollars with a card",
+                        "See your usage for the month at a glance",
+                        "Download invoices for your records",
+                      ]}
+                      note="You'll hear from us well before anything changes."
+                    />
+                  }
+                />
+                <Route path="/settings" element={<Settings />} />
+              </Route>
+            </Route>
 
-  if (page === "landing") {
-    return (
-      <LandingPage
-        onGetStarted={() => { setAuthMode("signup"); navigate("login"); }}
-        onLogin={() => { setAuthMode("login"); navigate("login"); }}
-      />
-    );
-  }
-
-  if (page === "login" || page === "signup" || page === "forgot") {
-    return (
-      <AuthPage
-        mode={authMode}
-        onModeChange={(m) => { setAuthMode(m); navigate(m); }}
-        onSuccess={() => navigate("dashboard")}
-        onBack={() => navigate("landing")}
-      />
-    );
-  }
-
-  return <DashboardShell page={page} navigate={navigate} />;
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </AuthProvider>
+      </BrowserRouter>
+    </QueryClientProvider>
+  );
 }

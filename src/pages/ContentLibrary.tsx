@@ -1,150 +1,254 @@
-import { useState } from "react";
-import type { Page } from "../App";
+import { useEffect, useState } from "react";
+import { ArrowLeft, ArrowRight, Check, FileText, Plus, Search, Star, X } from "lucide-react";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router";
+import ContentCard from "../components/content/ContentCard";
+import EmptyState from "../components/EmptyState";
+import { buttonStyles } from "../components/ui/button";
+import { cn } from "../lib/cn";
+import { useContentList } from "../lib/content";
+import { PLATFORMS, useProjects } from "../lib/projects";
+import type { Platform } from "../lib/types";
 
-interface Props {
-  navigate: (p: Page) => void;
+const PAGE_SIZE = 24;
+
+const fieldClass =
+  "h-10 rounded-lg border border-border bg-white px-3 text-sm text-foreground transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-hidden";
+
+/** A grey stand-in shaped like a post card, shown while posts load. */
+function PostSkeleton() {
+  return (
+    <div className="flex h-64 flex-col rounded-xl border border-border bg-white p-5">
+      <div className="flex items-center gap-2">
+        <div className="size-6 animate-pulse rounded-md bg-secondary" />
+        <div className="h-3.5 w-24 animate-pulse rounded bg-secondary" />
+      </div>
+      <div className="mt-5 flex-1 space-y-2.5">
+        <div className="h-3 w-full animate-pulse rounded bg-secondary" />
+        <div className="h-3 w-11/12 animate-pulse rounded bg-secondary" />
+        <div className="h-3 w-3/4 animate-pulse rounded bg-secondary" />
+      </div>
+      <div className="flex gap-2 border-t border-border pt-4">
+        <div className="h-9 w-20 animate-pulse rounded-lg bg-secondary" />
+        <div className="h-9 w-16 animate-pulse rounded-lg bg-secondary" />
+      </div>
+    </div>
+  );
 }
 
-const platforms = ["All", "LinkedIn", "Instagram", "X Thread", "Blog", "Newsletter", "TikTok", "Quote Cards"];
+/** Every post Mindra has written, across all recordings, with filters kept in the address bar. */
+/** What the editor passes back after a save, for the "Saved" note. */
+type SavedNote = { saved?: { id: string; label: string } } | null;
 
-const content = [
-  { id: 1, platform: "LinkedIn", badge: "in", color: "#0A66C2", project: "Founder Story EP42", tone: "Storytelling", date: "Aug 22", title: "The $180k Churn Lesson", preview: "My biggest lesson after 5 years building startups: stop optimizing for vanity metrics. Revenue is the only metric that doesn't lie...", fav: true },
-  { id: 2, platform: "X Thread", badge: "𝕏", color: "#000", project: "Founder Story EP42", tone: "Bold", date: "Aug 22", title: "Nobody Talks About This Thread", preview: "1/ Nobody talks about the hardest part of startup life. It's not the funding, the product, or even the team. It's THIS 🧵", fav: false },
-  { id: 3, platform: "Instagram", badge: "📸", color: "#E1306C", project: "Q3 Webinar", tone: "Casual", date: "Aug 23", title: "Product-Market Fit POV", preview: "POV: You finally figured out product-market fit after 3 years of pivoting 🔥 The journey no one shows you...", fav: true },
-  { id: 4, platform: "Blog", badge: "📝", color: "#10B981", project: "Founder Story EP42", tone: "Educational", date: "Aug 22", title: "5 Startup Lessons That Changed Everything", preview: "5 Startup Lessons That Changed Everything For Us — A deep dive into the decisions that shaped our trajectory from $0 to $1M ARR.", fav: false },
-  { id: 5, platform: "Newsletter", badge: "✉", color: "#6D5EF5", project: "Q3 Webinar", tone: "Professional", date: "Aug 23", title: "Q3 Learnings & What's Next", preview: "This week: The story behind our pivot that saved the company. Plus: 3 frameworks we use for strategic decisions under pressure.", fav: false },
-  { id: 6, platform: "TikTok", badge: "♪", color: "#010101", project: "Founder Story EP42", tone: "Funny", date: "Aug 22", title: "Almost Quit 3 Times Script", preview: "Hook: I almost quit 3 times before hitting $1M ARR. Here's what I wish someone told me on day one. [CUT TO reaction face]", fav: true },
-];
+export default function ContentLibrary() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
+  const navigate = useNavigate();
+  // The note is read once and then cleared from the page's history entry, so a refresh doesn't show it again.
+  const [saved, setSaved] = useState(() => (location.state as SavedNote)?.saved ?? null);
+  useEffect(() => {
+    if (location.state) navigate({ pathname: location.pathname, search: location.search }, { replace: true, state: null });
+  }, [location, navigate]);
+  const platform = (searchParams.get("platform") ?? "") as Platform | "";
+  const project = searchParams.get("project") ?? "";
+  const favorite = searchParams.get("favorite") === "true";
+  const search = searchParams.get("search") ?? "";
+  const page = Math.max(1, Number(searchParams.get("page")) || 1);
+  const [searchInput, setSearchInput] = useState(search);
 
-export default function ContentLibrary({ navigate }: Props) {
-  const [filterPlatform, setFilterPlatform] = useState("All");
-  const [viewGrid, setViewGrid] = useState(true);
-  const [search, setSearch] = useState("");
-  const [favorites, setFavorites] = useState<number[]>([1, 3, 6]);
+  const update = (changes: Record<string, string>) => {
+    const next = new URLSearchParams(searchParams);
+    for (const [key, value] of Object.entries(changes)) {
+      if (value) next.set(key, value);
+      else next.delete(key);
+    }
+    if (!("page" in changes)) next.delete("page"); // New filters start from the first page.
+    setSearchParams(next, { replace: true });
+  };
 
-  const filtered = content.filter((c) => {
-    const matchPlatform = filterPlatform === "All" || c.platform === filterPlatform;
-    const matchSearch = !search || c.title.toLowerCase().includes(search.toLowerCase()) || c.preview.toLowerCase().includes(search.toLowerCase());
-    return matchPlatform && matchSearch;
+  // Search after the person pauses typing.
+  useEffect(() => {
+    if (searchInput === search) return;
+    const id = window.setTimeout(() => update({ search: searchInput.trim() }), 300);
+    return () => window.clearTimeout(id);
   });
 
+  const content = useContentList({ platform, project, favorite, search, page });
+  const projects = useProjects(1);
+  const count = content.data?.count ?? 0;
+  const pages = Math.max(1, Math.ceil(count / PAGE_SIZE));
+  const filtered = Boolean(platform || project || favorite || search);
+
   return (
-    <div className="animate-slide-in">
-      <div className="flex items-center justify-between mb-6">
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-extrabold text-[#111827] mb-1">Content Library</h2>
-          <p className="text-sm text-[#6B7280]">{content.length} pieces across {new Set(content.map((c) => c.platform)).size} platforms</p>
+          <h2 className="text-2xl font-semibold text-balance text-foreground">Content Library</h2>
+          <p className="mt-1 text-sm text-pretty text-muted-foreground tabular-nums">
+            {content.data ? `${count} post${count === 1 ? "" : "s"}` : "Every post Mindra has written for you."}
+          </p>
         </div>
-        <button
-          onClick={() => navigate("ai-studio")}
-          className="px-5 py-2.5 bg-gradient-to-r from-[#6D5EF5] to-[#5a4de0] text-white text-sm font-semibold rounded-xl hover:opacity-90 transition-opacity shadow-md shadow-purple-200"
+        <Link to="/ai-studio" className={buttonStyles()}>
+          <Plus aria-hidden="true" className="size-4" />
+          Write posts
+        </Link>
+      </div>
+
+      {saved && (
+        <div role="status" className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 py-2 pr-2 pl-4 text-sm text-emerald-900">
+          <Check aria-hidden="true" className="size-4 shrink-0" />
+          <p className="min-w-0 flex-1 truncate">Saved “{saved.label}”.</p>
+          <Link to={`/library/${saved.id}`} className="shrink-0 font-medium underline-offset-2 hover:underline">
+            Edit again
+          </Link>
+          <button
+            type="button"
+            onClick={() => setSaved(null)}
+            aria-label="Dismiss"
+            className="grid size-8 shrink-0 place-items-center rounded-lg transition-colors hover:bg-emerald-100"
+          >
+            <X aria-hidden="true" className="size-4" />
+          </button>
+        </div>
+      )}
+
+      <div className="flex flex-wrap gap-3">
+        <div className="relative min-w-0 flex-1 basis-full sm:basis-56">
+          <label htmlFor="library-search" className="sr-only">
+            Search posts
+          </label>
+          <Search
+            aria-hidden="true"
+            className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+          />
+          <input
+            id="library-search"
+            type="search"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            placeholder="Search posts…"
+            className={cn(fieldClass, "w-full pl-9 placeholder:text-muted-foreground")}
+          />
+        </div>
+        <label htmlFor="library-platform" className="sr-only">
+          Platform
+        </label>
+        <select
+          id="library-platform"
+          value={platform}
+          onChange={(e) => update({ platform: e.target.value })}
+          className={cn(fieldClass, "min-w-0 flex-1 basis-36 sm:flex-none sm:basis-auto")}
         >
-          ✨ Generate More
+          <option value="">All platforms</option>
+          {PLATFORMS.map((option) => (
+            <option key={option.id} value={option.id}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+        <label htmlFor="library-recording" className="sr-only">
+          Recording
+        </label>
+        <select
+          id="library-recording"
+          value={project}
+          onChange={(e) => update({ project: e.target.value })}
+          className={cn(fieldClass, "min-w-0 flex-1 basis-36 sm:max-w-64 sm:flex-none sm:basis-auto")}
+        >
+          <option value="">All recordings</option>
+          {(projects.data?.results ?? []).map((option) => (
+            <option key={option.id} value={option.id}>
+              {option.name}
+            </option>
+          ))}
+        </select>
+        <button
+          type="button"
+          onClick={() => update({ favorite: favorite ? "" : "true" })}
+          aria-pressed={favorite}
+          className={buttonStyles({ variant: "secondary", className: cn(favorite && "border-gray-300 bg-secondary") })}
+        >
+          <Star aria-hidden="true" className={cn("size-4", favorite && "fill-amber-400 text-amber-500")} />
+          Favourites
         </button>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3 mb-6">
-        <div className="flex items-center gap-2 bg-white rounded-xl border border-[#E5E7EB] px-3 py-2 flex-1 min-w-48">
-          <span className="text-[#9CA3AF] text-sm">🔍</span>
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search content..."
-            className="bg-transparent text-sm text-[#374151] placeholder-[#9CA3AF] focus:outline-none w-full"
+      {content.isPending ? (
+        <div aria-busy="true" className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <p role="status" className="sr-only">
+            Loading posts
+          </p>
+          {[0, 1, 2, 3, 4, 5].map((i) => (
+            <PostSkeleton key={i} />
+          ))}
+        </div>
+      ) : content.isError ? (
+        <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-pretty text-red-800">
+          {content.error.message}
+        </p>
+      ) : count === 0 ? (
+        filtered ? (
+          <EmptyState
+            icon={Search}
+            title="No posts match these filters"
+            description="Try a different platform or recording, or clear the search."
+            action={
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchInput("");
+                  setSearchParams({}, { replace: true });
+                }}
+                className={buttonStyles()}
+              >
+                Clear filters
+              </button>
+            }
           />
-        </div>
-        <div className="flex gap-1 bg-[#F3F4F6] rounded-xl p-1">
-          <button onClick={() => setViewGrid(true)} className={`px-3 py-1.5 rounded-lg text-sm transition-all ${viewGrid ? "bg-white shadow-sm text-[#6D5EF5]" : "text-[#6B7280]"}`}>⊞</button>
-          <button onClick={() => setViewGrid(false)} className={`px-3 py-1.5 rounded-lg text-sm transition-all ${!viewGrid ? "bg-white shadow-sm text-[#6D5EF5]" : "text-[#6B7280]"}`}>☰</button>
-        </div>
-      </div>
-
-      {/* Platform filter chips */}
-      <div className="flex gap-2 flex-wrap mb-6">
-        {platforms.map((p) => (
-          <button
-            key={p}
-            onClick={() => setFilterPlatform(p)}
-            className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
-              filterPlatform === p
-                ? "bg-[#6D5EF5] text-white"
-                : "bg-white border border-[#E5E7EB] text-[#6B7280] hover:border-[#6D5EF5]/40"
-            }`}
-          >
-            {p}
-          </button>
-        ))}
-      </div>
-
-      {/* Content grid/list */}
-      {viewGrid ? (
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map((c) => (
-            <div key={c.id} className="bg-white rounded-2xl border border-[#E5E7EB] p-5 hover:shadow-md transition-shadow group">
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <span className="w-7 h-7 rounded text-[11px] font-bold flex items-center justify-center text-white" style={{ background: c.color }}>
-                    {c.badge}
-                  </span>
-                  <div>
-                    <span className="text-xs font-bold text-[#374151]">{c.platform}</span>
-                    <p className="text-[10px] text-[#9CA3AF]">{c.project}</p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setFavorites((f) => f.includes(c.id) ? f.filter((x) => x !== c.id) : [...f, c.id])}
-                  className={`text-base transition-all ${favorites.includes(c.id) ? "text-yellow-400" : "text-[#D1D5DB] hover:text-yellow-300"}`}
-                >
-                  ★
-                </button>
-              </div>
-              <h4 className="font-bold text-sm text-[#111827] mb-2">{c.title}</h4>
-              <p className="text-xs text-[#6B7280] leading-relaxed line-clamp-3">{c.preview}</p>
-              <div className="flex items-center gap-1.5 mt-3">
-                <span className="px-2 py-0.5 bg-[#F3F4F6] text-[#9CA3AF] text-[10px] rounded-full font-medium">{c.tone}</span>
-                <span className="text-[#E5E7EB]">·</span>
-                <span className="text-[10px] text-[#9CA3AF]">{c.date}</span>
-              </div>
-              <div className="flex gap-2 mt-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button
-                  onClick={() => navigate("content-editor")}
-                  className="flex-1 py-2 text-xs font-medium rounded-lg border border-[#E5E7EB] text-[#374151] hover:bg-[#F3F4F6] transition-colors"
-                >
-                  Edit
-                </button>
-                <button className="flex-1 py-2 text-xs font-medium rounded-lg bg-[#EDE9FE] text-[#6D5EF5] hover:bg-[#DDD6FE] transition-colors">
-                  Copy
-                </button>
-                <button className="py-2 px-3 text-xs font-medium rounded-lg border border-[#E5E7EB] text-[#9CA3AF] hover:bg-[#F3F4F6] transition-colors">
-                  ↻
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
+        ) : (
+          <EmptyState
+            icon={FileText}
+            title="Nothing written yet"
+            description="Pick a recording in AI Studio and Mindra will write posts for the platforms you choose."
+            action={
+              <Link to="/ai-studio" className={buttonStyles()}>
+                Open AI Studio
+              </Link>
+            }
+          />
+        )
       ) : (
-        <div className="space-y-2">
-          {filtered.map((c) => (
-            <div key={c.id} className="bg-white rounded-xl border border-[#E5E7EB] p-4 flex items-center gap-4 hover:shadow-sm transition-shadow">
-              <span className="w-8 h-8 rounded text-[11px] font-bold flex items-center justify-center text-white flex-shrink-0" style={{ background: c.color }}>
-                {c.badge}
+        <>
+          <div className="grid items-start gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {content.data.results.map((piece) => (
+              <ContentCard key={piece.id} piece={piece} showProject />
+            ))}
+          </div>
+          {pages > 1 && (
+            <nav aria-label="Pages" className="flex items-center justify-between gap-4">
+              <button
+                type="button"
+                onClick={() => update({ page: String(page - 1) })}
+                disabled={page <= 1}
+                className={buttonStyles({ variant: "secondary" })}
+              >
+                <ArrowLeft aria-hidden="true" className="size-4" />
+                Previous
+              </button>
+              <span className="text-sm text-muted-foreground tabular-nums">
+                Page {page} of {pages}
               </span>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-0.5">
-                  <h4 className="font-semibold text-sm text-[#111827] truncate">{c.title}</h4>
-                  <span className="text-[10px] text-[#9CA3AF] flex-shrink-0">{c.tone} · {c.date}</span>
-                </div>
-                <p className="text-xs text-[#9CA3AF] truncate">{c.preview}</p>
-              </div>
-              <div className="flex gap-2 flex-shrink-0">
-                <button onClick={() => navigate("content-editor")} className="text-xs px-3 py-1.5 rounded-lg border border-[#E5E7EB] text-[#374151] hover:bg-[#F3F4F6] transition-colors font-medium">Edit</button>
-                <button className="text-xs px-3 py-1.5 rounded-lg bg-[#EDE9FE] text-[#6D5EF5] hover:bg-[#DDD6FE] transition-colors font-medium">Copy</button>
-              </div>
-            </div>
-          ))}
-        </div>
+              <button
+                type="button"
+                onClick={() => update({ page: String(page + 1) })}
+                disabled={page >= pages}
+                className={buttonStyles({ variant: "secondary" })}
+              >
+                Next
+                <ArrowRight aria-hidden="true" className="size-4" />
+              </button>
+            </nav>
+          )}
+        </>
       )}
     </div>
   );

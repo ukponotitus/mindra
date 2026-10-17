@@ -39,3 +39,40 @@ This project uses **Tailwind CSS v4** through the `@tailwindcss/vite` plugin con
 - Use double quotes for strings containing apostrophes (`"We're here to help"`), or escape them in single-quoted strings. An unescaped apostrophe in a single-quoted string breaks the build.
 - Ensure JSX tags are closed and braces are balanced.
 - Export components as default exports.
+
+## Backend connection
+
+The app talks to the Django API in the separate `mindra-backend` repo (`../mindra-backend`; its README lists the endpoints). Locally the API runs at `http://localhost:8000`; set `VITE_API_URL` to point elsewhere.
+
+- `src/lib/api.ts` - `apiRequest` and `uploadWithProgress`: base URL, sign-in token, readable `ApiError`s
+- `src/lib/projects.ts` - TanStack Query hooks for projects, plus status and platform labels
+- `src/lib/types.ts` - API response types
+- `src/auth/` - sign-in state (`AuthProvider`, `useAuth`) and `RequireAuth` for signed-in routes
+- `src/App.tsx` - every route (React Router)
+
+- `src/lib/content.ts` - hooks for written posts, writing runs, brand voice, editor suggestions and AI status
+- `src/lib/clips.ts` - hooks for video clips (every clip, a project's clips, find, make by hand, trim, caption style, render, delete), polling while clips are found or rendered
+- `src/pages/Clips.tsx` - the Clips page: every clip across videos, linking to each one in its project's Clips tab (`/projects/<id>?tab=clips&clip=<clipId>`)
+- `src/components/project/` - the project page's parts (Next steps, analysis, transcript, posts, clips, the "New clip" dialog, and a clip's posts in `ClipPosts.tsx`)
+- `src/components/content/` - post card, the "write posts" form, platform badge, the editor's suggestions panel
+
+Calendar and Billing show a "Coming soon" page (`src/components/ComingSoon.tsx`); `src/pages/Calendar.tsx` and `src/pages/Billing.tsx` keep the original designs for when those features are built (milestones in `../mindra-backend/IMPLEMENTATION_PLAN.md`).
+
+## Deploy
+
+The live site is the static build (`dist/`) on Cloudflare Pages, connected to this repo.
+
+- Pages build settings: framework preset None (or React (Vite)), build command `pnpm run build`, build output directory `dist`, root directory the repo root.
+- Environment variables (Production, and Preview if used): `VITE_API_URL`, the live API's URL with no trailing slash. Vite writes it into the build, so redeploy after changing it; a build without it calls `http://localhost:8000`. Optionally `PNPM_VERSION=10.34.3` to match `.mise.toml` (Pages' default pnpm also installs this lockfile). Leave `FIGMA_PUBLIC_URL` unset so the base is `/`.
+- Node: `.node-version` pins 22.23.3, which Pages reads. React Router 8 needs Node 22.22 or newer, and Pages' default (22.16) is older.
+- Install: Pages installs from `pnpm-lock.yaml`. Commit that lockfile and not `package-lock.json`, and update it (`pnpm install`) whenever `package.json` changes.
+- Deep links (`/projects/<id>`, `/privacy`): with no top-level `404.html` in `dist/`, Pages answers every path that isn't a file with `index.html`, and React Router takes it from there. Don't add a `404.html`, and don't add a `/* /index.html 200` rule to `_redirects`: Pages ignores it as an infinite loop.
+- The API must accept the site's origin: set `CORS_ALLOWED_ORIGINS` and `FRONTEND_URL` on the backend (see `../mindra-backend/README.md`).
+- Search engines: `.figma/make/site.json` has `"robots": { "index": false }`, so the build adds `noindex` and a `robots.txt` that blocks crawlers. Change it when the landing page should appear in search.
+- Sign-up asks for an invite code when the API says so (`GET /api/auth/signup-options/`, on when the backend's `BETA_INVITE_CODES` is set).
+- Legal pages: `/privacy` and `/terms` (`src/pages/Privacy.tsx`, `src/pages/Terms.tsx`, laid out by `src/components/landing/LegalLayout.tsx`), linked from the landing footer and the sign-up form. The company name, contact email and governing country are placeholders in `src/lib/legal.ts`; fill them in before launch, and change `LEGAL_LAST_UPDATED` whenever either page changes.
+- Try a production build locally: `VITE_API_URL=http://localhost:8000 pnpm build`, then `pnpm preview --port 4173` (without `--port` it tries the dev server's port).
+
+## Marketing video
+
+`campaign/` is a separate Remotion project (its own `package.json`, not part of the Vite build) for the 60-second Facebook Reels launch video (1080x1920, 30 fps). Run `npm install` there once, then `npm run studio` to preview or `npm run render` to write `campaign/out/mindra-reel-1080x1920.mp4`. Scenes are in `campaign/src/scenes/`, scene start frames in `campaign/src/timeline.ts`. The voice-over script is `campaign/audio/voiceover.mjs`; `npm run voice` generates its lines with ElevenLabs (key in the git-ignored `campaign/.env`) into `campaign/audio/voice/`, only regenerating lines that changed, and warns if a line runs into the next scene. The soundtrack (that voice over sound effects from `campaign/audio/sfx.mjs` and soft music from `campaign/audio/music.mjs`, which dip while it speaks) is mixed by `npm run audio` (needs ffmpeg) into `campaign/public/audio/mindra-reel.wav`; rerun it after changing any timing or line. `npm run audio -- --no-music` leaves the music out.

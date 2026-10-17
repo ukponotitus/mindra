@@ -1,0 +1,25 @@
+{
+  "name": "mindra-campaign",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "studio": "remotion studio",
+    "voice": "node audio/voice.mjs",
+    "audio": "node audio/build.mjs",
+    "render": "remotion render MindraReel out/mindra-reel-1080x1920.mp4",
+    "still": "remotion still MindraReel out/frame.png"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.535",
+    "@remotion/google-fonts": "4.0.535",
+    "lucide-react": "1.57.0",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "remotion": "4.0.535"
+  },
+  "devDependencies": {
+    "@types/react": "^19.3.0",
+    "typescript": "5.7"
+  }
+}

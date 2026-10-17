@@ -1,70 +1,65 @@
 import { useState } from "react";
-import type { Page } from "../App";
+import { Dialog } from "@base-ui/react/dialog";
+import { matchPath, Outlet, useLocation } from "react-router";
+import { useDocumentTitle } from "../lib/useDocumentTitle";
+import { useMediaQuery } from "../lib/useMediaQuery";
 import Sidebar from "./Sidebar";
 import TopNav from "./TopNav";
-import Dashboard from "../pages/Dashboard";
-import CreateProject from "../pages/CreateProject";
-import Processing from "../pages/Processing";
-import ProjectDetails from "../pages/ProjectDetails";
-import AIStudio from "../pages/AIStudio";
-import ContentLibrary from "../pages/ContentLibrary";
-import ContentEditor from "../pages/ContentEditor";
-import Calendar from "../pages/Calendar";
-import BrandVoice from "../pages/BrandVoice";
-import Billing from "../pages/Billing";
-import Settings from "../pages/Settings";
 
-interface Props {
-  page: Page;
-  navigate: (p: Page) => void;
-}
+// Most specific first: the first pattern that matches names the page.
+const pageTitles: [pattern: string, title: string][] = [
+  ["/dashboard", "Dashboard"],
+  ["/projects/new", "Create Project"],
+  ["/projects/:projectId/processing", "Processing"],
+  ["/projects/:projectId", "Project Details"],
+  ["/projects", "Projects"],
+  ["/ai-studio", "AI Studio"],
+  ["/library/:pieceId", "Edit Post"],
+  ["/library", "Content Library"],
+  ["/clips", "Clips"],
+  ["/calendar", "Content Calendar"],
+  ["/brand-voice", "Brand Voice"],
+  ["/billing", "Billing"],
+  ["/settings", "Settings"],
+];
 
-const pageTitles: Partial<Record<Page, string>> = {
-  dashboard: "Dashboard",
-  projects: "Projects",
-  create: "Create Project",
-  processing: "Processing",
-  "project-details": "Project Details",
-  "ai-studio": "AI Studio",
-  "content-library": "Content Library",
-  "content-editor": "Content Editor",
-  calendar: "Content Calendar",
-  "brand-voice": "Brand Voice",
-  billing: "Billing",
-  settings: "Settings",
-};
-
-export default function DashboardShell({ page, navigate }: Props) {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-
-  const renderPage = () => {
-    switch (page) {
-      case "dashboard": return <Dashboard navigate={navigate} />;
-      case "create": return <CreateProject navigate={navigate} />;
-      case "processing": return <Processing navigate={navigate} />;
-      case "project-details": return <ProjectDetails navigate={navigate} />;
-      case "ai-studio": return <AIStudio />;
-      case "content-library": return <ContentLibrary navigate={navigate} />;
-      case "content-editor": return <ContentEditor />;
-      case "calendar": return <Calendar />;
-      case "brand-voice": return <BrandVoice />;
-      case "billing": return <Billing />;
-      case "settings": return <Settings />;
-      default: return <Dashboard navigate={navigate} />;
-    }
-  };
+export default function DashboardShell() {
+  const wide = useMediaQuery("(min-width: 1024px)");
+  const [collapsed, setCollapsed] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const { pathname } = useLocation();
+  const title = pageTitles.find(([pattern]) => matchPath(pattern, pathname))?.[1] ?? "Dashboard";
+  useDocumentTitle(title);
 
   return (
-    <div className="h-screen flex bg-[#F8FAFC] overflow-hidden">
-      <Sidebar page={page} navigate={navigate} open={sidebarOpen} />
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+    <div className="flex h-dvh overflow-hidden bg-background">
+      {wide && !collapsed && (
+        <aside className="w-60 shrink-0 border-r border-border bg-white">
+          <Sidebar />
+        </aside>
+      )}
+
+      {/* On small screens the navigation is a drawer: focus stays inside it and Escape closes it. */}
+      {!wide && (
+        <Dialog.Root open={drawerOpen} onOpenChange={setDrawerOpen}>
+          <Dialog.Portal>
+            <Dialog.Backdrop className="fixed inset-0 z-40 bg-black/40 transition-opacity duration-200 data-[ending-style]:opacity-0 data-[starting-style]:opacity-0" />
+            <Dialog.Popup className="fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] bg-white pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] shadow-xl transition-transform duration-200 ease-out data-[ending-style]:-translate-x-full data-[starting-style]:-translate-x-full">
+              <Dialog.Title className="sr-only">Navigation</Dialog.Title>
+              <Sidebar onNavigate={() => setDrawerOpen(false)} />
+            </Dialog.Popup>
+          </Dialog.Portal>
+        </Dialog.Root>
+      )}
+
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <TopNav
-          title={pageTitles[page] ?? "Dashboard"}
-          onToggleSidebar={() => setSidebarOpen((o) => !o)}
-          navigate={navigate}
+          title={title}
+          onToggleNavigation={() => (wide ? setCollapsed((value) => !value) : setDrawerOpen(true))}
+          navigationLabel={wide ? (collapsed ? "Show sidebar" : "Hide sidebar") : "Open navigation"}
         />
-        <main className="flex-1 overflow-y-auto p-6 lg:p-8">
-          {renderPage()}
+        <main className="relative flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+          <Outlet />
         </main>
       </div>
     </div>

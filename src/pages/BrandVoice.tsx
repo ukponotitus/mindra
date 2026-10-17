@@ -1,80 +1,228 @@
-import { useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { Check } from "lucide-react";
+import { buttonStyles } from "../components/ui/button";
+import { ApiError } from "../lib/api";
+import { cn } from "../lib/cn";
+import { TONES, useBrandVoice, useSaveBrandVoice } from "../lib/content";
+import type { BrandVoice } from "../lib/types";
 
-export default function BrandVoice() {
-  const [wordsToUse, setWordsToUse] = useState("authentic, data-driven, transparent, scrappy");
-  const [wordsToAvoid, setWordsToAvoid] = useState("synergy, leverage, paradigm shift");
+const inputClass =
+  "w-full rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-hidden aria-invalid:border-red-300";
+
+function Field({ id, label, hint, error, children }: { id: string; label: string; hint?: string; error?: string; children: ReactNode }) {
+  return (
+    <div>
+      <label htmlFor={id} className="mb-1.5 block text-sm font-medium text-foreground">
+        {label}
+      </label>
+      {children}
+      {error ? (
+        <p id={`${id}-error`} className="mt-1.5 text-sm text-pretty text-red-600">
+          {error}
+        </p>
+      ) : (
+        hint && (
+          <p id={`${id}-hint`} className="mt-1.5 text-xs text-pretty text-muted-foreground">
+            {hint}
+          </p>
+        )
+      )}
+    </div>
+  );
+}
+
+/** How Mindra should sound. Used every time it writes for this workspace. */
+export default function BrandVoicePage() {
+  const { data: saved, isPending } = useBrandVoice();
+  const save = useSaveBrandVoice();
+  const [form, setForm] = useState<BrandVoice | null>(null);
+
+  useEffect(() => {
+    if (saved && !form) setForm(saved);
+  }, [saved, form]);
+
+  const header = (
+    <div>
+      <h2 className="text-2xl font-semibold text-balance text-foreground">Brand Voice</h2>
+      <p className="mt-1 text-sm text-pretty text-muted-foreground">
+        Tell Mindra how you sound. It uses this every time it writes for you.
+      </p>
+    </div>
+  );
+
+  if (isPending || !form) {
+    return (
+      <div className="max-w-3xl">
+        <div className="mb-8">{header}</div>
+        <div aria-busy="true" className="space-y-5">
+          <p role="status" className="sr-only">
+            Loading your brand voice
+          </p>
+          {[0, 1].map((i) => (
+            <div key={i} className="space-y-4 rounded-xl border border-border bg-white p-5 sm:p-6">
+              <div className="h-4 w-28 animate-pulse rounded bg-secondary" />
+              <div className="h-11 w-full animate-pulse rounded-lg bg-secondary" />
+              <div className="h-11 w-full animate-pulse rounded-lg bg-secondary" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  const set = (field: keyof BrandVoice) => (event: { target: { value: string } }) =>
+    setForm({ ...form, [field]: event.target.value });
+  const fieldError = (field: string) => (save.error instanceof ApiError ? save.error.fieldErrors[field]?.[0] : undefined);
+  const dirty = (Object.keys(form) as (keyof BrandVoice)[]).some((key) => key !== "updated_at" && form[key] !== saved?.[key]);
+  /** Links a field to its error (or hint) and marks it invalid when the server rejected it. */
+  const describe = (id: string, field: string, hasHint = false) => {
+    const invalid = Boolean(fieldError(field));
+    return {
+      id,
+      "aria-invalid": invalid || undefined,
+      "aria-describedby": invalid ? `${id}-error` : hasHint ? `${id}-hint` : undefined,
+    };
+  };
 
   return (
-    <div className="max-w-3xl animate-slide-in">
-      <div className="mb-8">
-        <h2 className="text-2xl font-extrabold text-[#111827] mb-1">Brand Voice</h2>
-        <p className="text-sm text-[#6B7280]">Train the AI to write exactly like your brand.</p>
-      </div>
+    <div className="max-w-3xl">
+      <div className="mb-8">{header}</div>
 
-      <div className="space-y-5">
-        <div className="bg-white rounded-2xl border border-[#E5E7EB] p-6 space-y-5">
-          <h3 className="font-bold text-[#111827]">Brand Profile</h3>
-          <div className="grid md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-[#374151] mb-1.5">Brand Name</label>
-              <input defaultValue="Growthly" type="text" className="w-full px-4 py-3 rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] text-sm focus:outline-none focus:ring-2 focus:ring-[#6D5EF5]/30 focus:border-[#6D5EF5] transition-all" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-[#374151] mb-1.5">Industry</label>
-              <select className="w-full px-4 py-3 rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] text-sm focus:outline-none focus:ring-2 focus:ring-[#6D5EF5]/30 focus:border-[#6D5EF5] transition-all">
-                {["B2B SaaS", "E-commerce", "Creator Economy", "Marketing", "Finance", "Healthcare", "Education"].map((i) => (
-                  <option key={i}>{i}</option>
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          save.mutate(form, { onSuccess: (voice) => setForm(voice) });
+        }}
+        className="space-y-5"
+      >
+        <section aria-labelledby="voice-who" className="space-y-5 rounded-xl border border-border bg-white p-5 sm:p-6">
+          <h3 id="voice-who" className="font-semibold text-balance text-foreground">
+            Who you are
+          </h3>
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field id="voice-brand-name" label="Church, ministry or brand name" error={fieldError("brand_name")}>
+              <input
+                {...describe("voice-brand-name", "brand_name")}
+                value={form.brand_name}
+                onChange={set("brand_name")}
+                placeholder="Grace Chapel"
+                maxLength={120}
+                className={cn(inputClass, "h-11 py-0")}
+              />
+            </Field>
+            <Field id="voice-tone" label="Preferred tone" error={fieldError("tone")}>
+              <select {...describe("voice-tone", "tone")} value={form.tone} onChange={set("tone")} className={cn(inputClass, "h-11 py-0")}>
+                <option value="">No preference (Warm)</option>
+                {TONES.map((tone) => (
+                  <option key={tone}>{tone}</option>
                 ))}
               </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-[#374151] mb-1.5">Target Audience</label>
-              <input defaultValue="Startup founders, marketing leads, B2B creators" type="text" className="w-full px-4 py-3 rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] text-sm focus:outline-none focus:ring-2 focus:ring-[#6D5EF5]/30 focus:border-[#6D5EF5] transition-all" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-[#374151] mb-1.5">Preferred Tone</label>
-              <select className="w-full px-4 py-3 rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] text-sm focus:outline-none focus:ring-2 focus:ring-[#6D5EF5]/30 focus:border-[#6D5EF5] transition-all">
-                {["Storytelling", "Professional", "Casual", "Educational", "Bold", "Funny"].map((t) => (
-                  <option key={t}>{t}</option>
-                ))}
-              </select>
-            </div>
+            </Field>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-[#374151] mb-1.5">Writing Style</label>
-            <textarea defaultValue="Conversational and data-backed. We share real numbers and lessons. We write like a smart friend, not a corporate marketer. Short sentences. White space. Stories over theory." rows={4} className="w-full px-4 py-3 rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] text-sm focus:outline-none focus:ring-2 focus:ring-[#6D5EF5]/30 focus:border-[#6D5EF5] transition-all resize-none" />
-          </div>
-        </div>
+          <Field
+            id="voice-audience"
+            label="Who you're speaking to"
+            hint="For example: young professionals in Lagos, new believers, small-business owners."
+            error={fieldError("audience")}
+          >
+            <input
+              {...describe("voice-audience", "audience", true)}
+              value={form.audience}
+              onChange={set("audience")}
+              maxLength={255}
+              className={cn(inputClass, "h-11 py-0")}
+            />
+          </Field>
+          <Field
+            id="voice-style"
+            label="How you write"
+            hint="Short sentences? Scripture in every post? Emojis or none? Describe it in your own words."
+            error={fieldError("style_notes")}
+          >
+            <textarea
+              {...describe("voice-style", "style_notes", true)}
+              value={form.style_notes}
+              onChange={set("style_notes")}
+              rows={4}
+              className={cn(inputClass, "resize-y")}
+            />
+          </Field>
+        </section>
 
-        <div className="bg-white rounded-2xl border border-[#E5E7EB] p-6 space-y-4">
-          <h3 className="font-bold text-[#111827]">Vocabulary Guide</h3>
-          <div>
-            <label className="block text-sm font-medium text-[#374151] mb-1.5">Words & Phrases to Use</label>
-            <textarea value={wordsToUse} onChange={(e) => setWordsToUse(e.target.value)} rows={3} placeholder="e.g. authentic, data-driven, real talk..." className="w-full px-4 py-3 rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] text-sm focus:outline-none focus:ring-2 focus:ring-[#6D5EF5]/30 focus:border-[#6D5EF5] transition-all resize-none" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-[#374151] mb-1.5">Words & Phrases to Avoid</label>
-            <textarea value={wordsToAvoid} onChange={(e) => setWordsToAvoid(e.target.value)} rows={3} placeholder="e.g. synergy, leverage, game-changer..." className="w-full px-4 py-3 rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] text-sm focus:outline-none focus:ring-2 focus:ring-[#6D5EF5]/30 focus:border-[#6D5EF5] transition-all resize-none" />
-          </div>
-        </div>
+        <section aria-labelledby="voice-words" className="space-y-4 rounded-xl border border-border bg-white p-5 sm:p-6">
+          <h3 id="voice-words" className="font-semibold text-balance text-foreground">
+            Words
+          </h3>
+          <Field id="voice-use" label="Words and phrases to use" hint="Separate them with commas." error={fieldError("words_to_use")}>
+            <textarea
+              {...describe("voice-use", "words_to_use", true)}
+              value={form.words_to_use}
+              onChange={set("words_to_use")}
+              rows={2}
+              placeholder="church family, grace, testimony"
+              className={cn(inputClass, "resize-y")}
+            />
+          </Field>
+          <Field id="voice-avoid" label="Words and phrases to avoid" error={fieldError("words_to_avoid")}>
+            <textarea
+              {...describe("voice-avoid", "words_to_avoid")}
+              value={form.words_to_avoid}
+              onChange={set("words_to_avoid")}
+              rows={2}
+              placeholder="synergy, hustle"
+              className={cn(inputClass, "resize-y")}
+            />
+          </Field>
+        </section>
 
-        <div className="bg-white rounded-2xl border border-[#E5E7EB] p-6">
-          <h3 className="font-bold text-[#111827] mb-2">Train from Past Content</h3>
-          <p className="text-sm text-[#6B7280] mb-4">Upload your best posts to help AI learn your exact voice.</p>
-          <div className="border-2 border-dashed border-[#D1D5DB] rounded-xl p-8 text-center hover:border-[#6D5EF5]/50 transition-colors cursor-pointer hover:bg-[#F8FAFC]">
-            <div className="text-3xl mb-3">📁</div>
-            <p className="text-sm font-semibold text-[#374151] mb-1">Upload past LinkedIn posts, newsletters, or blogs</p>
-            <p className="text-xs text-[#9CA3AF]">TXT, CSV, or paste text directly · Up to 50 posts</p>
-            <button className="mt-4 px-5 py-2 bg-[#6D5EF5] text-white text-sm font-semibold rounded-xl hover:opacity-90 transition-opacity">
-              Browse Files
-            </button>
-          </div>
-        </div>
+        <section aria-labelledby="voice-samples" className="rounded-xl border border-border bg-white p-5 sm:p-6">
+          <h3 id="voice-samples" className="font-semibold text-balance text-foreground">
+            Past posts
+          </h3>
+          <p id="voice-samples-hint" className="mt-1 mb-4 text-sm text-pretty text-muted-foreground">
+            Paste a few of your best past posts, separated by a blank line. Mindra matches their voice, not their content.
+          </p>
+          <textarea
+            id="voice-samples-input"
+            aria-labelledby="voice-samples"
+            aria-describedby={fieldError("sample_posts") ? "voice-samples-error" : "voice-samples-hint"}
+            aria-invalid={Boolean(fieldError("sample_posts")) || undefined}
+            value={form.sample_posts}
+            onChange={set("sample_posts")}
+            rows={8}
+            className={cn(inputClass, "resize-y")}
+          />
+          {fieldError("sample_posts") && (
+            <p id="voice-samples-error" className="mt-1.5 text-sm text-pretty text-red-600">
+              {fieldError("sample_posts")}
+            </p>
+          )}
+        </section>
 
-        <button className="w-full py-4 bg-gradient-to-r from-[#6D5EF5] to-[#5a4de0] text-white font-bold rounded-2xl hover:opacity-90 transition-opacity shadow-lg shadow-purple-200 text-sm">
-          Save Brand Voice Settings
-        </button>
-      </div>
+        {save.isError && !Object.keys(save.error instanceof ApiError ? save.error.fieldErrors : {}).length && (
+          <p role="alert" className="text-sm text-pretty text-red-600">
+            {save.error.message}
+          </p>
+        )}
+
+        <div className="flex flex-wrap items-center gap-4">
+          <button type="submit" disabled={!dirty || save.isPending} className={buttonStyles({ size: "lg" })}>
+            {save.isPending ? "Saving…" : "Save brand voice"}
+          </button>
+          <p role="status" className="text-sm">
+            {save.isSuccess && !dirty ? (
+              <span className="inline-flex items-center gap-1.5 font-medium text-emerald-700">
+                <Check aria-hidden="true" className="size-4" />
+                Saved
+              </span>
+            ) : dirty ? (
+              <span className="text-amber-700">Unsaved changes</span>
+            ) : (
+              <span className="text-muted-foreground">No changes to save</span>
+            )}
+          </p>
+        </div>
+      </form>
     </div>
   );
 }

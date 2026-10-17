@@ -1,0 +1,7 @@
+node_modules/
+out/
+.env
+
+# Made by `npm run voice` (ElevenLabs) and `npm run audio`; regenerate them rather than publishing them.
+audio/voice/*.mp3
+public/audio/*.wav
