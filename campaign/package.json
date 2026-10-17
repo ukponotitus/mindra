@@ -8,11 +8,14 @@
     "voice": "node audio/voice.mjs",
     "audio": "node audio/build.mjs",
     "render": "remotion render MindraReel out/mindra-reel-1080x1920.mp4",
-    "still": "remotion still MindraReel out/frame.png"
+    "still": "remotion still MindraReel out/frame.png",
+    "google": "node render-google.mjs"
   },
   "dependencies": {
+    "@remotion/bundler": "4.0.535",
     "@remotion/cli": "4.0.535",
     "@remotion/google-fonts": "4.0.535",
+    "@remotion/renderer": "4.0.535",
     "lucide-react": "1.57.0",
     "react": "19.3.1",
     "react-dom": "19.3.1",
