@@ -14,22 +14,24 @@ const stages = [
     live: true,
   },
   {
-    when: "Coming next",
+    when: "Live now",
     icon: PenLine,
     title: "Posts in your voice",
-    text: "Captions and posts for every platform, plus a brand voice trained on your past posts.",
+    text: "Captions and posts for every platform in your brand voice, from a recording or from photos.",
+    live: true,
   },
   {
-    when: "Then",
+    when: "Live now",
     icon: Clapperboard,
-    title: "Automatic clips",
-    text: "Vertical clips with animated captions, cut from your strongest moments.",
+    title: "Clips and a calendar",
+    text: "Captioned vertical clips from your strongest moments, and a calendar that reminds you when each post is due.",
+    live: true,
   },
   {
-    when: "Then",
+    when: "Coming next",
     icon: Send,
-    title: "Publishing and WhatsApp",
-    text: "Auto-import, a content calendar, scheduled posting and WhatsApp share packs.",
+    title: "Posting for you",
+    text: "Scheduled posts that go out to Facebook and Instagram by themselves, and new recordings imported automatically.",
   },
 ];
 
@@ -65,14 +67,14 @@ export default function Roadmap() {
         {/* A track across the top: the live part is lit, the rest is still to come */}
         <div className="relative mt-16 hidden h-px bg-black/10 lg:block">
           <motion.div
-            className="absolute inset-y-0 left-0 w-1/4 origin-left bg-[#10B981]"
+            className="absolute inset-y-0 left-0 w-3/4 origin-left bg-[#10B981]"
             initial={{ scaleX: 0 }}
             whileInView={{ scaleX: 1 }}
             viewport={{ once: true, amount: 1 }}
             transition={{ duration: 0.8, ease: "easeOut" }}
           />
           <motion.span
-            className="absolute -top-[5px] left-1/4 h-[11px] w-[11px] -translate-x-1/2 rounded-full bg-[#10B981] ring-4 ring-[#10B981]/20"
+            className="absolute -top-[5px] left-3/4 h-[11px] w-[11px] -translate-x-1/2 rounded-full bg-[#10B981] ring-4 ring-[#10B981]/20"
             initial={{ scale: 0 }}
             whileInView={{ scale: 1 }}
             viewport={{ once: true, amount: 1 }}

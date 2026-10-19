@@ -1,6 +1,7 @@
 import { AudioLines, Clock, FileText, FolderOpen, Hourglass, PenLine, Video, type LucideIcon } from "lucide-react";
 import { Link } from "react-router";
 import { displayName, useAuth } from "../auth/context";
+import ComingUp from "../components/calendar/ComingUp";
 import EmptyState from "../components/EmptyState";
 import StatusBadge from "../components/StatusBadge";
 import { buttonStyles } from "../components/ui/button";
@@ -91,7 +92,7 @@ export default function Dashboard() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <section aria-labelledby="recent-projects" className="overflow-hidden rounded-xl border border-border bg-white lg:col-span-2">
+        <section aria-labelledby="recent-projects" className="overflow-hidden rounded-xl border border-border bg-white lg:col-span-2 lg:self-start">
           <div className="flex items-center justify-between gap-4 border-b border-border px-5 py-4 sm:px-6">
             <h3 id="recent-projects" className="font-semibold text-balance text-foreground">
               Recent Projects
@@ -168,29 +169,33 @@ export default function Dashboard() {
           )}
         </section>
 
-        <section aria-labelledby="start-project" className="h-fit rounded-xl border border-border bg-white p-5">
-          <h3 id="start-project" className="mb-4 font-semibold text-balance text-foreground">
-            Start a project
-          </h3>
-          <ul className="space-y-2">
-            {quickActions.map((action) => (
-              <li key={action.type}>
-                <Link
-                  to={`/projects/new?type=${action.type}`}
-                  className="flex w-full items-center gap-3 rounded-lg border border-border p-3 text-left transition-colors hover:bg-background focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                >
-                  <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-secondary text-muted-foreground">
-                    <action.icon aria-hidden="true" className="size-4" />
-                  </span>
-                  <span className="min-w-0">
-                    <span className="block text-sm font-medium text-foreground">{action.label}</span>
-                    <span className="block text-xs text-pretty text-muted-foreground">{action.desc}</span>
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </section>
+        <div className="min-w-0 space-y-6">
+          <ComingUp />
+
+          <section aria-labelledby="start-project" className="rounded-xl border border-border bg-white p-5">
+            <h3 id="start-project" className="mb-4 font-semibold text-balance text-foreground">
+              Start a project
+            </h3>
+            <ul className="space-y-2">
+              {quickActions.map((action) => (
+                <li key={action.type}>
+                  <Link
+                    to={`/projects/new?type=${action.type}`}
+                    className="flex w-full items-center gap-3 rounded-lg border border-border p-3 text-left transition-colors hover:bg-background focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                  >
+                    <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-secondary text-muted-foreground">
+                      <action.icon aria-hidden="true" className="size-4" />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block text-sm font-medium text-foreground">{action.label}</span>
+                      <span className="block text-xs text-pretty text-muted-foreground">{action.desc}</span>
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+        </div>
       </div>
     </div>
   );

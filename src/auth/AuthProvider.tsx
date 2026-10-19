@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ApiError, apiRequest, getToken, onUnauthorized, setToken } from "../lib/api";
+import { turnOffPush } from "../lib/notifications";
 import type { AuthResponse, User } from "../lib/types";
 import { AuthContext, type AuthContextValue, type AuthStatus } from "./context";
 
@@ -39,6 +40,9 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const signOut = useCallback(async () => {
+    // Stop this device's reminders for this account first, while the request can still be signed. A slow or missing
+    // service worker never holds up signing out.
+    await Promise.race([turnOffPush().catch(() => undefined), new Promise((done) => window.setTimeout(done, 3000))]);
     try {
       await apiRequest<null>("/api/auth/logout/", { method: "POST" });
     } catch {

@@ -1,143 +1,418 @@
-import { useState } from "react";
+import { useCallback, useMemo, useState } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useSearchParams } from "react-router";
+import AgendaView from "../components/calendar/AgendaView";
+import CalendarNotice, { type Notice } from "../components/calendar/CalendarNotice";
+import type { DragAndDrop, DragSource } from "../components/calendar/dragAndDrop";
+import MonthView from "../components/calendar/MonthView";
+import PostDialog from "../components/calendar/PostDialog";
+import ReadyTray from "../components/calendar/ReadyTray";
+import ScheduleDialog from "../components/calendar/ScheduleDialog";
+import WeekView from "../components/calendar/WeekView";
+import { buttonStyles } from "../components/ui/button";
+import {
+  addDays,
+  addMonths,
+  dayKey,
+  formatDayShort,
+  formatScheduled,
+  formatTime,
+  groupByDay,
+  monthGrid,
+  parseDayKey,
+  postSummary,
+  scheduleProblem,
+  scheduleStatus,
+  startOfMonth,
+  toOffsetIso,
+  useScheduledPosts,
+  useSchedulePost,
+  useUnscheduledPosts,
+  weekDays,
+} from "../lib/calendar";
+import { cn } from "../lib/cn";
+import { useContentPiece } from "../lib/content";
+import type { ContentPiece } from "../lib/types";
+import { useMediaQuery } from "../lib/useMediaQuery";
 
-const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-const monthDates = Array.from({ length: 35 }, (_, i) => {
-  const day = i - 3; // August 2026 starts on Saturday
-  return day < 1 || day > 31 ? null : day;
-});
+type View = "month" | "week" | "agenda";
 
-const scheduledPosts: Record<number, { platform: string; color: string; badge: string; title: string }[]> = {
-  24: [{ platform: "LinkedIn", color: "#0A66C2", badge: "in", title: "The $180k Churn Lesson" }],
-  25: [
-    { platform: "X Thread", color: "#000", badge: "𝕏", title: "Nobody Talks About This" },
-    { platform: "Instagram", color: "#E1306C", badge: "📸", title: "Product-Market Fit POV" },
-  ],
-  26: [{ platform: "Newsletter", color: "#6D5EF5", badge: "✉", title: "Q3 Learnings Edition" }],
-  28: [{ platform: "TikTok", color: "#010101", badge: "♪", title: "Almost Quit 3 Times" }],
-  30: [{ platform: "Blog", color: "#10B981", badge: "📝", title: "5 Startup Lessons" }],
-};
-
-const upcoming = [
-  { date: "Aug 24", platform: "LinkedIn", color: "#0A66C2", badge: "in", title: "The $180k Churn Lesson", time: "9:00 AM" },
-  { date: "Aug 25", platform: "X Thread", color: "#000", badge: "𝕏", title: "Nobody Talks About This", time: "11:00 AM" },
-  { date: "Aug 25", platform: "Instagram", color: "#E1306C", badge: "📸", title: "Product-Market Fit POV", time: "6:00 PM" },
-  { date: "Aug 26", platform: "Newsletter", color: "#6D5EF5", badge: "✉", title: "Q3 Learnings Edition", time: "8:00 AM" },
-  { date: "Aug 28", platform: "TikTok", color: "#010101", badge: "♪", title: "Almost Quit 3 Times", time: "12:00 PM" },
+const VIEWS: { id: View; label: string }[] = [
+  { id: "month", label: "Month" },
+  { id: "week", label: "Week" },
+  { id: "agenda", label: "Agenda" },
 ];
 
+const TRAY_PAGE = 20;
+
+const isView = (value: string | null): value is View => VIEWS.some((view) => view.id === value);
+
+function plural(count: number, word: string) {
+  return `${count} ${word}${count === 1 ? "" : "s"}`;
+}
+
+/** "20–26 Oct 2026". */
+function formatWeek(start: Date, end: Date) {
+  const format = new Intl.DateTimeFormat(undefined, { day: "numeric", month: "short", year: "numeric" });
+  const ranged = format as Intl.DateTimeFormat & { formatRange?: (from: Date, to: Date) => string };
+  return ranged.formatRange ? ranged.formatRange(start, end) : `${format.format(start)} – ${format.format(end)}`;
+}
+
+/**
+ * The content calendar: a month, a week or an agenda of scheduled posts, with the posts that aren't scheduled yet
+ * beside it. The view, the day and the open post live in the address (?view=week&date=2026-10-26&post=<id>), so the
+ * dashboard can link to a post and the back button leaves the page.
+ */
 export default function Calendar() {
-  const [view, setView] = useState<"month" | "week">("month");
+  const wide = useMediaQuery("(min-width: 768px)");
+  // Drag and drop needs a mouse or trackpad; phones use the buttons.
+  const mouse = useMediaQuery("(hover: hover) and (pointer: fine)");
+  const [params, setParams] = useSearchParams();
+  const requestedView = params.get("view");
+  const view: View = isView(requestedView) ? requestedView : wide ? "month" : "agenda";
+  const today = dayKey(new Date());
+  const anchorKey = parseDayKey(params.get("date")) ? params.get("date")! : today;
+  const postId = params.get("post");
+
+  const setParam = useCallback(
+    (changes: Record<string, string | null>) =>
+      setParams(
+        (current) => {
+          const next = new URLSearchParams(current);
+          for (const [name, value] of Object.entries(changes)) {
+            if (value === null) next.delete(name);
+            else next.set(name, value);
+          }
+          return next;
+        },
+        { replace: true },
+      ),
+    [setParams],
+  );
+
+  const period = useMemo(() => {
+    const anchor = parseDayKey(anchorKey)!;
+    if (view === "week") {
+      const days = weekDays(anchor);
+      return {
+        days,
+        start: days[0],
+        end: addDays(days[0], 7),
+        month: anchor,
+        title: formatWeek(days[0], days[6]),
+        name: "this week",
+        step: (direction: number) => dayKey(addDays(anchor, 7 * direction)),
+        previous: "Previous week",
+        next: "Next week",
+      };
+    }
+    const month = startOfMonth(anchor);
+    const monthDays = Array.from({ length: new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate() }, (_, index) =>
+      addDays(month, index),
+    );
+    const days = view === "month" ? monthGrid(anchor) : monthDays;
+    const title = month.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+    return {
+      days,
+      start: days[0],
+      end: addDays(days[days.length - 1], 1),
+      month,
+      title,
+      name: month.toLocaleDateString(undefined, { month: "long" }),
+      step: (direction: number) => dayKey(addMonths(month, direction)),
+      previous: "Previous month",
+      next: "Next month",
+    };
+  }, [view, anchorKey]);
+
+  const scheduled = useScheduledPosts(period.start, period.end);
+  const [trayCount, setTrayCount] = useState(TRAY_PAGE);
+  const tray = useUnscheduledPosts(trayCount);
+  const schedule = useSchedulePost();
+
+  // Posts being moved by a drag show on their new day straight away, until the server answers.
+  const [moving, setMoving] = useState<Record<string, string>>({});
+  const posts = useMemo(
+    () =>
+      groupByDay(
+        (scheduled.data?.results ?? []).map((piece) => (moving[piece.id] ? { ...piece, scheduled_at: moving[piece.id] } : piece)),
+      ),
+    [scheduled.data, moving],
+  );
+
+  const shownDays = view === "month" ? period.days.filter((day) => day.getMonth() === period.month.getMonth()) : period.days;
+  const shownPosts = shownDays.flatMap((day) => posts.get(dayKey(day)) ?? []);
+  const missed = shownPosts.filter((piece) => scheduleStatus(piece) === "missed").length;
+
+  // --- Notes and Undo ------------------------------------------------------------------------------------------------
+
+  const [notice, setNotice] = useState<Notice | null>(null);
+  const dismiss = useCallback(() => setNotice(null), []);
+
+  /** Put a post back where it was (a time, or off the calendar), for Undo. */
+  const restore = (piece: ContentPiece, previous: string | null) =>
+    schedule
+      .mutateAsync({ id: piece.id, scheduled_at: previous })
+      .then(() => setNotice({ text: previous ? `Moved back to ${formatScheduled(previous)}.` : "Taken off the calendar." }))
+      .catch((error: Error) => setNotice({ error: true, text: `Couldn't undo: ${error.message}` }));
+
+  /** After the schedule dialog or a post's dialog changed a post. */
+  const changed = (saved: ContentPiece, previous: string | null) => {
+    if (!saved.scheduled_at) {
+      setParam({ post: null });
+      setNotice({ text: "Taken off the calendar. It's back in Ready to schedule.", undo: () => restore(saved, previous) });
+    } else if (!previous) {
+      setNotice({ text: `Scheduled for ${formatScheduled(saved.scheduled_at)}.`, undo: () => restore(saved, null) });
+    } else if (saved.scheduled_at !== previous) {
+      setNotice({ text: `Moved to ${formatScheduled(saved.scheduled_at)}.`, undo: () => restore(saved, previous) });
+    }
+  };
+
+  // --- Drag and drop -------------------------------------------------------------------------------------------------
+
+  const [dragging, setDragging] = useState<DragSource | null>(null);
+  const [overDay, setOverDay] = useState<string | null>(null);
+  // A post from the tray dropped on a day: the schedule dialog opens with that day filled in.
+  const [dropped, setDropped] = useState<{ piece: ContentPiece; day: string } | null>(null);
+  const [droppedOpen, setDroppedOpen] = useState(false);
+
+  const move = (piece: ContentPiece, day: string) => {
+    const previous = piece.scheduled_at;
+    if (!previous) return;
+    const from = new Date(previous);
+    const to = parseDayKey(day)!;
+    to.setHours(from.getHours(), from.getMinutes(), 0, 0);
+    if (to.getTime() === from.getTime()) return;
+    const problem = scheduleProblem(to);
+    if (problem) {
+      setNotice({
+        error: true,
+        text:
+          problem === "Pick a time in the future."
+            ? `${formatTime(from)} on ${formatDayShort(to)} has already passed. Drop it on a later day, or open it and use Reschedule.`
+            : problem,
+      });
+      return;
+    }
+    const iso = toOffsetIso(to);
+    setMoving((current) => ({ ...current, [piece.id]: iso }));
+    schedule
+      .mutateAsync({ id: piece.id, scheduled_at: iso })
+      .then((saved) =>
+        setNotice({
+          text: `Moved “${postSummary(saved)}” to ${formatScheduled(saved.scheduled_at ?? iso)}.`,
+          undo: () => restore(saved, previous),
+        }),
+      )
+      .catch((error: Error) => setNotice({ error: true, text: error.message }))
+      .finally(() =>
+        setMoving((current) => {
+          const next = { ...current };
+          delete next[piece.id];
+          return next;
+        }),
+      );
+  };
+
+  const drop = (day: string) => {
+    const source = dragging;
+    setDragging(null);
+    setOverDay(null);
+    if (!source) return;
+    if (source.from === "tray") {
+      setDropped({ piece: source.piece, day });
+      setDroppedOpen(true);
+    } else {
+      move(source.piece, day);
+    }
+  };
+
+  const dnd: DragAndDrop = {
+    enabled: mouse,
+    dragging,
+    overDay,
+    start: (source, event) => {
+      event.dataTransfer.effectAllowed = "move";
+      // Firefox only starts a drag that carries some data.
+      event.dataTransfer.setData("text/plain", postSummary(source.piece));
+      setDragging(source);
+    },
+    end: () => {
+      setDragging(null);
+      setOverDay(null);
+    },
+    dayTarget: (day) => ({
+      onDragOver: (event) => {
+        // Days that have gone can't take a post.
+        if (!dragging || day < today) return;
+        event.preventDefault();
+        event.dataTransfer.dropEffect = "move";
+        if (overDay !== day) setOverDay(day);
+      },
+      onDragLeave: (event) => {
+        if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
+        setOverDay((current) => (current === day ? null : current));
+      },
+      onDrop: (event) => {
+        event.preventDefault();
+        drop(day);
+      },
+    }),
+  };
+
+  // --- The open post -------------------------------------------------------------------------------------------------
+
+  const listed = postId
+    ? (scheduled.data?.results.find((piece) => piece.id === postId) ?? tray.data?.results.find((piece) => piece.id === postId))
+    : undefined;
+  const fetched = useContentPiece(postId && !listed ? postId : undefined);
+  const openPiece = listed ?? (postId ? fetched.data : undefined);
+  // Keep showing the post while its dialog closes.
+  const [shownPiece, setShownPiece] = useState<ContentPiece | undefined>(openPiece);
+  if (openPiece && openPiece !== shownPiece) setShownPiece(openPiece);
+  const postError = postId && !listed && fetched.isError ? "We couldn't find that post. It may have been deleted." : "";
+
+  const postHref = (id: string) => {
+    const next = new URLSearchParams(params);
+    next.set("post", id);
+    return `?${next}`;
+  };
+
+  const waiting = (tray.data?.results ?? []).filter((piece) => !piece.scheduled_at);
+  const label = `${period.title}, ${plural(shownPosts.length, "post")}`;
+
+  let subtitle = `${plural(shownPosts.length, "post")} planned ${view === "week" ? period.name : `in ${period.name}`}`;
+  if (missed > 0) subtitle += ` · ${missed} missed`;
 
   return (
-    <div className="animate-slide-in">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-2xl font-extrabold text-[#111827] mb-1">Content Calendar</h2>
-          <p className="text-sm text-[#6B7280]">August 2026 · 7 posts scheduled</p>
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="min-w-0">
+          <h2 className="text-2xl font-semibold text-balance text-foreground">Content Calendar</h2>
+          <p className="mt-1 text-sm text-pretty text-muted-foreground tabular-nums">
+            {scheduled.isPending ? "Loading your posts…" : subtitle}
+          </p>
         </div>
-        <div className="flex gap-2">
-          <div className="flex gap-1 bg-[#F3F4F6] rounded-xl p-1">
-            <button onClick={() => setView("month")} className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${view === "month" ? "bg-white shadow-sm text-[#6D5EF5]" : "text-[#6B7280]"}`}>Month</button>
-            <button onClick={() => setView("week")} className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${view === "week" ? "bg-white shadow-sm text-[#6D5EF5]" : "text-[#6B7280]"}`}>Week</button>
-          </div>
-          <button className="px-4 py-2 bg-[#6D5EF5] text-white text-sm font-semibold rounded-xl hover:opacity-90 transition-opacity">
-            + Schedule Post
-          </button>
+        <div role="group" aria-label="Calendar view" className="flex gap-1 rounded-lg bg-secondary p-1">
+          {VIEWS.map((option) => {
+            const active = view === option.id;
+            return (
+              <button
+                key={option.id}
+                type="button"
+                aria-pressed={active}
+                onClick={() => setParam({ view: option.id })}
+                className={buttonStyles({
+                  variant: "ghost",
+                  size: "sm",
+                  className: cn(active && "bg-white text-foreground shadow-sm hover:bg-white"),
+                })}
+              >
+                {option.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      <div className="grid lg:grid-cols-4 gap-6">
-        {/* Calendar grid */}
-        <div className="lg:col-span-3 bg-white rounded-2xl border border-[#E5E7EB] overflow-hidden">
-          {/* Month header */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-[#F3F4F6]">
-            <button className="text-[#6B7280] hover:text-[#111827] transition-colors p-1">←</button>
-            <h3 className="font-bold text-[#111827]">August 2026</h3>
-            <button className="text-[#6B7280] hover:text-[#111827] transition-colors p-1">→</button>
-          </div>
-
-          {/* Day headers */}
-          <div className="grid grid-cols-7 border-b border-[#F3F4F6]">
-            {days.map((d) => (
-              <div key={d} className="py-2 text-center text-xs font-semibold text-[#9CA3AF] uppercase tracking-wider">
-                {d}
-              </div>
-            ))}
-          </div>
-
-          {/* Date grid */}
-          <div className="grid grid-cols-7">
-            {monthDates.map((date, i) => {
-              const posts = date ? scheduledPosts[date] ?? [] : [];
-              const isToday = date === 24;
-              return (
-                <div
-                  key={i}
-                  className={`min-h-[90px] border-b border-r border-[#F3F4F6] p-2 ${
-                    !date ? "bg-[#F9FAFB]" : "hover:bg-[#F8FAFC] cursor-pointer transition-colors"
-                  } ${i % 7 === 6 ? "border-r-0" : ""}`}
-                >
-                  {date && (
-                    <>
-                      <span
-                        className={`text-xs font-semibold w-6 h-6 flex items-center justify-center rounded-full mb-1 ${
-                          isToday ? "bg-[#6D5EF5] text-white" : "text-[#374151]"
-                        }`}
-                      >
-                        {date}
-                      </span>
-                      <div className="space-y-0.5">
-                        {posts.map((p) => (
-                          <div
-                            key={p.title}
-                            className="flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium text-white truncate"
-                            style={{ background: p.color }}
-                          >
-                            <span>{p.badge}</span>
-                            <span className="truncate">{p.title}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Upcoming posts */}
-        <div className="space-y-4">
-          <div className="bg-white rounded-2xl border border-[#E5E7EB] p-5">
-            <h3 className="font-bold text-[#111827] mb-4 text-sm">Upcoming Posts</h3>
-            <div className="space-y-3">
-              {upcoming.map((p, i) => (
-                <div key={i} className="flex gap-3 items-start">
-                  <span
-                    className="w-7 h-7 rounded text-[11px] font-bold flex items-center justify-center text-white flex-shrink-0"
-                    style={{ background: p.color }}
-                  >
-                    {p.badge}
-                  </span>
-                  <div className="min-w-0">
-                    <p className="text-xs font-semibold text-[#111827] truncate">{p.title}</p>
-                    <p className="text-[10px] text-[#9CA3AF]">{p.date} · {p.time}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="bg-[#EDE9FE] rounded-2xl p-5">
-            <div className="text-2xl mb-2">📅</div>
-            <h3 className="font-bold text-[#6D5EF5] text-sm mb-1">30-Day Fill</h3>
-            <p className="text-xs text-[#7C6FF0]">Generate enough content to fill your entire month automatically with AI Studio.</p>
-            <button className="mt-3 w-full py-2 bg-[#6D5EF5] text-white text-xs font-bold rounded-xl hover:opacity-90 transition-opacity">
-              Auto-Fill Month
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_19rem]">
+        <section
+          aria-labelledby="calendar-period"
+          aria-busy={scheduled.isFetching}
+          className="min-w-0 overflow-hidden rounded-xl border border-border bg-white"
+        >
+          <div className="flex items-center gap-1 border-b border-border px-2 py-2 sm:px-3">
+            <button
+              type="button"
+              onClick={() => setParam({ date: period.step(-1) })}
+              aria-label={period.previous}
+              className={buttonStyles({ variant: "ghost", size: "icon" })}
+            >
+              <ChevronLeft aria-hidden="true" className="size-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setParam({ date: period.step(1) })}
+              aria-label={period.next}
+              className={buttonStyles({ variant: "ghost", size: "icon" })}
+            >
+              <ChevronRight aria-hidden="true" className="size-4" />
+            </button>
+            <h3 id="calendar-period" className="ml-1 min-w-0 truncate font-semibold text-foreground tabular-nums">
+              {period.title}
+            </h3>
+            <button
+              type="button"
+              onClick={() => setParam({ date: null })}
+              className={buttonStyles({ variant: "secondary", size: "sm", className: "ml-auto" })}
+            >
+              Today
             </button>
           </div>
+
+          {scheduled.isError && (
+            <div className="flex flex-wrap items-center gap-3 border-b border-border bg-red-50 px-4 py-3">
+              <p role="alert" className="min-w-0 flex-1 text-sm text-pretty text-red-700">
+                {scheduled.error.message}
+              </p>
+              <button type="button" onClick={() => scheduled.refetch()} className={buttonStyles({ variant: "secondary", size: "sm" })}>
+                Try again
+              </button>
+            </div>
+          )}
+
+          {view === "month" ? (
+            <MonthView
+              days={period.days}
+              month={period.month}
+              posts={posts}
+              today={today}
+              dnd={dnd}
+              postHref={postHref}
+              onShowDay={(day) => setParam({ view: "week", date: day })}
+              label={label}
+            />
+          ) : view === "week" ? (
+            <WeekView days={period.days} posts={posts} today={today} dnd={dnd} postHref={postHref} label={label} />
+          ) : (
+            <AgendaView days={period.days} posts={posts} today={today} dnd={dnd} postHref={postHref} periodName={period.title} />
+          )}
+        </section>
+
+        <div className="min-w-0 lg:sticky lg:top-0 lg:self-start">
+          <ReadyTray
+            posts={waiting}
+            total={tray.data?.count ?? 0}
+            loading={tray.isPending}
+            error={tray.isError ? tray.error.message : ""}
+            onRetry={() => tray.refetch()}
+            onShowMore={() => setTrayCount((count) => Math.min(200, count + TRAY_PAGE))}
+            loadingMore={tray.isPlaceholderData}
+            dnd={dnd}
+            onScheduled={changed}
+          />
         </div>
       </div>
+
+      <PostDialog
+        piece={postId ? openPiece : shownPiece}
+        open={Boolean(postId)}
+        onOpenChange={(open) => !open && setParam({ post: null })}
+        error={postError}
+        onRescheduled={changed}
+      />
+
+      {dropped && (
+        <ScheduleDialog
+          piece={dropped.piece}
+          day={dropped.day}
+          open={droppedOpen}
+          onOpenChange={setDroppedOpen}
+          onDone={changed}
+        />
+      )}
+
+      <CalendarNotice notice={notice} onDismiss={dismiss} />
     </div>
   );
 }

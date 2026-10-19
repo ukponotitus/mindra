@@ -13,6 +13,12 @@ export type ContentFilters = {
   platform?: Platform | "";
   favorite?: boolean;
   search?: string;
+  /** Only posts on the calendar (true) or only posts that aren't (false). */
+  scheduled?: boolean;
+  /** Posts scheduled at or after this ISO time; results then come in time order. */
+  scheduledAfter?: string;
+  /** Posts scheduled before this ISO time. */
+  scheduledBefore?: string;
   page?: number;
   pageSize?: number;
 };
@@ -24,6 +30,9 @@ function contentQuery(filters: ContentFilters): string {
   if (filters.platform) params.set("platform", filters.platform);
   if (filters.favorite) params.set("favorite", "true");
   if (filters.search) params.set("search", filters.search);
+  if (filters.scheduled !== undefined) params.set("scheduled", String(filters.scheduled));
+  if (filters.scheduledAfter) params.set("scheduled_after", filters.scheduledAfter);
+  if (filters.scheduledBefore) params.set("scheduled_before", filters.scheduledBefore);
   if (filters.page && filters.page > 1) params.set("page", String(filters.page));
   if (filters.pageSize) params.set("page_size", String(filters.pageSize));
   return params.toString();

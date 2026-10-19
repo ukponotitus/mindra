@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Check, ChevronRight, Copy, Maximize2, Minimize2, RefreshCw, Star, Trash2, Undo2 } from "lucide-react";
-import { Link, useNavigate, useParams } from "react-router";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router";
+import PostSchedule from "../components/calendar/PostSchedule";
+import ReminderBanner from "../components/calendar/ReminderBanner";
 import AiWriterNotice from "../components/content/AiWriterNotice";
 import PlatformBadge from "../components/content/PlatformBadge";
 import SuggestionsPanel from "../components/content/SuggestionsPanel";
@@ -83,6 +85,9 @@ function PostClip({ clip, project, text, title }: { clip: ClipSummary; project: 
 export default function ContentEditor() {
   const { pieceId } = useParams();
   const navigate = useNavigate();
+  // Opened from a reminder (/library/<id>?reminder=1): a banner offers Share and "Mark as posted".
+  const [searchParams, setSearchParams] = useSearchParams();
+  const fromReminder = searchParams.get("reminder") === "1";
   const { data: piece, isPending, error } = useContentPiece(pieceId);
   const update = useUpdatePiece();
   const remove = useDeletePiece();
@@ -190,6 +195,23 @@ export default function ContentEditor() {
           )}
         </div>
       </div>
+
+      {fromReminder && (
+        <ReminderBanner
+          piece={piece}
+          text={body}
+          onClose={() =>
+            setSearchParams(
+              (current) => {
+                const next = new URLSearchParams(current);
+                next.delete("reminder");
+                return next;
+              },
+              { replace: true },
+            )
+          }
+        />
+      )}
 
       <AiWriterNotice />
 
@@ -353,6 +375,7 @@ export default function ContentEditor() {
               </div>
             </section>
           )}
+          <PostSchedule piece={piece} />
           <SuggestionsPanel
             key={piece.id}
             pieceId={piece.id}

@@ -310,7 +310,7 @@ const features: Feature[] = [
   {
     short: "Calendar",
     title: "Plan the whole month",
-    text: "Drop posts onto a calendar and publish to every channel on schedule.",
+    text: "Drop posts onto a calendar and get a reminder when each one is due.",
     status: "soon",
     icon: CalendarDays,
     Demo: CalendarDemo,

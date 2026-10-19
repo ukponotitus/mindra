@@ -19,7 +19,7 @@ const withMindra = [
   "Mindra finds the moments worth sharing",
   "Clips, captions and posts arrive in your voice",
   "Review, tweak and approve in minutes",
-  "Publish everywhere from one calendar",
+  "Plan the week on a calendar, with a reminder for each post",
 ];
 
 const clips = [

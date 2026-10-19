@@ -1,6 +1,8 @@
 import { useId, useState } from "react";
-import { Check, Clapperboard, Copy, Download, PenLine, Star, Trash2 } from "lucide-react";
+import { CalendarClock, Check, Clapperboard, Copy, Download, PenLine, Star, Trash2 } from "lucide-react";
 import { Link } from "react-router";
+import ScheduleChip from "../calendar/ScheduleChip";
+import ScheduleDialog from "../calendar/ScheduleDialog";
 import ConfirmDialog from "../ui/ConfirmDialog";
 import { buttonStyles } from "../ui/button";
 import { cn } from "../../lib/cn";
@@ -129,6 +131,7 @@ export default function ContentCard({ piece, showProject = false, showClip = tru
         <div className="min-w-0 flex-1">
           <PlatformBadge platform={piece.platform} />
           {piece.title && <p className="mt-1.5 truncate text-xs text-muted-foreground">{piece.title}</p>}
+          <ScheduleChip piece={piece} className="mt-2 flex w-fit" />
         </div>
         {piece.status === "approved" && (
           <span className="mt-0.5 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">Approved</span>
@@ -248,6 +251,19 @@ export default function ContentCard({ piece, showProject = false, showClip = tru
           <PenLine aria-hidden="true" className="size-4" />
           Edit
         </Link>
+        <ScheduleDialog
+          piece={piece}
+          trigger={
+            <button
+              type="button"
+              aria-label={piece.scheduled_at ? "Change schedule" : "Schedule post"}
+              title={piece.scheduled_at ? "Change schedule" : "Schedule"}
+              className={buttonStyles({ variant: "secondary", size: "icon" })}
+            >
+              <CalendarClock aria-hidden="true" className="size-4" />
+            </button>
+          }
+        />
         <ConfirmDialog
           trigger={
             <button

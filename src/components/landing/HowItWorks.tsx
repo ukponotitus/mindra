@@ -25,8 +25,8 @@ const steps = [
   },
   {
     icon: Send,
-    title: "Publish everywhere",
-    text: "Schedule to every channel, WhatsApp included, and see what resonated so next week is even better.",
+    title: "Plan and share",
+    text: "Plan the week on a calendar, get a reminder when each post is due, and share it to WhatsApp, Instagram and more in one tap.",
   },
 ];
 

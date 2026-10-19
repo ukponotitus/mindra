@@ -182,6 +182,12 @@ export type ClipSummary = {
   thumbnail_url: string | null;
 };
 
+/**
+ * Where a post is on the calendar: "" not scheduled; "planned" before its time; "reminded" once the reminder went out;
+ * "posted" once someone marked it; "missed" when it wasn't marked within some hours of its time.
+ */
+export type ScheduleStatus = "" | "planned" | "reminded" | "posted" | "missed";
+
 export type ContentPiece = {
   id: string;
   project: string;
@@ -197,9 +203,28 @@ export type ContentPiece = {
   tone: string;
   status: "draft" | "approved";
   is_favorite: boolean;
+  /** When the post is planned to go out (ISO 8601), or null when it isn't on the calendar. */
+  scheduled_at: string | null;
+  /** When the reminder for its current time went out. */
+  reminded_at: string | null;
+  /** When someone marked it as posted. */
+  posted_at: string | null;
+  schedule_status: ScheduleStatus;
   created_at: string;
   updated_at: string;
 };
+
+/** GET /api/notifications/: how reminders reach the signed-in person. */
+export type NotificationSettings = {
+  /** The server's VAPID public key for Web Push, or null when push isn't set up on the server. */
+  push_public_key: string | null;
+  email_reminders: boolean;
+  /** True when the server can really send email. */
+  email_available: boolean;
+};
+
+/** POST /api/notifications/test/: what a test reminder reached. */
+export type TestReminderResult = { push_sent: number; email_sent: boolean };
 
 export type Generation = {
   id: string;

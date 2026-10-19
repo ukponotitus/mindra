@@ -1,17 +1,18 @@
-import { useId, useState, type ReactNode } from "react";
-import { KeyRound, LogOut, UserRound, Users, type LucideIcon } from "lucide-react";
-import { useNavigate } from "react-router";
+import { useEffect, useId, useState, type ReactNode } from "react";
+import { BellRing, KeyRound, LogOut, UserRound, Users, type LucideIcon } from "lucide-react";
+import { useLocation, useNavigate } from "react-router";
 import { fullName, useAuth } from "../auth/context";
+import ReminderSettings from "../components/calendar/ReminderSettings";
 import { buttonStyles } from "../components/ui/button";
 import { ApiError, apiRequest } from "../lib/api";
 import { initials } from "../lib/format";
 
 const roleLabels = { owner: "Owner", admin: "Admin", member: "Member" };
 
-function Card({ icon: Icon, title, children }: { icon: LucideIcon; title: string; children: ReactNode }) {
+function Card({ icon: Icon, title, id, children }: { icon: LucideIcon; title: string; id?: string; children: ReactNode }) {
   const headingId = useId();
   return (
-    <section aria-labelledby={headingId} className="rounded-xl border border-border bg-white p-5 sm:p-6">
+    <section id={id} aria-labelledby={headingId} className="scroll-mt-4 rounded-xl border border-border bg-white p-5 sm:p-6">
       <div className="mb-5 flex items-center gap-2.5">
         <Icon aria-hidden="true" className="size-5 shrink-0 text-muted-foreground" />
         <h3 id={headingId} className="font-semibold text-balance text-foreground">
@@ -26,8 +27,14 @@ function Card({ icon: Icon, title, children }: { icon: LucideIcon; title: string
 export default function Settings() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const { hash } = useLocation();
   const [resetState, setResetState] = useState<"idle" | "sending" | "sent">("idle");
   const [resetError, setResetError] = useState("");
+
+  // Links such as "Settings" in the schedule dialog go straight to a section (/settings#reminders).
+  useEffect(() => {
+    if (hash) document.getElementById(hash.slice(1))?.scrollIntoView({ block: "start" });
+  }, [hash]);
 
   if (!user) return null;
   const name = fullName(user);
@@ -53,7 +60,7 @@ export default function Settings() {
     <div className="max-w-3xl">
       <div className="mb-6">
         <h2 className="text-2xl font-semibold text-balance text-foreground">Settings</h2>
-        <p className="mt-1 text-sm text-pretty text-muted-foreground">Your account and workspace.</p>
+        <p className="mt-1 text-sm text-pretty text-muted-foreground">Your account, reminders and workspace.</p>
       </div>
 
       <div className="space-y-5">
@@ -71,6 +78,13 @@ export default function Settings() {
             </div>
           </div>
           <p className="mt-4 text-sm text-pretty text-muted-foreground">Editing your name and email is coming soon.</p>
+        </Card>
+
+        <Card icon={BellRing} title="Reminders" id="reminders">
+          <p className="mb-4 text-sm text-pretty text-muted-foreground">
+            At each scheduled post's time, Mindra reminds whoever scheduled it, with a link that opens the post ready to share.
+          </p>
+          <ReminderSettings />
         </Card>
 
         <Card icon={Users} title="Workspace">

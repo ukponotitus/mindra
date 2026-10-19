@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { CalendarDays, CreditCard } from "lucide-react";
+import { CreditCard } from "lucide-react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router";
 import AuthProvider from "./auth/AuthProvider";
 import RequireAuth from "./auth/RequireAuth";
@@ -8,6 +8,7 @@ import DashboardShell from "./components/DashboardShell";
 import { ApiError } from "./lib/api";
 import AIStudio from "./pages/AIStudio";
 import AuthPage from "./pages/Auth";
+import CalendarPage from "./pages/Calendar";
 import BrandVoice from "./pages/BrandVoice";
 import ContentEditor from "./pages/ContentEditor";
 import Clips from "./pages/Clips";
@@ -60,22 +61,7 @@ export default function App() {
                 <Route path="/library" element={<ContentLibrary />} />
                 <Route path="/library/:pieceId" element={<ContentEditor />} />
                 <Route path="/clips" element={<Clips />} />
-                <Route
-                  path="/calendar"
-                  element={
-                    <ComingSoon
-                      icon={CalendarDays}
-                      title="Content Calendar"
-                      description="Plan a month of posts from every recording and publish them on schedule."
-                      points={[
-                        "Drag posts onto the days you want them to go out",
-                        "Publish to Facebook, Instagram, YouTube and more on schedule",
-                        "Share packs for WhatsApp Status and Channels",
-                        "See every scheduled post across your recordings in one place",
-                      ]}
-                    />
-                  }
-                />
+                <Route path="/calendar" element={<CalendarPage />} />
                 <Route path="/brand-voice" element={<BrandVoice />} />
                 <Route
                   path="/billing"

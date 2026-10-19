@@ -29,7 +29,7 @@ const navItems: { label: string; to: string; icon: LucideIcon; soon?: boolean }[
   { label: "Content Library", to: "/library", icon: Library },
   { label: "Clips", to: "/clips", icon: Clapperboard },
   { label: "AI Studio", to: "/ai-studio", icon: PenLine },
-  { label: "Calendar", to: "/calendar", icon: CalendarDays, soon: true },
+  { label: "Calendar", to: "/calendar", icon: CalendarDays },
   { label: "Brand Voice", to: "/brand-voice", icon: AudioLines },
   { label: "Billing", to: "/billing", icon: CreditCard, soon: true },
   { label: "Settings", to: "/settings", icon: Settings },
