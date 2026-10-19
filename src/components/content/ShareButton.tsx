@@ -12,6 +12,8 @@ type Shared = {
   size?: "sm" | "md";
   /** Take the whole row (on cards, where it's the main action). */
   wide?: boolean;
+  /** Called once the files went to an app or were saved, e.g. to ask whether the post went out. */
+  onShared?: () => void;
 };
 
 type Props = Shared &
@@ -71,7 +73,7 @@ function saveFiles(files: File[]) {
  * Elsewhere it downloads the files and copies the caption.
  */
 export default function ShareButton(props: Props) {
-  const { text, title, variant = "secondary", size = "sm", wide = false } = props;
+  const { text, title, variant = "secondary", size = "sm", wide = false, onShared } = props;
   const isClip = props.clipId !== undefined;
   const words = isClip ? WORDS.video : WORDS.photos;
   const [sharing] = useState(() => canShareFiles(isClip ? undefined : { name: "photo.jpg", type: "image/jpeg" }));
@@ -111,6 +113,7 @@ export default function ShareButton(props: Props) {
       await navigator.share({ files: files.current, title, ...(text ? { text } : {}) });
       setState("idle");
       setMessage(copied ? "Shared. The caption is copied too, so paste it if the app left it out." : "Shared.");
+      onShared?.();
     } catch (error) {
       const name = error instanceof DOMException ? error.name : "";
       if (name === "AbortError") {
@@ -140,6 +143,7 @@ export default function ShareButton(props: Props) {
         files.current = await load();
       }
       saveFiles(files.current);
+      onShared?.();
       const count = files.current.length;
       setState("idle");
       setMessage(
@@ -166,7 +170,10 @@ export default function ShareButton(props: Props) {
           <a
             href={props.downloadUrl}
             download
-            onClick={async () => setMessage((await copyCaption()) ? "Downloading the video. The caption is copied, ready to paste." : "Downloading the video.")}
+            onClick={async () => {
+              setMessage((await copyCaption()) ? "Downloading the video. The caption is copied, ready to paste." : "Downloading the video.");
+              onShared?.();
+            }}
             className={styles}
           >
             <Download aria-hidden="true" className="size-4" />

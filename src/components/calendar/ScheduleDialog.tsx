@@ -25,6 +25,7 @@ import { cn } from "../../lib/cn";
 import { platformInfo } from "../../lib/projects";
 import type { ContentPiece } from "../../lib/types";
 import { backdropClass, popupClass } from "./dialogStyles";
+import PostNow from "./PostNow";
 
 interface Props {
   piece: ContentPiece;
@@ -184,9 +185,67 @@ function ScheduleForm({ piece, day, onDone }: { piece: ContentPiece; day?: strin
   );
 }
 
+/** The dialog's inside: "Schedule for later" or "Post now", chosen at the top (Post now only before it's posted). */
+function DialogBody({ piece, day, onDone }: { piece: ContentPiece; day?: string; onDone: (piece: ContentPiece) => void }) {
+  const [mode, setMode] = useState<"later" | "now">("later");
+  const info = platformInfo(piece.platform);
+  const canPostNow = !piece.posted_at;
+  const now = canPostNow && mode === "now";
+
+  return (
+    <>
+      <div className="mb-5 flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <Dialog.Title className="text-lg font-semibold text-balance text-foreground">
+            {now ? "Post this now" : piece.scheduled_at ? "Change when it goes out" : "Schedule this post"}
+          </Dialog.Title>
+          <Dialog.Description className="mt-1 truncate text-sm text-muted-foreground">
+            {info.label}: {postSummary(piece)}
+          </Dialog.Description>
+        </div>
+        <Dialog.Close aria-label="Close" className={buttonStyles({ variant: "ghost", size: "icon", className: "-mt-1 -mr-2" })}>
+          <X aria-hidden="true" className="size-4" />
+        </Dialog.Close>
+      </div>
+      {canPostNow && (
+        <fieldset className="mb-5">
+          <legend className="sr-only">When it goes out</legend>
+          <div className="grid grid-cols-2 gap-1 rounded-lg bg-secondary p-1">
+            {(
+              [
+                ["later", piece.scheduled_at ? "Change time" : "Schedule for later"],
+                ["now", "Post now"],
+              ] as const
+            ).map(([value, label]) => (
+              <label
+                key={value}
+                className={cn(
+                  "grid h-9 cursor-pointer place-items-center rounded-md text-sm font-medium transition-colors has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-primary",
+                  mode === value ? "bg-white text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <input
+                  type="radio"
+                  name="schedule-mode"
+                  value={value}
+                  checked={mode === value}
+                  onChange={() => setMode(value)}
+                  className="sr-only"
+                />
+                {label}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      )}
+      {now ? <PostNow piece={piece} onPosted={onDone} /> : <ScheduleForm piece={piece} day={day} onDone={onDone} />}
+    </>
+  );
+}
+
 /**
- * Put a post on the calendar, move it or take it off. Times are entered in the browser's time zone and sent with their
- * offset. Used on post cards, in the editor and on the calendar.
+ * Put a post on the calendar, move it or take it off, or post it now. Times are entered in the browser's time zone and
+ * sent with their offset. Used on post cards, in the editor and on the calendar.
  */
 export default function ScheduleDialog({ piece, trigger, open, onOpenChange, day, onDone }: Props) {
   const [innerOpen, setInnerOpen] = useState(false);
@@ -196,12 +255,11 @@ export default function ScheduleDialog({ piece, trigger, open, onOpenChange, day
     if (open === undefined) setInnerOpen(next);
     onOpenChange?.(next);
   };
-  const info = platformInfo(piece.platform);
-
   const done = (saved: ContentPiece) => {
     setOpen(false);
     // Where nothing else reports the change (cards, the editor), say it for screen readers.
     if (onDone) onDone(saved, piece.scheduled_at);
+    else if (saved.posted_at && !piece.posted_at) setAnnouncement("Marked as posted. It's on today's calendar.");
     else if (!saved.scheduled_at) setAnnouncement("Taken off the calendar.");
     else setAnnouncement(`${piece.scheduled_at ? "Moved to" : "Scheduled for"} ${formatScheduled(saved.scheduled_at)}.`);
   };
@@ -213,20 +271,7 @@ export default function ScheduleDialog({ piece, trigger, open, onOpenChange, day
         <Dialog.Portal>
           <Dialog.Backdrop className={backdropClass} />
           <Dialog.Popup className={cn(popupClass, "w-[min(34rem,calc(100vw-2rem))]")}>
-            <div className="mb-5 flex items-start justify-between gap-4">
-              <div className="min-w-0">
-                <Dialog.Title className="text-lg font-semibold text-balance text-foreground">
-                  {piece.scheduled_at ? "Change when it goes out" : "Schedule this post"}
-                </Dialog.Title>
-                <Dialog.Description className="mt-1 truncate text-sm text-muted-foreground">
-                  {info.label}: {postSummary(piece)}
-                </Dialog.Description>
-              </div>
-              <Dialog.Close aria-label="Close" className={buttonStyles({ variant: "ghost", size: "icon", className: "-mt-1 -mr-2" })}>
-                <X aria-hidden="true" className="size-4" />
-              </Dialog.Close>
-            </div>
-            <ScheduleForm piece={piece} day={day} onDone={done} />
+            <DialogBody piece={piece} day={day} onDone={done} />
           </Dialog.Popup>
         </Dialog.Portal>
       </Dialog.Root>

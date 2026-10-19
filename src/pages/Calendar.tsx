@@ -26,6 +26,7 @@ import {
   startOfMonth,
   toOffsetIso,
   useScheduledPosts,
+  useMarkPosted,
   useSchedulePost,
   useUnscheduledPosts,
   weekDays,
@@ -129,6 +130,7 @@ export default function Calendar() {
   const [trayCount, setTrayCount] = useState(TRAY_PAGE);
   const tray = useUnscheduledPosts(trayCount);
   const schedule = useSchedulePost();
+  const markPosted = useMarkPosted();
 
   // Posts being moved by a drag show on their new day straight away, until the server answers.
   const [moving, setMoving] = useState<Record<string, string>>({});
@@ -156,9 +158,18 @@ export default function Calendar() {
       .then(() => setNotice({ text: previous ? `Moved back to ${formatScheduled(previous)}.` : "Taken off the calendar." }))
       .catch((error: Error) => setNotice({ error: true, text: `Couldn't undo: ${error.message}` }));
 
+  /** Post now, undone: not posted, so off the calendar again. */
+  const unpost = (piece: ContentPiece) =>
+    markPosted
+      .mutateAsync({ id: piece.id, posted: false })
+      .then(() => setNotice({ text: "Not posted. It's back in Ready to schedule." }))
+      .catch((error: Error) => setNotice({ error: true, text: `Couldn't undo: ${error.message}` }));
+
   /** After the schedule dialog or a post's dialog changed a post. */
   const changed = (saved: ContentPiece, previous: string | null) => {
-    if (!saved.scheduled_at) {
+    if (saved.posted_at && !previous && saved.scheduled_at === saved.posted_at) {
+      setNotice({ text: "Marked as posted. It's on today's calendar.", undo: () => unpost(saved) });
+    } else if (!saved.scheduled_at) {
       setParam({ post: null });
       setNotice({ text: "Taken off the calendar. It's back in Ready to schedule.", undo: () => restore(saved, previous) });
     } else if (!previous) {
