@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useRef, useState, type DragEvent, type FormEvent } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { AudioLines, FileText, Upload, Video, type LucideIcon } from "lucide-react";
+import { AudioLines, FileText, Images, Upload, Video, type LucideIcon } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router";
 import MediaPreview from "../components/project/MediaPreview";
+import { QueuedPhotoTile, RecordingSelect } from "../components/project/ProjectPhotos";
 import ConfirmDialog from "../components/ui/ConfirmDialog";
 import { buttonStyles } from "../components/ui/button";
 import { ApiError, apiRequest, uploadWithProgress, type FieldErrors } from "../lib/api";
 import { cn } from "../lib/cn";
 import { formatExtensions, formatFileSize, formatMegabytes } from "../lib/format";
+import { PHOTO_PLATFORMS, photoAccept, photoRules, useMoveFocus, usePhotoQueue } from "../lib/photos";
 import { PLATFORMS, uploadOptionsQuery, useUploadOptions } from "../lib/projects";
 import type { Platform, Project, SourceType } from "../lib/types";
 import {
@@ -24,6 +26,7 @@ const sourceTypes: { id: SourceType; label: string; icon: LucideIcon }[] = [
   { id: "video", label: "Video File", icon: Video },
   { id: "audio", label: "Audio File", icon: AudioLines },
   { id: "transcript", label: "Paste Transcript", icon: FileText },
+  { id: "photos", label: "Photos", icon: Images },
 ];
 
 const DEFAULT_PLATFORMS: Platform[] = ["instagram", "facebook", "whatsapp"];
@@ -76,27 +79,39 @@ export default function CreateProject() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  // Photos: what they show, the recording they go with, the pictures, and the project once it's made (the photos are
+  // uploaded into it one at a time; trying failed ones again uses the same project).
+  const [note, setNote] = useState("");
+  const [linked, setLinked] = useState("");
+  const [created, setCreated] = useState<Project | null>(null);
+  const uploadedOrder = useRef<string[]>([]);
+  const photoQueue = usePhotoQueue({ onUploaded: (photo) => uploadedOrder.current.push(photo.id) });
+  const focusAfterMove = useMoveFocus(photoQueue.items.map((item) => item.key).join());
 
-  const isMedia = sourceType !== "transcript";
-  const extensions = sourceType !== "transcript" && options ? options.extensions[sourceType] : [];
+  const isPhotos = sourceType === "photos";
+  const isMedia = sourceType === "video" || sourceType === "audio";
+  const extensions = isMedia && options ? options.extensions[sourceType] : [];
   const spokenLanguage = language ?? options?.default_language ?? "en";
+  const rules = photoRules(options);
+  const platformChoices = isPhotos ? PLATFORMS.filter((platform) => PHOTO_PLATFORMS.includes(platform.id)) : PLATFORMS;
+  const locked = submitting || Boolean(created);
 
   // Leaving mid-upload stops it (a direct upload continues when the same file is chosen again), so ask first.
   useEffect(() => {
-    if (!submitting || !isMedia) return;
+    if (!submitting || sourceType === "transcript") return;
     const warn = (event: BeforeUnloadEvent) => event.preventDefault();
     window.addEventListener("beforeunload", warn);
     return () => window.removeEventListener("beforeunload", warn);
-  }, [submitting, isMedia]);
+  }, [submitting, sourceType]);
 
   // Going to another page pauses a direct upload rather than throwing it away.
   useEffect(() => () => directUpload.current?.pause(), []);
 
   // Part of this file was sent before (a dropped connection or a closed tab), so the upload will continue.
   const canResume = useMemo(
-    () => Boolean(file && sourceType !== "transcript" && options?.direct_upload && hasSavedUpload(file, sourceType)),
+    () => Boolean(file && isMedia && options?.direct_upload && hasSavedUpload(file, sourceType)),
     // submitting: check again after an attempt, which may have left part of the file stored.
-    [file, sourceType, options?.direct_upload, submitting],
+    [file, isMedia, sourceType, options?.direct_upload, submitting],
   );
 
   const selectType = (type: SourceType) => {
@@ -123,7 +138,43 @@ export default function CreateProject() {
   const onDrop = (event: DragEvent) => {
     event.preventDefault();
     setDragging(false);
-    chooseFile(event.dataTransfer.files[0]);
+    if (isPhotos) addPhotos(Array.from(event.dataTransfer.files));
+    else chooseFile(event.dataTransfer.files[0]);
+  };
+
+  const addPhotos = (files: File[]) => {
+    if (files.length === 0 || locked) return;
+    setFieldErrors(({ photos: _photos, ...rest }) => rest);
+    photoQueue.add(files, rules.max, rules);
+  };
+
+  const movePhoto = (key: string, by: number) => {
+    focusAfterMove(key, by);
+    photoQueue.move(key, by);
+  };
+
+  /** Make the photos project (JSON); its photos are uploaded into it next. */
+  const createPhotosProject = () =>
+    apiRequest<Project>("/api/projects/", {
+      method: "POST",
+      body: {
+        name: name.trim(),
+        source_type: "photos",
+        ...(note.trim() ? { note: note.trim() } : {}),
+        ...(linked ? { linked_recording: linked } : {}),
+        target_platforms: platforms.filter((platform) => PHOTO_PLATFORMS.includes(platform)),
+      },
+    });
+
+  /** A failed photo that was tried again lands at the end on the server: put them back in the order chosen here. */
+  const keepChosenOrder = async (projectId: string) => {
+    const chosen = photoQueue.current().flatMap((item) => (item.photo ? [item.photo.id] : []));
+    if (chosen.join() === uploadedOrder.current.join()) return;
+    try {
+      await apiRequest(`/api/projects/${projectId}/photos/order/`, { method: "POST", body: { ids: chosen } });
+    } catch {
+      // The photos are all there; the order can still be changed on the project's Photos tab.
+    }
   };
 
   const togglePlatform = (platform: Platform) =>
@@ -139,7 +190,7 @@ export default function CreateProject() {
   };
 
   /** Send the file straight to storage in parts, then create the project from it. */
-  const uploadDirectly = async (media: File, type: Exclude<SourceType, "transcript">) => {
+  const uploadDirectly = async (media: File, type: Exclude<SourceType, "transcript" | "photos">) => {
     const upload = new DirectUpload(media, {
       sourceType: type,
       onProgress: (progress) => {
@@ -183,14 +234,27 @@ export default function CreateProject() {
     const problems: FieldErrors = {};
     if (!name.trim()) problems.name = ["Give this project a name."];
     if (isMedia && !file) problems.source_file = ["Choose a file to upload."];
-    if (!isMedia && !transcript.trim()) problems.source_text = ["Paste a transcript to process."];
+    if (sourceType === "transcript" && !transcript.trim()) problems.source_text = ["Paste a transcript to process."];
+    if (isPhotos && photoQueue.items.length === 0) problems.photos = ["Choose at least one photo."];
     setFieldErrors(problems);
     if (Object.keys(problems).length > 0) return;
 
     setSubmitting(true);
     try {
       let project: Project;
-      if (isMedia && file) {
+      if (isPhotos) {
+        project = created ?? (await createPhotosProject());
+        const retrying = Boolean(created);
+        setCreated(project);
+        // One at a time, in order; a dropped connection waits for the connection to come back.
+        const failed = await (retrying ? photoQueue.retry(project.id) : photoQueue.upload(project.id));
+        queryClient.invalidateQueries({ queryKey: ["projects"] });
+        if (failed > 0) {
+          setSubmitting(false);
+          return;
+        }
+        await keepChosenOrder(project.id);
+      } else if (isMedia && file) {
         setUploadProgress(0);
         // The options shown first are placeholders; ask the server whether it takes direct uploads.
         const live = await queryClient.ensureQueryData(uploadOptionsQuery).catch(() => options);
@@ -217,8 +281,15 @@ export default function CreateProject() {
         });
       }
       queryClient.invalidateQueries({ queryKey: ["projects"] });
-      // A pasted transcript is ready in a moment, so go straight to it instead of the progress screen.
-      navigate(isMedia ? `/projects/${project.id}/processing` : `/projects/${project.id}?tab=transcript`);
+      // A pasted transcript is ready in a moment, so go straight to it instead of the progress screen; photos need no
+      // processing at all.
+      navigate(
+        isPhotos
+          ? `/projects/${project.id}`
+          : isMedia
+            ? `/projects/${project.id}/processing`
+            : `/projects/${project.id}?tab=transcript`,
+      );
     } catch (caught) {
       if (isUploadStopped(caught)) {
         // Stopped on purpose, or the page is going away: nothing to report.
@@ -232,7 +303,9 @@ export default function CreateProject() {
       const fileProblem = errors.source_key ?? errors.filename ?? errors.size;
       if (fileProblem) errors.source_file = fileProblem;
       setFieldErrors(errors);
-      if (!["name", "source_file", "source_text", "language"].some((field) => errors[field])) setError(apiError.message);
+      if (!["name", "source_file", "source_text", "language", "note", "linked_recording"].some((field) => errors[field])) {
+        setError(apiError.message);
+      }
       resetUpload();
       setSubmitting(false);
     }
@@ -253,12 +326,37 @@ export default function CreateProject() {
     connectionText = `Upload continues where it stopped: ${formatFileSize(resumedBytes)} was already sent.`;
   const SourceIcon = sourceType === "video" ? Video : AudioLines;
 
+  const photoCount = photoQueue.items.length;
+  const failedPhotos = photoQueue.items.filter((item) => item.status === "failed").length;
+  const uploadingPhoto = photoQueue.items.findIndex((item) => item.status === "uploading");
+  let photoProgress = "";
+  if (isPhotos && submitting) {
+    photoProgress = created
+      ? uploadingPhoto >= 0
+        ? `Uploading photo ${uploadingPhoto + 1} of ${photoCount}…`
+        : "Getting the photos ready…"
+      : "Creating the project…";
+  }
+  let submitLabel = "Start Processing";
+  if (isPhotos) {
+    if (photoProgress) submitLabel = photoProgress;
+    else if (created && failedPhotos > 0) submitLabel = `Try ${failedPhotos === 1 ? "the photo" : `${failedPhotos} photos`} again`;
+    else if (created) submitLabel = "Open the project";
+    else submitLabel = photoCount > 0 ? `Upload ${photoCount} photo${photoCount === 1 ? "" : "s"}` : "Upload photos";
+  } else if (uploading) {
+    submitLabel = percent < 100 ? `Uploading… ${percent}%` : "Starting…";
+  } else if (submitting) {
+    submitLabel = "Starting…";
+  }
+
   return (
     <div className="mx-auto max-w-5xl">
       <div className="mb-8">
         <h2 className="text-2xl font-semibold text-balance text-foreground">Create New Project</h2>
         <p className="mt-1 text-sm text-pretty text-muted-foreground">
-          Upload a recording or paste a transcript. Mindra transcribes it and finds the parts worth sharing.
+          {isPhotos
+            ? "Add the photos you want to post. Mindra writes a caption for each platform from the pictures."
+            : "Upload a recording or paste a transcript. Mindra transcribes it and finds the parts worth sharing."}
         </p>
       </div>
 
@@ -274,7 +372,7 @@ export default function CreateProject() {
               placeholder="e.g. Sunday Service, 12 October"
               value={name}
               maxLength={200}
-              disabled={submitting}
+              disabled={locked}
               onChange={(e) => setName(e.target.value)}
               aria-invalid={fieldErrors.name ? true : undefined}
               aria-describedby={fieldErrors.name ? "project-name-error" : undefined}
@@ -285,7 +383,7 @@ export default function CreateProject() {
 
           <fieldset className={cardClass}>
             <legend className="float-left mb-3 w-full text-sm font-medium text-foreground">Source</legend>
-            <div className="clear-left mb-5 grid grid-cols-3 gap-2">
+            <div className="clear-left mb-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
               {sourceTypes.map((type) => {
                 const selected = sourceType === type.id;
                 return (
@@ -293,7 +391,7 @@ export default function CreateProject() {
                     key={type.id}
                     type="button"
                     aria-pressed={selected}
-                    disabled={submitting}
+                    disabled={locked}
                     onClick={() => selectType(type.id)}
                     className={cn(
                       "flex min-h-16 flex-col items-center justify-center gap-1.5 rounded-lg border px-2 py-3 text-center text-xs font-medium transition-colors",
@@ -466,7 +564,140 @@ export default function CreateProject() {
               </div>
             )}
 
-            {!isMedia && (
+            {isPhotos && (
+              <div className="space-y-5">
+                <div>
+                  {/* As for a recording: the real file input stays focusable, and the label is the drop zone. */}
+                  <input
+                    id="photo-files"
+                    type="file"
+                    multiple
+                    accept={photoAccept(rules)}
+                    disabled={locked || photoCount >= rules.max}
+                    aria-invalid={fieldErrors.photos ? true : undefined}
+                    aria-describedby={fieldErrors.photos ? "photo-files-hint photo-files-error" : "photo-files-hint"}
+                    className="peer sr-only"
+                    onChange={(e) => {
+                      addPhotos(Array.from(e.target.files ?? []));
+                      e.target.value = "";
+                    }}
+                  />
+                  <label
+                    htmlFor="photo-files"
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      if (!locked) setDragging(true);
+                    }}
+                    onDragLeave={() => setDragging(false)}
+                    onDrop={onDrop}
+                    className={cn(
+                      "flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed px-6 text-center transition-colors",
+                      "peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-primary peer-disabled:cursor-not-allowed peer-disabled:opacity-60",
+                      photoCount > 0 ? "py-6" : "py-10 sm:py-12",
+                      dragging
+                        ? "border-primary bg-primary/5"
+                        : fieldErrors.photos
+                          ? "border-red-300"
+                          : "border-border hover:bg-background",
+                    )}
+                  >
+                    {photoCount === 0 && (
+                      <span className="mb-4 grid size-12 place-items-center rounded-lg bg-secondary text-muted-foreground">
+                        <Images aria-hidden="true" className="size-5" />
+                      </span>
+                    )}
+                    <span className="mb-1 block font-medium text-balance text-foreground">
+                      {photoCount > 0 ? "Add more photos" : "Drop your photos here"}
+                    </span>
+                    <span className="mb-4 block text-sm text-muted-foreground">{formatExtensions(rules.types)}</span>
+                    <span className={buttonStyles({ variant: "secondary" })}>Choose Photos</span>
+                    <span id="photo-files-hint" className="mt-3 block text-xs text-pretty text-muted-foreground tabular-nums">
+                      Up to {rules.max} photos, from your phone or computer. Each is made smaller on this device before
+                      it&apos;s sent.
+                    </span>
+                  </label>
+                  <FieldError id="photo-files-error" message={fieldErrors.photos?.[0]} />
+                  {photoQueue.problem && (
+                    <p role="alert" className="mt-2 text-xs text-pretty text-red-600">
+                      {photoQueue.problem}
+                    </p>
+                  )}
+                </div>
+
+                {photoCount > 0 && (
+                  <div>
+                    <div className="mb-2 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                      <p className="text-sm font-medium text-foreground tabular-nums">
+                        {photoCount} of {rules.max} photos
+                      </p>
+                      <p className="text-xs text-muted-foreground">In the order they&apos;ll be posted</p>
+                    </div>
+                    <ol aria-label="Chosen photos" className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                      {photoQueue.items.map((item, index) => (
+                        <li key={item.key} className="min-w-0">
+                          <QueuedPhotoTile
+                            item={item}
+                            index={index}
+                            count={photoCount}
+                            waitingToUpload={submitting}
+                            onMove={locked ? undefined : (by) => movePhoto(item.key, by)}
+                            onRemove={
+                              !submitting && (!created || item.status === "failed")
+                                ? () => photoQueue.remove(item.key)
+                                : undefined
+                            }
+                          />
+                        </li>
+                      ))}
+                    </ol>
+                  </div>
+                )}
+
+                <div>
+                  <label htmlFor="photo-note" className="mb-2 block text-sm font-medium text-foreground">
+                    What do these photos show?
+                  </label>
+                  <input
+                    id="photo-note"
+                    type="text"
+                    placeholder="Youth Sunday, 12 October"
+                    value={note}
+                    maxLength={500}
+                    disabled={locked}
+                    onChange={(e) => setNote(e.target.value)}
+                    aria-invalid={fieldErrors.note ? true : undefined}
+                    aria-describedby={fieldErrors.note ? "photo-note-hint photo-note-error" : "photo-note-hint"}
+                    className={cn(inputClass, fieldErrors.note && invalidClass)}
+                  />
+                  <p id="photo-note-hint" className="mt-2 text-xs text-pretty text-muted-foreground">
+                    Optional, one line. The captions use it for what the pictures can&apos;t say, such as the event and
+                    date.
+                  </p>
+                  <FieldError id="photo-note-error" message={fieldErrors.note?.[0]} />
+                </div>
+
+                <div>
+                  <label htmlFor="linked-recording" className="mb-2 block text-sm font-medium text-foreground">
+                    Connect to a recording
+                  </label>
+                  <div className="sm:max-w-md">
+                    <RecordingSelect
+                      id="linked-recording"
+                      value={linked}
+                      onChange={setLinked}
+                      disabled={locked}
+                      describedBy={fieldErrors.linked_recording ? "linked-recording-hint linked-recording-error" : "linked-recording-hint"}
+                    />
+                  </div>
+                  <p id="linked-recording-hint" className="mt-2 text-xs text-pretty text-muted-foreground">
+                    Optional. Connect the sermon these photos are from, and the captions can use its message.
+                  </p>
+                  <FieldError id="linked-recording-error" message={fieldErrors.linked_recording?.[0]} />
+                </div>
+              </div>
+            )}
+
+            {sourceType === "transcript" && (
               <div>
                 <label htmlFor="transcript" className="mb-2 block text-sm font-medium text-foreground">
                   Transcript
@@ -495,10 +726,12 @@ export default function CreateProject() {
           <fieldset className={cardClass} aria-describedby="platforms-hint">
             <legend className="float-left mb-1 w-full text-sm font-medium text-foreground">Platforms</legend>
             <p id="platforms-hint" className="clear-left mb-3 text-xs text-pretty text-muted-foreground">
-              These are picked for you when you write posts from this recording.
+              {isPhotos
+                ? "These are picked for you when you write captions for these photos."
+                : "These are picked for you when you write posts from this recording."}
             </p>
             <div className="flex flex-wrap gap-2">
-              {PLATFORMS.map((platform) => {
+              {platformChoices.map((platform) => {
                 const checked = platforms.includes(platform.id);
                 return (
                   <label
@@ -514,7 +747,7 @@ export default function CreateProject() {
                       type="checkbox"
                       className="size-4 accent-primary"
                       checked={checked}
-                      disabled={submitting}
+                      disabled={locked}
                       onChange={() => togglePlatform(platform.id)}
                     />
                     {platform.label}
@@ -530,15 +763,30 @@ export default function CreateProject() {
             </p>
           )}
 
-          <button type="submit" disabled={submitting} className={buttonStyles({ size: "lg", className: "w-full" })}>
-            {uploading
-              ? percent < 100
-                ? `Uploading… ${percent}%`
-                : "Starting…"
-              : submitting
-                ? "Starting…"
-                : "Start Processing"}
-          </button>
+          {isPhotos && created && failedPhotos > 0 && !submitting && (
+            <div role="alert" className="rounded-lg bg-red-50 px-4 py-3 text-sm text-pretty text-red-700">
+              {failedPhotos} of {photoCount} photos couldn&apos;t be uploaded; each one says why above. The project is made:
+              try them again, or open it and add photos there later.
+            </div>
+          )}
+          <p role="status" className="sr-only">
+            {photoProgress}
+          </p>
+
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <button type="submit" disabled={submitting} className={buttonStyles({ size: "lg", className: "w-full sm:flex-1" })}>
+              {submitLabel}
+            </button>
+            {isPhotos && created && failedPhotos > 0 && !submitting && (
+              <button
+                type="button"
+                onClick={() => navigate(`/projects/${created.id}`)}
+                className={buttonStyles({ variant: "secondary", size: "lg" })}
+              >
+                Open the project
+              </button>
+            )}
+          </div>
         </form>
 
         <aside className="space-y-4">
@@ -551,8 +799,16 @@ export default function CreateProject() {
                 ["Video", options ? formatExtensions(options.extensions.video) : "…"],
                 ["Audio", options ? formatExtensions(options.extensions.audio) : "…"],
                 ["Transcript", "Plain text, SRT, WebVTT"],
-                ["Max file size", options ? formatMegabytes(options.max_upload_mb) : "…"],
-                ["Files per project", "1"],
+                ["Photos", formatExtensions(rules.types)],
+                ...(isPhotos
+                  ? [
+                      ["Max photo size", formatMegabytes(rules.maxMb)],
+                      ["Photos per project", String(rules.max)],
+                    ]
+                  : [
+                      ["Max file size", options ? formatMegabytes(options.max_upload_mb) : "…"],
+                      ["Files per project", "1"],
+                    ]),
               ].map(([term, detail]) => (
                 <div key={term} className="flex justify-between gap-4">
                   <dt className="text-muted-foreground">{term}</dt>
@@ -567,9 +823,11 @@ export default function CreateProject() {
               What happens next
             </h3>
             <p className="text-xs text-pretty text-muted-foreground">
-              {isMedia
-                ? "Once the upload finishes, Mindra pulls out the audio and transcribes it, usually within a few minutes. You can leave the page while that happens."
-                : "Mindra splits your transcript into timestamped segments, then finds the summary, quotes and hooks. It usually takes a moment."}
+              {isPhotos
+                ? "Each photo is made smaller on this device (2,048 pixels on the long side, without its location or camera details), then uploaded one at a time. If the connection drops, the upload waits and continues. Then the project opens, ready for you to write captions from the pictures."
+                : isMedia
+                  ? "Once the upload finishes, Mindra pulls out the audio and transcribes it, usually within a few minutes. You can leave the page while that happens."
+                  : "Mindra splits your transcript into timestamped segments, then finds the summary, quotes and hooks. It usually takes a moment."}
             </p>
             {isMedia && options?.direct_upload && (
               <p className="mt-2 text-xs text-pretty text-muted-foreground">

@@ -11,4 +11,4 @@ export const CONTACT_EMAIL = "titusukpono0@gmail.com";
 export const GOVERNING_COUNTRY = "Nigeria";
 
 /** When the privacy policy and terms last changed. Update it with every change to either page. */
-export const LEGAL_LAST_UPDATED = "17 October 2026";
+export const LEGAL_LAST_UPDATED = "19 October 2026";

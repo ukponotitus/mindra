@@ -7,7 +7,8 @@ import { cn } from "../../lib/cn";
 import { clipPath } from "../../lib/clips";
 import { useDeletePiece, useUpdatePiece } from "../../lib/content";
 import { formatDate, formatDuration } from "../../lib/format";
-import type { ClipSummary, ContentPiece } from "../../lib/types";
+import { photoFiles } from "../../lib/photos";
+import type { ClipSummary, ContentPiece, PostPhoto } from "../../lib/types";
 import PlatformBadge from "./PlatformBadge";
 import ShareButton from "./ShareButton";
 
@@ -51,6 +52,55 @@ export function ClipStrip({ clip, project }: { clip: ClipSummary; project: strin
   );
 }
 
+/**
+ * A photo post's pictures, in boxes of a fixed shape so the card doesn't jump while they load: one large; two side by
+ * side; three or four in a 2×2 grid; more than four in a 2×2 grid with "+N" on the last, linking to all of them.
+ */
+export function PostPhotos({ photos, project }: { photos: PostPhoto[]; project: string }) {
+  const count = photos.length;
+  const shown = photos.slice(0, 4);
+  const hidden = count - shown.length;
+  const image = (photo: PostPhoto, index: number) => (
+    <img
+      src={photo.thumbnail_url}
+      alt={`Photo ${index + 1} of ${count}`}
+      loading="lazy"
+      decoding="async"
+      className="size-full object-cover"
+    />
+  );
+
+  if (count === 1) {
+    const photo = photos[0];
+    // The photo's own shape, kept between Instagram's tallest (4:5) and widest (1.91:1).
+    const ratio = photo.width > 0 && photo.height > 0 ? Math.min(1.91, Math.max(0.8, photo.width / photo.height)) : 0.8;
+    return (
+      <div className="overflow-hidden rounded-lg bg-secondary" style={{ aspectRatio: ratio }}>
+        {image(photo, 0)}
+      </div>
+    );
+  }
+
+  return (
+    <div className={cn("grid grid-cols-2 gap-1 overflow-hidden rounded-lg", count === 2 ? "aspect-[2/1]" : "aspect-square grid-rows-2")}>
+      {shown.map((photo, index) => (
+        <div key={photo.id} className={cn("relative min-h-0 bg-secondary", count === 3 && index === 0 && "row-span-2")}>
+          {image(photo, index)}
+          {hidden > 0 && index === shown.length - 1 && (
+            <Link
+              to={`/projects/${project}?tab=photos`}
+              aria-label={`See all ${count} photos`}
+              className="absolute inset-0 grid place-items-center bg-black/55 text-2xl font-semibold text-white tabular-nums transition-colors hover:bg-black/65 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-white"
+            >
+              <span aria-hidden="true">+{hidden}</span>
+            </Link>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function ContentCard({ piece, showProject = false, showClip = true }: Props) {
   const [expanded, setExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -61,6 +111,10 @@ export default function ContentCard({ piece, showProject = false, showClip = tru
   const actionError = remove.error ?? update.error;
   const clip = piece.clip;
   const videoReady = Boolean(clip && clip.status === "ready" && clip.video_url && !clip.is_stale);
+  // A photo post: the pictures and the caption go out together.
+  const photos = piece.photos ?? [];
+  const hasPhotos = !videoReady && photos.length > 0;
+  const mainAction = videoReady || hasPhotos;
 
   const copy = async () => {
     await navigator.clipboard.writeText(piece.body);
@@ -121,6 +175,12 @@ export default function ContentCard({ piece, showProject = false, showClip = tru
         </div>
       )}
 
+      {hasPhotos && (
+        <div className="mb-3">
+          <PostPhotos photos={photos} project={piece.project} />
+        </div>
+      )}
+
       <p
         id={bodyId}
         className={cn("flex-1 text-sm leading-relaxed whitespace-pre-wrap text-gray-700", !expanded && "line-clamp-6")}
@@ -166,7 +226,20 @@ export default function ContentCard({ piece, showProject = false, showClip = tru
           />
         </div>
       )}
-      <div className={cn("flex items-center gap-2", videoReady ? "mt-2" : "mt-4 border-t border-border pt-4")}>
+      {hasPhotos && (
+        <div className="mt-4 flex flex-wrap gap-2 border-t border-border pt-4">
+          <ShareButton
+            // New photos or a new order: fetch the files again.
+            key={photos.map((photo) => photo.id).join()}
+            loadFiles={() => photoFiles(piece.project)}
+            text={piece.body}
+            title={piece.title || piece.project_name}
+            variant="primary"
+            wide
+          />
+        </div>
+      )}
+      <div className={cn("flex items-center gap-2", mainAction ? "mt-2" : "mt-4 border-t border-border pt-4")}>
         <button type="button" onClick={copy} className={buttonStyles({ variant: "secondary", size: "sm", className: "h-9" })}>
           {copied ? <Check aria-hidden="true" className="size-4" /> : <Copy aria-hidden="true" className="size-4" />}
           {copied ? "Copied" : "Copy"}

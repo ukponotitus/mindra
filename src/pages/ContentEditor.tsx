@@ -4,13 +4,14 @@ import { Link, useNavigate, useParams } from "react-router";
 import AiWriterNotice from "../components/content/AiWriterNotice";
 import PlatformBadge from "../components/content/PlatformBadge";
 import SuggestionsPanel from "../components/content/SuggestionsPanel";
-import { ClipStrip } from "../components/content/ContentCard";
+import { ClipStrip, PostPhotos } from "../components/content/ContentCard";
 import ShareButton from "../components/content/ShareButton";
 import ConfirmDialog from "../components/ui/ConfirmDialog";
 import { buttonStyles } from "../components/ui/button";
 import { cn } from "../lib/cn";
 import { TONES, useContentPiece, useDeletePiece, useRewritePiece, useUpdatePiece, type RewriteAction } from "../lib/content";
 import { formatDate } from "../lib/format";
+import { photoFiles } from "../lib/photos";
 import { platformInfo } from "../lib/projects";
 import type { ClipSummary } from "../lib/types";
 
@@ -333,6 +334,25 @@ export default function ContentEditor() {
 
         <div className="space-y-4">
           {piece.clip && <PostClip clip={piece.clip} project={piece.project} text={body} title={piece.title} />}
+          {piece.photos.length > 0 && (
+            <section aria-labelledby="post-photos" className="rounded-xl border border-border bg-white p-5">
+              <h3 id="post-photos" className="mb-3 text-sm font-semibold text-foreground">
+                Photos
+              </h3>
+              <PostPhotos photos={piece.photos} project={piece.project} />
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <ShareButton
+                  // New photos or a new order: fetch the files again.
+                  key={piece.photos.map((photo) => photo.id).join()}
+                  loadFiles={() => photoFiles(piece.project)}
+                  text={body}
+                  title={piece.title || piece.project_name}
+                  variant="primary"
+                  size="md"
+                />
+              </div>
+            </section>
+          )}
           <SuggestionsPanel
             key={piece.id}
             pieceId={piece.id}

@@ -4,6 +4,7 @@ import { ApiError } from "../../lib/api";
 import { CLIP_PLATFORMS } from "../../lib/clips";
 import { cn } from "../../lib/cn";
 import { TONES, useBrandVoice, useGeneration, useStartGeneration } from "../../lib/content";
+import { PHOTO_PLATFORMS } from "../../lib/photos";
 import { PLATFORMS } from "../../lib/projects";
 import type { Platform, Project } from "../../lib/types";
 
@@ -21,7 +22,11 @@ interface Props {
 /** Pick platforms, a tone and how many versions, then watch the posts get written. */
 export default function ContentGenerator({ project, clipId, onStart, onDone }: Props) {
   const voice = useBrandVoice().data;
-  const choices = clipId ? PLATFORMS.filter((platform) => CLIP_PLATFORMS.includes(platform.id)) : PLATFORMS;
+  // A photos project's posts are captions for its pictures, so only the platforms that take photos.
+  const isPhotos = project.source_type === "photos";
+  const noPhotos = isPhotos && project.photo_count === 0;
+  const allowed = clipId ? CLIP_PLATFORMS : isPhotos ? PHOTO_PLATFORMS : null;
+  const choices = allowed ? PLATFORMS.filter((platform) => allowed.includes(platform.id)) : PLATFORMS;
   const [platforms, setPlatforms] = useState<Platform[]>(() => {
     const chosen = project.target_platforms.filter((platform) => choices.some((choice) => choice.id === platform));
     return chosen.length > 0 ? chosen : clipId ? DEFAULT_CLIP_PLATFORMS : DEFAULT_PLATFORMS;
@@ -75,7 +80,11 @@ export default function ContentGenerator({ project, clipId, onStart, onDone }: P
       <fieldset aria-describedby={`${ids}-platforms-hint`}>
         <legend className="text-sm font-semibold text-foreground">Platforms</legend>
         <p id={`${ids}-platforms-hint`} className="mt-1 mb-3 text-sm text-pretty text-muted-foreground">
-          {clipId ? "Each one gets a caption to post with this clip, in its own format." : "Each one gets posts written in its own format."}
+          {clipId
+            ? "Each one gets a caption to post with this clip, in its own format."
+            : isPhotos
+              ? "Each one gets a caption for these photos, in its own format."
+              : "Each one gets posts written in its own format."}
         </p>
         <div className="flex flex-wrap gap-2">
           {choices.map((platform) => {
@@ -154,7 +163,11 @@ export default function ContentGenerator({ project, clipId, onStart, onDone }: P
       )}
       {generation?.status === "completed" && !running && (
         <p role="status" className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm text-emerald-800">
-          {clipId ? "Done. The captions are below, ready to copy with the clip." : "Done. Your new posts are below, ready to copy or edit."}
+          {clipId
+            ? "Done. The captions are below, ready to copy with the clip."
+            : isPhotos
+              ? "Done. Your new posts are below, ready to share with the photos."
+              : "Done. Your new posts are below, ready to copy or edit."}
         </p>
       )}
       {generation?.status === "completed" && !running && generation.notice && (
@@ -190,14 +203,16 @@ export default function ContentGenerator({ project, clipId, onStart, onDone }: P
       ) : (
         <button
           type="submit"
-          disabled={platforms.length === 0 || start.isPending}
+          disabled={noPhotos || platforms.length === 0 || start.isPending}
           className={buttonStyles({ size: "lg", className: "w-full" })}
         >
-          {platforms.length === 0
-            ? "Choose at least one platform"
-            : start.isPending
-              ? "Starting…"
-              : `Write ${total} post${total === 1 ? "" : "s"}`}
+          {noPhotos
+            ? "Add at least one photo first"
+            : platforms.length === 0
+              ? "Choose at least one platform"
+              : start.isPending
+                ? "Starting…"
+                : `Write ${total} post${total === 1 ? "" : "s"}`}
         </button>
       )}
     </form>

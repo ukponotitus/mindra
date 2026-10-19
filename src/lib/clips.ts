@@ -62,10 +62,11 @@ export function clipStatusLabel(clip: Clip) {
 /** Where a clip can be posted: the platforms that take short vertical video. */
 export const CLIP_PLATFORMS: Platform[] = ["instagram", "tiktok", "youtube_shorts", "facebook", "whatsapp", "x", "linkedin"];
 
-/** Whether this browser can hand a video file to the phone's share menu (most phones can; most computers can't). */
-export function canShareFiles(): boolean {
+/** Whether this browser can hand a file like `sample` (a video, unless given) to the phone's share menu (most phones
+ * can; most computers can't). */
+export function canShareFiles(sample: { name: string; type: string } = { name: "clip.mp4", type: "video/mp4" }): boolean {
   try {
-    return typeof navigator.canShare === "function" && navigator.canShare({ files: [new File([""], "clip.mp4", { type: "video/mp4" })] });
+    return typeof navigator.canShare === "function" && navigator.canShare({ files: [new File([""], sample.name, { type: sample.type })] });
   } catch {
     return false;
   }

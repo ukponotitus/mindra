@@ -22,7 +22,8 @@ export type AuthResponse = {
   user: User;
 };
 
-export type SourceType = "video" | "audio" | "transcript";
+/** "photos": a photo post's pictures, uploaded one by one; nothing is processed, so it's ready at once. */
+export type SourceType = "video" | "audio" | "transcript" | "photos";
 
 export type ProjectStatus = "queued" | "extracting_audio" | "transcribing" | "analyzing" | "completed" | "failed";
 
@@ -55,9 +56,34 @@ export type Project = {
   content_count: number;
   analysis: Analysis | Record<string, never>;
   analysis_error: string;
+  /** What the photos show (or, for other projects, an optional description), up to 500 characters. */
+  note: string;
+  /** Photos projects: the recording whose message the captions can use. */
+  linked_recording: string | null;
+  linked_recording_name: string;
+  photo_count: number;
+  /** The first photo's thumbnail, or null. */
+  cover_url: string | null;
   created_at: string;
   updated_at: string;
 };
+
+/** One picture of a photos project (GET /api/projects/<id>/photos/), in posting order. */
+export type Photo = {
+  id: string;
+  position: number;
+  width: number;
+  height: number;
+  url: string;
+  thumbnail_url: string;
+  original_filename: string;
+};
+
+/** A picture as a post shows it. */
+export type PostPhoto = Pick<Photo, "id" | "url" | "thumbnail_url" | "width" | "height">;
+
+/** GET /api/projects/<id>/photos/files/: direct addresses a page can fetch to share the files. */
+export type PhotoFile = { url: string; filename: string; content_type: string };
 
 export type Moment = { text: string; start: number };
 
@@ -114,6 +140,11 @@ export type UploadOptions = {
   default_language: string;
   /** True: files go straight to storage in parts (src/lib/upload.ts); false: the file is sent with the project. */
   direct_upload: boolean;
+  /** Photo extensions the server takes, such as ".jpg" and ".heic". */
+  photo_types: string[];
+  /** Largest photo the server takes, before it processes it. */
+  max_photo_mb: number;
+  max_photos: number;
 };
 
 /** POST /api/uploads/: a direct upload that has started. */
@@ -158,6 +189,8 @@ export type ContentPiece = {
   generation: string | null;
   /** The clip this post is the caption for, if any. */
   clip: ClipSummary | null;
+  /** A photo post's pictures, in order (its project's photos); empty for other posts. */
+  photos: PostPhoto[];
   platform: Platform;
   title: string;
   body: string;

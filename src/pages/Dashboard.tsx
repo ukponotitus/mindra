@@ -4,8 +4,8 @@ import { displayName, useAuth } from "../auth/context";
 import EmptyState from "../components/EmptyState";
 import StatusBadge from "../components/StatusBadge";
 import { buttonStyles } from "../components/ui/button";
-import { formatDate, formatDuration, formatExtensions, formatMegabytes } from "../lib/format";
-import { projectPath, SOURCE_ICONS, useProjects, useProjectSummary, useUploadOptions } from "../lib/projects";
+import { formatDate, formatExtensions, formatMegabytes } from "../lib/format";
+import { projectLength, projectPath, SOURCE_ICONS, useProjects, useProjectSummary, useUploadOptions } from "../lib/projects";
 import type { SourceType } from "../lib/types";
 
 
@@ -146,13 +146,17 @@ export default function Dashboard() {
                       to={projectPath(project)}
                       className="flex items-center gap-4 px-5 py-4 transition-colors hover:bg-background focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary sm:px-6"
                     >
-                      <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-secondary text-muted-foreground">
-                        <Icon aria-hidden="true" className="size-4" />
+                      <span className="grid size-9 shrink-0 place-items-center overflow-hidden rounded-lg bg-secondary text-muted-foreground">
+                        {project.cover_url ? (
+                          <img src={project.cover_url} alt="" loading="lazy" className="size-full object-cover" />
+                        ) : (
+                          <Icon aria-hidden="true" className="size-4" />
+                        )}
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-sm font-medium text-foreground">{project.name}</span>
                         <span className="mt-0.5 block text-xs text-muted-foreground tabular-nums">
-                          {formatDuration(project.duration_seconds)} · {formatDate(project.created_at)}
+                          {projectLength(project)} · {formatDate(project.created_at)}
                         </span>
                       </span>
                       <StatusBadge status={project.status} />

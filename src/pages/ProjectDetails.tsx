@@ -5,6 +5,7 @@ import EmptyState from "../components/EmptyState";
 import NextSteps from "../components/project/NextSteps";
 import ProjectAnalysis from "../components/project/ProjectAnalysis";
 import ProjectClips from "../components/project/ProjectClips";
+import ProjectPhotos from "../components/project/ProjectPhotos";
 import ProjectPosts from "../components/project/ProjectPosts";
 import TranscribeAgainDialog from "../components/project/TranscribeAgainDialog";
 import TranscriptPanel from "../components/project/TranscriptPanel";
@@ -17,6 +18,8 @@ import { cn } from "../lib/cn";
 import { formatDate, formatDuration, languageName } from "../lib/format";
 import {
   isInProgress,
+  projectLength,
+  projectSourceDetail,
   SOURCE_LABELS,
   useDeleteProject,
   useProject,
@@ -25,14 +28,20 @@ import {
 } from "../lib/projects";
 import type { TranscriptSegment } from "../lib/types";
 
-const tabs = [
+type TabId = "overview" | "transcript" | "posts" | "clips" | "photos";
+
+const RECORDING_TABS: { id: TabId; label: string }[] = [
   { id: "overview", label: "Overview" },
   { id: "transcript", label: "Transcript" },
   { id: "posts", label: "Posts" },
   { id: "clips", label: "Clips" },
-] as const;
+];
 
-type TabId = (typeof tabs)[number]["id"];
+// A photos project has no recording, so no transcript or clips: its pictures, and the posts written from them.
+const PHOTO_TABS: { id: TabId; label: string }[] = [
+  { id: "photos", label: "Photos" },
+  { id: "posts", label: "Posts" },
+];
 
 function countWords(segments: TranscriptSegment[]): number {
   return segments.reduce((total, segment) => total + segment.text.split(/\s+/).filter(Boolean).length, 0);
@@ -42,15 +51,17 @@ export default function ProjectDetails() {
   const { projectId } = useParams();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const activeTab: TabId = tabs.find((tab) => tab.id === searchParams.get("tab"))?.id ?? "overview";
   const startAt = searchParams.has("t") ? Number(searchParams.get("t")) : undefined;
-  const openTab = (tab: TabId, seconds?: number) =>
-    setSearchParams(tab === "overview" ? {} : { tab, ...(seconds != null ? { t: String(seconds) } : {}) }, { replace: true });
 
   const { data: project, error, isPending } = useProject(projectId);
+  const isPhotos = project?.source_type === "photos";
+  const tabs = isPhotos ? PHOTO_TABS : RECORDING_TABS;
+  const activeTab: TabId = tabs.find((tab) => tab.id === searchParams.get("tab"))?.id ?? tabs[0].id;
+  const openTab = (tab: TabId, seconds?: number) =>
+    setSearchParams(tab === tabs[0].id ? {} : { tab, ...(seconds != null ? { t: String(seconds) } : {}) }, { replace: true });
   const completed = project?.status === "completed";
   // The transcript is saved before the AI analysis starts, so it can be read during analysis.
-  const transcriptReady = completed || project?.status === "analyzing";
+  const transcriptReady = !isPhotos && (completed || project?.status === "analyzing");
   const transcript = useTranscript(projectId, transcriptReady);
   const deleteProject = useDeleteProject();
   const retry = useRetryProject();
@@ -150,8 +161,23 @@ export default function ProjectDetails() {
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
             <p className="min-w-0 text-sm break-words text-muted-foreground">
               Added <span className="tabular-nums">{formatDate(project.created_at)}</span> ·{" "}
-              <span className="tabular-nums">{formatDuration(project.duration_seconds)}</span> ·{" "}
-              {project.source_filename || "Pasted transcript"}
+              <span className="tabular-nums">{projectLength(project)}</span>
+              {isPhotos ? (
+                project.linked_recording && (
+                  <>
+                    {" "}
+                    · With{" "}
+                    <Link
+                      to={`/projects/${project.linked_recording}`}
+                      className="rounded font-medium text-foreground hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                    >
+                      {project.linked_recording_name || "the connected recording"}
+                    </Link>
+                  </>
+                )
+              ) : (
+                <> · {projectSourceDetail(project)}</>
+              )}
             </p>
             <StatusBadge status={project.status} />
           </div>
@@ -168,7 +194,11 @@ export default function ProjectDetails() {
               </button>
             }
             title={`Delete "${project.name}"?`}
-            description="Its recording, transcript and written posts will be removed for good. This can't be undone."
+            description={
+              isPhotos
+                ? "Its photos and written posts will be removed for good. This can't be undone."
+                : "Its recording, transcript and written posts will be removed for good. This can't be undone."
+            }
             confirmLabel="Delete project"
             onConfirm={remove}
           />
@@ -315,6 +345,8 @@ export default function ProjectDetails() {
         ))}
 
       {activeTab === "clips" && <ProjectClips project={project} initialClipId={searchParams.get("clip")} />}
+
+      {activeTab === "photos" && <ProjectPhotos project={project} />}
     </div>
   );
 }

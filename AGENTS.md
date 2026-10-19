@@ -53,8 +53,9 @@ The app talks to the Django API in the separate `mindra-backend` repo (`../mindr
 - `src/lib/content.ts` - hooks for written posts, writing runs, brand voice, editor suggestions and AI status
 - `src/lib/clips.ts` - hooks for video clips (every clip, a project's clips, find, make by hand, trim, caption style, render, delete), polling while clips are found or rendered
 - `src/pages/Clips.tsx` - the Clips page: every clip across videos, linking to each one in its project's Clips tab (`/projects/<id>?tab=clips&clip=<clipId>`)
-- `src/components/project/` - the project page's parts (Next steps, analysis, transcript, posts, clips, the "New clip" dialog, and a clip's posts in `ClipPosts.tsx`)
-- `src/components/content/` - post card (a post for a made clip shows the video and a Share button), the "write posts" form, platform badge, the editor's suggestions panel, and `ShareButton.tsx` (phone share menu with the video and caption; download and copy elsewhere)
+- `src/components/project/` - the project page's parts (Next steps, analysis, transcript, posts, clips, the "New clip" dialog, a clip's posts in `ClipPosts.tsx`, and a photos project's Photos tab in `ProjectPhotos.tsx`)
+- `src/components/content/` - post card (a post for a made clip shows the video, a photo post its pictures, each with a Share button), the "write posts" form, platform badge, the editor's suggestions panel, and `ShareButton.tsx` (phone share menu with the video or photos and the caption; download and copy elsewhere)
+- `src/lib/photos.ts` - photo posts: a project with `source_type: "photos"` (ready at once, nothing processed) made from New Project's "Photos" type. Photo platforms, making photos smaller on the device (long side 2048 px, JPEG quality 0.85), the one-at-a-time upload queue (a dropped connection waits for `online`), and hooks for a project's photos (list, delete, order, the files to share)
 
 Calendar and Billing show a "Coming soon" page (`src/components/ComingSoon.tsx`); `src/pages/Calendar.tsx` and `src/pages/Billing.tsx` keep the original designs for when those features are built (milestones in `../mindra-backend/IMPLEMENTATION_PLAN.md`).
 

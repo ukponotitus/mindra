@@ -1,10 +1,11 @@
-import { ArrowRight, Check, Clapperboard, FileText, PenLine, type LucideIcon } from "lucide-react";
+import { ArrowRight, Check, Clapperboard, FileText, Images, PenLine, type LucideIcon } from "lucide-react";
 import { cn } from "../../lib/cn";
 import { formatDuration } from "../../lib/format";
+import { projectLength } from "../../lib/projects";
 import type { Project } from "../../lib/types";
 import { buttonStyles } from "../ui/button";
 
-type Tab = "transcript" | "posts" | "clips";
+type Tab = "transcript" | "posts" | "clips" | "photos";
 
 interface Props {
   project: Project;
@@ -24,9 +25,35 @@ interface Step {
   action?: { label: string; tab: Tab };
 }
 
-/** What a finished project can turn into, in order, with the one thing to do next made obvious. */
-export default function NextSteps({ project, postsAvailable, postCount, onOpen }: Props) {
-  const steps: Step[] = [
+/** A photos project: photos added, then posts written from them. */
+function photoSteps(project: Project, postCount: number): Step[] {
+  const added = project.photo_count > 0;
+  return [
+    {
+      icon: Images,
+      title: added ? `${projectLength(project)} added` : "Add photos",
+      detail: added ? "In the order they'll be posted. Move, add or remove them on the Photos tab." : "Choose up to 20 pictures to post together.",
+      state: added ? "done" : "ready",
+      action: { label: added ? "See photos" : "Add photos", tab: "photos" },
+    },
+    {
+      icon: PenLine,
+      title: postCount > 0 ? `${postCount} posts written` : "Write posts",
+      detail:
+        postCount > 0
+          ? "Share them with the photos, edit them, or write more for other platforms."
+          : project.linked_recording
+            ? "Captions for each platform, written from these photos and the connected recording, in your brand voice."
+            : "Captions for each platform, written from these photos in your brand voice.",
+      state: postCount > 0 ? "done" : added ? "ready" : "todo",
+      action: { label: postCount > 0 ? "See posts" : "Write posts", tab: "posts" },
+    },
+  ];
+}
+
+/** A recording: its transcript, posts and (for videos) clips. */
+function recordingSteps(project: Project, postsAvailable: boolean, postCount: number): Step[] {
+  return [
     {
       icon: FileText,
       title: "Transcript ready",
@@ -62,13 +89,19 @@ export default function NextSteps({ project, postsAvailable, postCount, onOpen }
           badge: "Video only",
         },
   ];
+}
+
+/** What a finished project can turn into, in order, with the one thing to do next made obvious. */
+export default function NextSteps({ project, postsAvailable, postCount, onOpen }: Props) {
+  const isPhotos = project.source_type === "photos";
+  const steps = isPhotos ? photoSteps(project, postCount) : recordingSteps(project, postsAvailable, postCount);
 
   return (
     <section aria-labelledby="next-steps" className="mb-6 rounded-xl border border-border bg-white p-5">
       <h3 id="next-steps" className="mb-4 font-semibold text-balance text-foreground">
         Next steps
       </h3>
-      <ol className="grid gap-3 md:grid-cols-3">
+      <ol className={cn("grid gap-3", isPhotos ? "md:grid-cols-2" : "md:grid-cols-3")}>
         {steps.map((step, i) => {
           const Icon = step.state === "done" ? Check : step.icon;
           const highlighted = step.state === "ready";

@@ -1,6 +1,7 @@
 import { keepPreviousData, queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AudioLines, FileText, Video, type LucideIcon } from "lucide-react";
+import { AudioLines, FileText, Images, Video, type LucideIcon } from "lucide-react";
 import { apiRequest } from "./api";
+import { formatDuration } from "./format";
 import type { Paginated, Platform, Project, ProjectStatus, ProjectSummary, SourceType, Transcript, UploadOptions } from "./types";
 
 export const PAGE_SIZE = 20;
@@ -24,13 +25,28 @@ export const SOURCE_LABELS: Record<SourceType, string> = {
   video: "Video",
   audio: "Audio",
   transcript: "Transcript",
+  photos: "Photos",
 };
 
 export const SOURCE_ICONS: Record<SourceType, LucideIcon> = {
   video: Video,
   audio: AudioLines,
   transcript: FileText,
+  photos: Images,
 };
+
+/** How long a recording is, or how many pictures a photos project has: "47:32", "6 photos". */
+export function projectLength(project: Pick<Project, "source_type" | "duration_seconds" | "photo_count">): string {
+  if (project.source_type !== "photos") return formatDuration(project.duration_seconds);
+  const count = project.photo_count ?? 0;
+  return `${count} photo${count === 1 ? "" : "s"}`;
+}
+
+/** The line under a project's name: its file, "Pasted transcript", or what its photos show. */
+export function projectSourceDetail(project: Pick<Project, "source_type" | "source_filename" | "note">): string {
+  if (project.source_type === "photos") return project.note || "Photo post";
+  return project.source_filename || "Pasted transcript";
+}
 
 export const PLATFORMS: { id: Platform; label: string; badge: string; color: string; limit?: number }[] = [
   { id: "instagram", label: "Instagram", badge: "IG", color: "#E1306C", limit: 2200 },
@@ -109,6 +125,9 @@ const DEFAULT_UPLOAD_OPTIONS: UploadOptions = {
   languages: [{ code: "en", name: "English" }],
   default_language: "en",
   direct_upload: false,
+  photo_types: [".heic", ".heif", ".jpeg", ".jpg", ".png", ".webp"],
+  max_photo_mb: 20,
+  max_photos: 20,
 };
 
 /** The upload options query, for `queryClient.ensureQueryData` when the server's real answer is needed. */
@@ -125,7 +144,17 @@ export function useUploadOptions() {
 export function useUpdateProject() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, ...changes }: { id: string; name?: string; target_platforms?: Platform[] }) =>
+    mutationFn: ({
+      id,
+      ...changes
+    }: {
+      id: string;
+      name?: string;
+      target_platforms?: Platform[];
+      note?: string;
+      /** Photos projects only: the recording the captions can use, or null for none. */
+      linked_recording?: string | null;
+    }) =>
       apiRequest<Project>(`/api/projects/${id}/`, { method: "PATCH", body: changes }),
     onSuccess: (project) => {
       queryClient.setQueryData(["projects", "detail", project.id], project);

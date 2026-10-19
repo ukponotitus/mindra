@@ -7,8 +7,17 @@ import StatusBadge from "../components/StatusBadge";
 import ConfirmDialog from "../components/ui/ConfirmDialog";
 import { buttonStyles } from "../components/ui/button";
 import { cn } from "../lib/cn";
-import { formatDate, formatDuration } from "../lib/format";
-import { PAGE_SIZE, projectPath, SOURCE_ICONS, SOURCE_LABELS, useDeleteProject, useProjects } from "../lib/projects";
+import { formatDate } from "../lib/format";
+import {
+  PAGE_SIZE,
+  projectLength,
+  projectPath,
+  projectSourceDetail,
+  SOURCE_ICONS,
+  SOURCE_LABELS,
+  useDeleteProject,
+  useProjects,
+} from "../lib/projects";
 import type { Project } from "../lib/types";
 
 
@@ -106,8 +115,12 @@ export default function Projects() {
                     )}
                   >
                     <div className="flex min-w-0 items-center gap-3">
-                      <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-secondary text-muted-foreground">
-                        <Icon aria-hidden="true" className="size-4" />
+                      <span className="grid size-9 shrink-0 place-items-center overflow-hidden rounded-lg bg-secondary text-muted-foreground">
+                        {project.cover_url ? (
+                          <img src={project.cover_url} alt="" loading="lazy" className="size-full object-cover" />
+                        ) : (
+                          <Icon aria-hidden="true" className="size-4" />
+                        )}
                       </span>
                       {renaming ? (
                         <RenameProjectInput project={project} onDone={() => setRenamingId(null)} />
@@ -120,18 +133,16 @@ export default function Projects() {
                           >
                             {project.name}
                           </Link>
-                          <p className="truncate text-xs text-muted-foreground">{project.source_filename || "Pasted transcript"}</p>
+                          <p className="truncate text-xs text-muted-foreground">{projectSourceDetail(project)}</p>
                           <p className="mt-0.5 text-xs text-muted-foreground tabular-nums md:hidden">
-                            {SOURCE_LABELS[project.source_type]} · {formatDuration(project.duration_seconds)} ·{" "}
+                            {SOURCE_LABELS[project.source_type]} · {projectLength(project)} ·{" "}
                             {formatDate(project.created_at)}
                           </p>
                         </div>
                       )}
                     </div>
                     <span className="hidden text-sm text-muted-foreground md:block">{SOURCE_LABELS[project.source_type]}</span>
-                    <span className="hidden text-sm text-muted-foreground tabular-nums md:block">
-                      {formatDuration(project.duration_seconds)}
-                    </span>
+                    <span className="hidden text-sm text-muted-foreground tabular-nums md:block">{projectLength(project)}</span>
                     <span>
                       <StatusBadge status={project.status} />
                     </span>
@@ -158,7 +169,11 @@ export default function Projects() {
                           </button>
                         }
                         title={`Delete "${project.name}"?`}
-                        description="Its recording, transcript and written posts will be removed for good. This can't be undone."
+                        description={
+                          project.source_type === "photos"
+                            ? "Its photos and written posts will be removed for good. This can't be undone."
+                            : "Its recording, transcript and written posts will be removed for good. This can't be undone."
+                        }
                         confirmLabel="Delete project"
                         onConfirm={() => remove(project)}
                       />

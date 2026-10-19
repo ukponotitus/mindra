@@ -25,7 +25,8 @@ export default function PrivacyPage() {
           nobody at Mindra can read them.
         </li>
         <li>
-          <strong>What you upload:</strong> video and audio recordings, and transcripts you paste in.
+          <strong>What you upload:</strong> video and audio recordings, transcripts you paste in, and photos. Photos are
+          shrunk before they’re stored, and the hidden details cameras add to them, such as the location, are removed.
         </li>
         <li>
           <strong>What Mindra makes from them:</strong> transcripts with timestamps, summaries, quotes, written posts and video
@@ -73,7 +74,7 @@ export default function PrivacyPage() {
           recordings to improve its models.
         </li>
         <li>
-          <strong>Google</strong> (the Gemini API) reads your transcripts and brand voice to write the analysis, posts,
+          <strong>Google</strong> (the Gemini API) reads your transcripts, photos and brand voice to write the analysis, posts,
           suggestions and clip ideas. During the beta this is Google’s free tier (see above). This website also loads its font
           from Google Fonts, so your browser connects to Google
           when it opens a page.
@@ -91,7 +92,8 @@ export default function PrivacyPage() {
       <p>
         Recordings often include more than one voice: a guest speaker, a choir, an interviewee, people in a congregation. Only
         upload a recording if you have the right to, and the permission of the people in it where that’s needed. We process
-        those recordings on your behalf, and you’re responsible for having that permission. The{" "}
+        those recordings on your behalf, and you’re responsible for having that permission. The same goes for photos: only
+        upload photos of people, especially children, with their permission (for a child, a parent’s or guardian’s). The{" "}
         <Link to="/terms">Terms of Service</Link> say more.
       </p>
 
