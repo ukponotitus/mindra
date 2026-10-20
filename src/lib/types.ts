@@ -184,9 +184,11 @@ export type ClipSummary = {
 
 /**
  * Where a post is on the calendar: "" not scheduled; "planned" before its time; "reminded" once the reminder went out;
- * "posted" once someone marked it; "missed" when it wasn't marked within some hours of its time.
+ * "posted" once someone marked it; "missed" when it wasn't marked within some hours of its time. Posts set to post
+ * automatically (`publish_to`): "publishing" while Mindra posts it; "published" once it's out (it then counts as posted
+ * everywhere, with `posted_at` its `published_at`); "failed" when automatic posting gave up and the person was reminded.
  */
-export type ScheduleStatus = "" | "planned" | "reminded" | "posted" | "missed";
+export type ScheduleStatus = "" | "planned" | "reminded" | "posted" | "missed" | "publishing" | "published" | "failed";
 
 export type ContentPiece = {
   id: string;
@@ -210,9 +212,51 @@ export type ContentPiece = {
   /** When someone marked it as posted. */
   posted_at: string | null;
   schedule_status: ScheduleStatus;
+  /** The connected account Mindra posts it to automatically at its time, or null to only remind. */
+  publish_to: ConnectedAccountId | null;
+  /** That account's name ("" without one). */
+  publish_to_name: string;
+  /** When Mindra posted it. */
+  published_at: string | null;
+  /** The post on Facebook or Instagram, once it's out. */
+  published_url: string | null;
+  /** Why automatic posting failed, in words for the person. */
+  publish_error: string;
   created_at: string;
   updated_at: string;
 };
+
+/** GET /api/social/accounts/: a Facebook Page or an Instagram professional account Mindra can post to. */
+export type ConnectedAccountKind = "facebook_page" | "instagram";
+
+export type ConnectedAccountId = number | string;
+
+export type ConnectedAccount = {
+  id: ConnectedAccountId;
+  kind: ConnectedAccountKind;
+  name: string;
+  /** The Instagram handle without "@", or "". */
+  username: string;
+  picture_url: string;
+  /** "needs_reconnect": Facebook stopped accepting Mindra's access (expired, password changed, permission removed). */
+  status: "active" | "needs_reconnect";
+  last_error: string;
+  connected_at: string;
+};
+
+/**
+ * GET /api/social/meta/pending/<id>/: what Facebook shared, waiting for the signed-in person to confirm it (the callback
+ * doesn't save accounts, so nobody can connect their accounts to someone else's workspace with a link).
+ */
+export type PendingConnection = {
+  accounts: Pick<ConnectedAccount, "kind" | "name" | "username" | "picture_url">[];
+  /** Something to know, such as a Page that was left out; or "". */
+  notice: string;
+  expires_at: string;
+};
+
+/** POST /api/social/meta/pending/<id>/confirm/: the accounts it saved. */
+export type ConfirmedConnection = { accounts: ConnectedAccount[]; notice: string };
 
 /** GET /api/notifications/: how reminders reach the signed-in person. */
 export type NotificationSettings = {

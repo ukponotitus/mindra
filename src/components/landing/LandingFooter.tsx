@@ -2,7 +2,7 @@ import { Link } from "react-router";
 import Logo from "./Logo";
 import { useCtaLinks } from "./useCtaLinks";
 
-// The section links lead back to the landing page, so they also work from the privacy and terms pages.
+// The section links lead back to the landing page, so they also work from the privacy, terms and data deletion pages.
 const home = import.meta.env.BASE_URL;
 
 export default function LandingFooter() {
@@ -37,6 +37,7 @@ export default function LandingFooter() {
       links: [
         { label: "Privacy Policy", to: "/privacy" },
         { label: "Terms of Service", to: "/terms" },
+        { label: "Data Deletion", to: "/data-deletion" },
       ],
     },
   ];

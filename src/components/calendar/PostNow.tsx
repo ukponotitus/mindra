@@ -1,13 +1,28 @@
-import { useState } from "react";
-import { Check, Copy, ExternalLink, LoaderCircle, Share2 } from "lucide-react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { Check, Copy, ExternalLink, LoaderCircle, Send, Share2 } from "lucide-react";
 import { Dialog } from "@base-ui/react/dialog";
+import { useQueryClient } from "@tanstack/react-query";
+import { Link } from "react-router";
 import ShareButton from "../content/ShareButton";
 import { buttonStyles } from "../ui/button";
-import { useMarkPosted } from "../../lib/calendar";
+import { useMarkPosted, useStorePiece } from "../../lib/calendar";
+import { cn } from "../../lib/cn";
 import { photoFiles } from "../../lib/photos";
 import { platformInfo } from "../../lib/projects";
-import type { ContentPiece, Platform } from "../../lib/types";
-import { postMedia } from "./ShareOrCopy";
+import {
+  accountName,
+  defaultAccount,
+  kindPhrase,
+  postMedia,
+  publishProgressKey,
+  sameAccount,
+  useAutoPost,
+  usePublishPiece,
+  usePublishProgress,
+  viewOnLabel,
+  type AutoPost,
+} from "../../lib/social";
+import type { ConnectedAccount, ContentPiece, Platform } from "../../lib/types";
 
 /** Where to post a text post on a computer. `prefill` sites take the text in the link; the rest get it pasted. */
 const PLATFORM_LINKS: Partial<Record<Platform, { url: (text: string) => string; prefill?: boolean }>> = {
@@ -38,12 +53,12 @@ async function copy(text: string): Promise<boolean> {
 }
 
 /** A text post: the phone's share menu, or on a computer the platform with the text filled in or copied. */
-function TextPost({ piece, onShared }: { piece: ContentPiece; onShared: () => void }) {
+function TextPost({ piece, onShared, variant }: { piece: ContentPiece; onShared: () => void; variant: "primary" | "secondary" }) {
   const [sharing] = useState(canShareText);
   const [message, setMessage] = useState("");
   const info = platformInfo(piece.platform);
   const link = PLATFORM_LINKS[piece.platform];
-  const wide = buttonStyles({ className: "w-full" });
+  const wide = buttonStyles({ variant, className: "w-full" });
 
   if (sharing) {
     const share = async () => {
@@ -122,10 +137,156 @@ function TextPost({ piece, onShared }: { piece: ContentPiece; onShared: () => vo
   );
 }
 
+const settingsLinkClass =
+  "rounded font-medium text-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary";
+
+/** The first line of Post now when Mindra can't post it here itself: why, and that it gets it ready to share instead. */
+function sharingIntro(auto: AutoPost, platformLabel: string): ReactNode {
+  const ready = "Mindra gets the post ready so you can post it yourself in a tap, then puts it on today's calendar as posted.";
+  const accounts = (
+    <Link to="/settings#accounts" className={settingsLinkClass}>
+      Settings → Connected accounts
+    </Link>
+  );
+  switch (auto.state) {
+    case "unsupported":
+      return `Mindra can't post on ${platformLabel} for you yet. It gets the post ready so you can post it yourself in a tap, then puts it on today's calendar as posted.`;
+    case "needs-media":
+      return `Instagram posts need a photo or a video for Mindra to post them. ${ready}`;
+    case "no-account":
+      return (
+        <>
+          {ready} To post from Mindra instead, connect {kindPhrase(auto.kind)} in {accounts}.
+        </>
+      );
+    case "needs-reconnect":
+      return (
+        <>
+          {auto.accounts.map(accountName).join(", ")} {auto.accounts.length === 1 ? "needs" : "need"} reconnecting before Mindra can post
+          there ({accounts}). {ready}
+        </>
+      );
+    default:
+      return ready;
+  }
+}
+
+type Phase = "idle" | "publishing" | "published" | "failed";
+
+const outcomeLinkClass =
+  "inline-flex items-center gap-1 rounded font-medium text-emerald-800 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary";
+
+/** It's out: "Posted. View on Facebook". */
+function Posted({ live }: { live: ContentPiece }) {
+  return (
+    <div role="status" className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-pretty text-emerald-800">
+      <p className="flex items-center gap-2 font-medium">
+        <Check aria-hidden="true" className="size-4 shrink-0" />
+        Posted.
+      </p>
+      {live.published_url ? (
+        <a href={live.published_url} target="_blank" rel="noopener noreferrer" className={cn(outcomeLinkClass, "mt-1")}>
+          {viewOnLabel(live.platform)}
+          <ExternalLink aria-hidden="true" className="size-3.5" />
+          <span className="sr-only">(opens in a new tab)</span>
+        </a>
+      ) : (
+        <p className="mt-1">It's on {live.publish_to_name || platformInfo(live.platform).label} now.</p>
+      )}
+    </div>
+  );
+}
+
 /**
- * "Post now": Mindra can't post on the platforms by itself yet, so it gets the post out in a tap (the share menu with
- * the video, photos or text; on computers the platform with the text) and then asks whether it went out, to mark it
- * as posted on today's calendar.
+ * "Post to Grace Chapel now" (a choice of account when there are several), "Posting to Grace Chapel…" while it goes out,
+ * and why it failed, with Try again.
+ */
+function PostToAccount({
+  piece,
+  accounts,
+  phase,
+  live,
+  onStart,
+  starting,
+  error,
+}: {
+  piece: ContentPiece;
+  /** The active accounts for this post (none when they couldn't be loaded). */
+  accounts: ConnectedAccount[];
+  phase: Exclude<Phase, "published">;
+  live: ContentPiece;
+  onStart: (account: ConnectedAccount) => void;
+  starting: boolean;
+  error: string;
+}) {
+  const selectId = useId();
+  const [picked, setPicked] = useState<string | null>(null);
+  const account = accounts.find((option) => sameAccount(option.id, picked)) ?? defaultAccount(accounts, piece.publish_to);
+  const chosen = account ? accountName(account) : live.publish_to_name || platformInfo(piece.platform).label;
+  const busy = starting || phase === "publishing";
+  const target = phase === "publishing" ? live.publish_to_name || chosen : chosen;
+
+  return (
+    <div className="space-y-3">
+      {accounts.length > 1 && (
+        <div>
+          <label htmlFor={selectId} className="mb-1.5 block text-sm font-medium text-foreground">
+            Account
+          </label>
+          <select
+            id={selectId}
+            value={account ? String(account.id) : ""}
+            onChange={(event) => setPicked(event.target.value)}
+            disabled={busy}
+            className="h-10 w-full min-w-0 rounded-lg border border-border bg-white px-3 text-sm text-foreground transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-hidden disabled:opacity-50"
+          >
+            {accounts.map((option) => (
+              <option key={option.id} value={String(option.id)}>
+                {accountName(option)}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+      {phase === "failed" && (
+        <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-pretty text-red-800">
+          <p className="font-medium">Couldn't post it automatically</p>
+          <p className="mt-0.5">{live.publish_error || "Something went wrong."}</p>
+          <p className="mt-0.5">Try again, or post it yourself below.</p>
+        </div>
+      )}
+      {(account || busy) && (
+        <button
+          type="button"
+          onClick={() => account && onStart(account)}
+          disabled={busy || !account}
+          // After a failure, posting it yourself (below) leads; trying again is the other way.
+          className={buttonStyles({ variant: phase === "failed" ? "secondary" : "primary", className: "w-full" })}
+        >
+          {busy ? <LoaderCircle aria-hidden="true" className="size-4 animate-spin" /> : <Send aria-hidden="true" className="size-4" />}
+          <span className="truncate">{busy ? `Posting to ${target}…` : phase === "failed" ? `Try again: post to ${chosen}` : `Post to ${chosen} now`}</span>
+        </button>
+      )}
+      <p role="status" className={cn("text-sm text-pretty text-muted-foreground", phase !== "publishing" && "sr-only")}>
+        {phase === "publishing" &&
+          `${postMedia(piece) === "video" ? "A video can take a few minutes. " : ""}You can close this: the calendar shows it once it's out.`}
+      </p>
+      {phase === "idle" && piece.schedule_status === "failed" && piece.publish_error && (
+        <p className="text-sm text-pretty text-muted-foreground">At its time, Mindra couldn't post it: {piece.publish_error}</p>
+      )}
+      {error && (
+        <p role="alert" className="text-sm text-pretty text-red-600">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/**
+ * "Post now". With a connected Facebook Page or Instagram account for the post, Mindra posts it there itself. Otherwise
+ * (and as the way out when that fails) it gets the post out in a tap (the share menu with the video, photos or text; on
+ * computers the platform with the text) and then asks whether it went out, to mark it as posted on today's calendar.
  */
 export default function PostNow({ piece, onPosted }: { piece: ContentPiece; onPosted: (piece: ContentPiece) => void }) {
   const [shared, setShared] = useState(false);
@@ -133,62 +294,155 @@ export default function PostNow({ piece, onPosted }: { piece: ContentPiece; onPo
   const info = platformInfo(piece.platform);
   const media = postMedia(piece);
   const clip = piece.clip;
-  const markAsPosted = () => markPosted.mutate({ id: piece.id, posted: true }, { onSuccess: onPosted });
+  // Marked by hand: that's the latest, so the copy followed below isn't stored over it.
+  const markedByHand = useRef(false);
+  const markAsPosted = () =>
+    markPosted.mutate(
+      { id: piece.id, posted: true },
+      {
+        onSuccess: (saved) => {
+          markedByHand.current = true;
+          onPosted(saved);
+        },
+      },
+    );
+
+  // Posting through a connected account. While the dialog is open the post is followed in its own copy (see
+  // usePublishProgress); that copy is stored everywhere when the dialog closes.
+  const auto = useAutoPost(piece);
+  const queryClient = useQueryClient();
+  const store = useStorePiece();
+  const publish = usePublishPiece();
+  const [watching, setWatching] = useState(piece.schedule_status === "publishing");
+  const progress = usePublishProgress(piece.id, watching);
+  const live = (watching && progress.data) || piece;
+  const status = live.schedule_status;
+  const phase: Phase =
+    status === "publishing" ? "publishing" : watching && status === "published" ? "published" : watching && status === "failed" ? "failed" : "idle";
+  const canPublish = auto.state === "ready" || phase !== "idle";
+  const startPublish = (account: ConnectedAccount) =>
+    publish.mutate(
+      { piece: live, account: account.id },
+      {
+        onSuccess: (saved) => {
+          queryClient.setQueryData(publishProgressKey(piece.id), saved);
+          setWatching(true);
+        },
+      },
+    );
+
+  const latest = useRef<ContentPiece | null>(null);
+  latest.current = watching && live !== piece ? live : null;
+  // When the dialog closes (`store` works the same from any render).
+  useEffect(
+    () => () => {
+      if (latest.current && !markedByHand.current) store(latest.current);
+    },
+    [],
+  );
+
+  if (phase === "published") {
+    return (
+      <div className="space-y-5">
+        <Posted live={live} />
+        <div className="flex justify-end border-t border-border pt-4">
+          <Dialog.Close className={buttonStyles({ variant: "secondary" })}>Done</Dialog.Close>
+        </div>
+      </div>
+    );
+  }
+
+  // Sharing it yourself: the main way when Mindra can't post it, the other way when it can.
+  const shareVariant = canPublish && phase !== "failed" ? "secondary" : "primary";
+  const shareButtons = (
+    <div className="flex flex-wrap gap-2">
+      {media === "video" && clip ? (
+        <ShareButton
+          clipId={clip.id}
+          downloadUrl={clip.download_url}
+          text={piece.body}
+          title={piece.title || clip.title}
+          variant={shareVariant}
+          size="md"
+          wide
+          onShared={() => setShared(true)}
+        />
+      ) : media === "photos" ? (
+        <ShareButton
+          key={piece.photos.map((photo) => photo.id).join()}
+          loadFiles={() => photoFiles(piece.project)}
+          text={piece.body}
+          title={piece.title || piece.project_name}
+          variant={shareVariant}
+          size="md"
+          wide
+          onShared={() => setShared(true)}
+        />
+      ) : (
+        <TextPost piece={piece} onShared={() => setShared(true)} variant={shareVariant} />
+      )}
+    </div>
+  );
 
   return (
     <div className="space-y-5">
-      <p className="text-sm text-pretty text-muted-foreground">
-        Mindra can't post on {info.label} for you yet. It gets the post ready so you can post it yourself in a tap, then puts it on
-        today's calendar as posted.
-      </p>
+      {canPublish ? (
+        <PostToAccount
+          piece={piece}
+          accounts={auto.state === "ready" ? auto.accounts : []}
+          phase={phase}
+          live={live}
+          onStart={startPublish}
+          starting={publish.isPending}
+          error={publish.isError ? publish.error.message : ""}
+        />
+      ) : auto.state === "loading" ? (
+        <div aria-hidden="true" className="h-10 animate-pulse rounded-lg bg-secondary" />
+      ) : (
+        <p className="text-sm text-pretty text-muted-foreground">{sharingIntro(auto, info.label)}</p>
+      )}
 
-      <div className="flex flex-wrap gap-2">
-        {media === "video" && clip ? (
-          <ShareButton
-            clipId={clip.id}
-            downloadUrl={clip.download_url}
-            text={piece.body}
-            title={piece.title || clip.title}
-            variant="primary"
-            size="md"
-            wide
-            onShared={() => setShared(true)}
-          />
-        ) : media === "photos" ? (
-          <ShareButton
-            key={piece.photos.map((photo) => photo.id).join()}
-            loadFiles={() => photoFiles(piece.project)}
-            text={piece.body}
-            title={piece.title || piece.project_name}
-            variant="primary"
-            size="md"
-            wide
-            onShared={() => setShared(true)}
-          />
-        ) : (
-          <TextPost piece={piece} onShared={() => setShared(true)} />
-        )}
-      </div>
-
-      <div className="border-t border-border pt-4">
-        {shared ? (
-          <p className="mb-3 text-sm font-medium text-foreground">Posted it on {info.label}?</p>
-        ) : (
-          <p className="mb-3 text-sm text-pretty text-muted-foreground">Already posted it? Mark it so the calendar shows it.</p>
-        )}
-        {markPosted.isError && (
-          <p role="alert" className="mb-3 text-sm text-pretty text-red-600">
-            {markPosted.error.message}
-          </p>
-        )}
-        <div className="flex flex-wrap justify-end gap-2">
-          <Dialog.Close className={buttonStyles({ variant: "secondary" })}>{shared ? "Not yet" : "Cancel"}</Dialog.Close>
-          <button type="button" onClick={markAsPosted} disabled={markPosted.isPending} className={buttonStyles({ variant: shared ? "primary" : "secondary" })}>
-            {markPosted.isPending ? <LoaderCircle aria-hidden="true" className="size-4 animate-spin" /> : <Check aria-hidden="true" className="size-4" />}
-            {shared ? "Yes, mark as posted" : "Mark as posted"}
-          </button>
+      {phase === "publishing" ? (
+        <div className="flex justify-end border-t border-border pt-4">
+          <Dialog.Close className={buttonStyles({ variant: "secondary" })}>Close</Dialog.Close>
         </div>
-      </div>
+      ) : (
+        <>
+          {canPublish ? (
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-foreground">Or post it yourself</p>
+              {shareButtons}
+            </div>
+          ) : (
+            shareButtons
+          )}
+
+          <div className="border-t border-border pt-4">
+            {shared ? (
+              <p className="mb-3 text-sm font-medium text-foreground">Posted it on {info.label}?</p>
+            ) : (
+              <p className="mb-3 text-sm text-pretty text-muted-foreground">Already posted it? Mark it so the calendar shows it.</p>
+            )}
+            {markPosted.isError && (
+              <p role="alert" className="mb-3 text-sm text-pretty text-red-600">
+                {markPosted.error.message}
+              </p>
+            )}
+            <div className="flex flex-wrap justify-end gap-2">
+              <Dialog.Close className={buttonStyles({ variant: "secondary" })}>{shared ? "Not yet" : "Cancel"}</Dialog.Close>
+              <button
+                type="button"
+                onClick={markAsPosted}
+                disabled={markPosted.isPending}
+                className={buttonStyles({ variant: shared ? "primary" : "secondary" })}
+              >
+                {markPosted.isPending ? <LoaderCircle aria-hidden="true" className="size-4 animate-spin" /> : <Check aria-hidden="true" className="size-4" />}
+                {shared ? "Yes, mark as posted" : "Mark as posted"}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

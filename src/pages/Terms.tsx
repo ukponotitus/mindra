@@ -39,8 +39,8 @@ export default function TermsPage() {
       <p>
         You own the recordings and transcripts you upload, and the posts and clips Mindra makes from them. You give us
         permission to store, copy and process your content only as needed to run Mindra for you, which includes sending it to
-        the services listed in the Privacy Policy. This permission ends when you delete the content or your account, apart
-        from copies in backups until they’re replaced.
+        the services listed in the Privacy Policy and publishing the posts you choose to the accounts you connect. This
+        permission ends when you delete the content or your account, apart from copies in backups until they’re replaced.
       </p>
 
       <h2>What you may upload</h2>
@@ -62,12 +62,49 @@ export default function TermsPage() {
       <p>
         Mindra’s transcripts, summaries, posts and clip suggestions are made by software, including AI models, and they can be
         wrong: a misheard word, a quote that’s slightly off, a reference that isn’t in the recording. Review everything before
-        you publish it. You decide what to post, and you’re responsible for what you publish.
+        you publish it, including posts you schedule to go out automatically, which Mindra posts without asking again. You
+        decide what to post, and you’re responsible for what you publish.
       </p>
+
+      <h2>Posting to Facebook and Instagram</h2>
+      <ul>
+        <li>
+          You can connect Facebook Pages you manage, and the Instagram business or creator accounts linked to them. Only
+          connect accounts you’re allowed to post for.
+        </li>
+        <li>
+          Mindra posts only what you choose: a post you schedule to go out automatically, at the time you set, or a post you
+          tell it to post now. A post Mindra publishes for you is yours, as if you had posted it yourself, and it must
+          follow Meta’s{" "}
+          <a href="https://www.facebook.com/terms/">
+            Terms of Service
+          </a>
+          ,{" "}
+          <a href="https://help.instagram.com/581066165581870">
+            Instagram’s Terms of Use
+          </a>{" "}
+          and their community rules.
+        </li>
+        <li>
+          Automatic posting can be late or fail: Meta can be unavailable, turn a post down, limit how many posts an account
+          makes in a day, or stop accepting a connection. When a post can’t go out, Mindra tells you so you can post it
+          yourself. We can’t promise that a post goes out at the exact time you set.
+        </li>
+        <li>
+          Meta can change or withdraw the features Mindra uses to post. If it does, automatic posting may stop working until
+          we can adapt.
+        </li>
+        <li>
+          You can disconnect an account at any time in <strong>Settings → Connected accounts</strong>. That deletes its
+          access token, and Mindra stops posting there. The{" "}
+          <Link to="/data-deletion">Data Deletion</Link> page says more.
+        </li>
+      </ul>
 
       <h2>Using Mindra fairly</h2>
       <ul>
         <li>Don’t try to get into other people’s accounts or workspaces, or around the beta limits.</li>
+        <li>Don’t use Mindra to post spam, or to post to Pages or accounts you don’t have the right to post for.</li>
         <li>Don’t overload, attack or disrupt Mindra, or copy it with automated tools.</li>
         <li>Don’t resell Mindra or let other people use your account.</li>
       </ul>
@@ -86,7 +123,8 @@ export default function TermsPage() {
 
       <h2>Ending your use</h2>
       <p>
-        You can stop using Mindra at any time, and ask us to delete your account by emailing {email}. We may suspend or close
+        You can stop using Mindra at any time, and ask us to delete your account by emailing {email}; the{" "}
+        <Link to="/data-deletion">Data Deletion</Link> page lists every way to delete your data. We may suspend or close
         an account that breaks these terms. If we end the beta or close Mindra, we’ll give you notice and time to download
         your clips and copy your posts.
       </p>

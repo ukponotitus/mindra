@@ -15,6 +15,7 @@ import Clips from "./pages/Clips";
 import ContentLibrary from "./pages/ContentLibrary";
 import CreateProject from "./pages/CreateProject";
 import Dashboard from "./pages/Dashboard";
+import DataDeletionPage from "./pages/DataDeletion";
 import LandingPage from "./pages/Landing";
 import PrivacyPage from "./pages/Privacy";
 import Processing from "./pages/Processing";
@@ -49,6 +50,7 @@ export default function App() {
             <Route path="/reset-password" element={<AuthPage key="reset" mode="reset" />} />
             <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="/terms" element={<TermsPage />} />
+            <Route path="/data-deletion" element={<DataDeletionPage />} />
 
             <Route element={<RequireAuth />}>
               <Route element={<DashboardShell />}>

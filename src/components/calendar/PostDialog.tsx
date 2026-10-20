@@ -9,6 +9,7 @@ import { cn } from "../../lib/cn";
 import { platformInfo } from "../../lib/projects";
 import type { ContentPiece } from "../../lib/types";
 import { backdropClass, popupClass } from "./dialogStyles";
+import PublishStatus from "./PublishStatus";
 import ScheduleChip from "./ScheduleChip";
 import ScheduleDialog from "./ScheduleDialog";
 import ShareOrCopy, { postMedia } from "./ShareOrCopy";
@@ -30,6 +31,8 @@ function PostBody({ piece, onRescheduled }: { piece: ContentPiece; onRescheduled
   const clip = piece.clip;
   const media = postMedia(piece);
   const isPosted = scheduleStatus(piece) === "posted";
+  // Posted by Mindra, or being posted now: nothing to share, mark, move or take off.
+  const automatic = piece.schedule_status === "published" || piece.schedule_status === "publishing";
   const error = posted.error ?? schedule.error;
 
   return (
@@ -65,45 +68,49 @@ function PostBody({ piece, onRescheduled }: { piece: ContentPiece; onRescheduled
         </Link>
       </p>
 
+      <PublishStatus piece={piece} className="mt-4" />
+
       <div className="mt-5 flex flex-wrap gap-2 border-t border-border pt-4">
-        <ShareOrCopy piece={piece} text={piece.body} />
+        {!automatic && <ShareOrCopy piece={piece} text={piece.body} />}
         <Link to={`/library/${piece.id}`} className={buttonStyles({ variant: "secondary" })}>
           <PenLine aria-hidden="true" className="size-4" />
           Open in editor
         </Link>
       </div>
-      <div className="mt-2 flex flex-wrap gap-2">
-        <button
-          type="button"
-          onClick={() => posted.mutate({ id: piece.id, posted: !isPosted })}
-          disabled={posted.isPending}
-          className={buttonStyles({
-            variant: "secondary",
-            className: cn(isPosted && "border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100"),
-          })}
-        >
-          {isPosted ? <Undo2 aria-hidden="true" className="size-4" /> : <Check aria-hidden="true" className="size-4 text-emerald-600" />}
-          {isPosted ? "Not posted" : "Mark as posted"}
-        </button>
-        <ScheduleDialog
-          piece={piece}
-          onDone={onRescheduled}
-          trigger={
-            <button type="button" className={buttonStyles({ variant: "secondary" })}>
-              <CalendarClock aria-hidden="true" className="size-4" />
-              Reschedule
-            </button>
-          }
-        />
-        <button
-          type="button"
-          onClick={() => schedule.mutate({ id: piece.id, scheduled_at: null }, { onSuccess: (saved) => onRescheduled(saved, piece.scheduled_at) })}
-          disabled={schedule.isPending}
-          className={buttonStyles({ variant: "ghost", className: "text-red-600 hover:bg-red-50 hover:text-red-700" })}
-        >
-          Unschedule
-        </button>
-      </div>
+      {!automatic && (
+        <div className="mt-2 flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => posted.mutate({ id: piece.id, posted: !isPosted })}
+            disabled={posted.isPending}
+            className={buttonStyles({
+              variant: "secondary",
+              className: cn(isPosted && "border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100"),
+            })}
+          >
+            {isPosted ? <Undo2 aria-hidden="true" className="size-4" /> : <Check aria-hidden="true" className="size-4 text-emerald-600" />}
+            {isPosted ? "Not posted" : "Mark as posted"}
+          </button>
+          <ScheduleDialog
+            piece={piece}
+            onDone={onRescheduled}
+            trigger={
+              <button type="button" className={buttonStyles({ variant: "secondary" })}>
+                <CalendarClock aria-hidden="true" className="size-4" />
+                Reschedule
+              </button>
+            }
+          />
+          <button
+            type="button"
+            onClick={() => schedule.mutate({ id: piece.id, scheduled_at: null }, { onSuccess: (saved) => onRescheduled(saved, piece.scheduled_at) })}
+            disabled={schedule.isPending}
+            className={buttonStyles({ variant: "ghost", className: "text-red-600 hover:bg-red-50 hover:text-red-700" })}
+          >
+            Unschedule
+          </button>
+        </div>
+      )}
       {isPosted && (
         <p className="mt-3 text-sm text-pretty text-muted-foreground">Marked as posted. The calendar shows it in green.</p>
       )}

@@ -1,6 +1,7 @@
 import { useId, useState } from "react";
 import { CalendarClock, Check, Clapperboard, Copy, Download, PenLine, Star, Trash2 } from "lucide-react";
 import { Link } from "react-router";
+import PublishStatus from "../calendar/PublishStatus";
 import ScheduleChip from "../calendar/ScheduleChip";
 import ScheduleDialog from "../calendar/ScheduleDialog";
 import ConfirmDialog from "../ui/ConfirmDialog";
@@ -203,6 +204,9 @@ export default function ContentCard({ piece, showProject = false, showClip = tru
       )}
 
       {showClip && clip && !videoReady && <ClipStrip clip={clip} project={piece.project} />}
+
+      {/* Automatic posting: where it goes, posting now, the post on Facebook or Instagram, or why it failed. */}
+      <PublishStatus piece={piece} className="mt-3" />
 
       {showProject && (
         <p className="mt-3 truncate text-xs text-muted-foreground">

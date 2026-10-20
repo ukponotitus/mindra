@@ -3,14 +3,11 @@ import { Check, Copy } from "lucide-react";
 import ShareButton from "../content/ShareButton";
 import { buttonStyles } from "../ui/button";
 import { photoFiles } from "../../lib/photos";
+import { postMedia } from "../../lib/social";
 import type { ContentPiece } from "../../lib/types";
 
-/** Whether a post goes out with a made clip's video, or with its photos. */
-export function postMedia(piece: ContentPiece): "video" | "photos" | null {
-  const clip = piece.clip;
-  if (clip && clip.status === "ready" && clip.video_url && !clip.is_stale) return "video";
-  return (piece.photos ?? []).length > 0 ? "photos" : null;
-}
+// Whether a post goes out with a made clip's video, or with its photos (automatic posting needs it too).
+export { postMedia };
 
 /**
  * The main way to post: Share for a clip's video or a photo post's pictures (with the caption), Copy text for a text

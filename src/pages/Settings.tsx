@@ -1,8 +1,9 @@
 import { useEffect, useId, useState, type ReactNode } from "react";
-import { BellRing, KeyRound, LogOut, UserRound, Users, type LucideIcon } from "lucide-react";
+import { BellRing, KeyRound, Link2, LogOut, UserRound, Users, type LucideIcon } from "lucide-react";
 import { useLocation, useNavigate } from "react-router";
 import { fullName, useAuth } from "../auth/context";
 import ReminderSettings from "../components/calendar/ReminderSettings";
+import ConnectedAccounts from "../components/settings/ConnectedAccounts";
 import { buttonStyles } from "../components/ui/button";
 import { ApiError, apiRequest } from "../lib/api";
 import { initials } from "../lib/format";
@@ -31,7 +32,7 @@ export default function Settings() {
   const [resetState, setResetState] = useState<"idle" | "sending" | "sent">("idle");
   const [resetError, setResetError] = useState("");
 
-  // Links such as "Settings" in the schedule dialog go straight to a section (/settings#reminders).
+  // Links such as "Settings" in the schedule dialog go straight to a section (/settings#reminders, #accounts).
   useEffect(() => {
     if (hash) document.getElementById(hash.slice(1))?.scrollIntoView({ block: "start" });
   }, [hash]);
@@ -60,7 +61,7 @@ export default function Settings() {
     <div className="max-w-3xl">
       <div className="mb-6">
         <h2 className="text-2xl font-semibold text-balance text-foreground">Settings</h2>
-        <p className="mt-1 text-sm text-pretty text-muted-foreground">Your account, reminders and workspace.</p>
+        <p className="mt-1 text-sm text-pretty text-muted-foreground">Your account, connected accounts, reminders and workspace.</p>
       </div>
 
       <div className="space-y-5">
@@ -78,6 +79,10 @@ export default function Settings() {
             </div>
           </div>
           <p className="mt-4 text-sm text-pretty text-muted-foreground">Editing your name and email is coming soon.</p>
+        </Card>
+
+        <Card icon={Link2} title="Connected accounts" id="accounts">
+          <ConnectedAccounts />
         </Card>
 
         <Card icon={BellRing} title="Reminders" id="reminders">

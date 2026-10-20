@@ -1,6 +1,6 @@
 import { Link } from "react-router";
 import PlatformBadge from "../content/PlatformBadge";
-import { SCHEDULE_STATUS, formatScheduled, formatTime, postSummary, scheduleStatus } from "../../lib/calendar";
+import { SCHEDULE_STATUS, formatScheduled, formatTime, isPostedStatus, isSettledStatus, postSummary, scheduleStatus } from "../../lib/calendar";
 import { cn } from "../../lib/cn";
 import { platformInfo } from "../../lib/projects";
 import type { ContentPiece } from "../../lib/types";
@@ -17,14 +17,14 @@ interface Props {
 
 /**
  * A scheduled post on the calendar, edged in its status colour. It's a link that opens the post, so it works with the
- * keyboard; with a mouse it can also be dragged to another day (not once it's posted).
+ * keyboard; with a mouse it can also be dragged to another day (not once it's posted, or while Mindra posts it).
  */
 export default function CalendarPost({ piece, to, dnd, layout }: Props) {
   const status = scheduleStatus(piece) ?? "planned";
   const look = SCHEDULE_STATUS[status];
   const platform = platformInfo(piece.platform);
   const summary = postSummary(piece);
-  const canDrag = dnd.enabled && status !== "posted";
+  const canDrag = dnd.enabled && !isSettledStatus(status);
   const time = piece.scheduled_at ? formatTime(piece.scheduled_at) : "";
 
   return (
@@ -39,7 +39,7 @@ export default function CalendarPost({ piece, to, dnd, layout }: Props) {
         "flex min-w-0 rounded-md border border-l-[3px] border-border bg-white text-left transition-[background-color,opacity] hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary",
         look.edge,
         canDrag && "cursor-grab active:cursor-grabbing",
-        status === "posted" && "bg-background text-muted-foreground",
+        isPostedStatus(status) && "bg-background text-muted-foreground",
         dnd.dragging?.piece.id === piece.id && "opacity-40",
         layout === "month" && "items-center gap-1 px-1 py-0.5 text-[11px] sm:px-1.5",
         layout === "week" && "flex-col gap-1 px-2 py-1.5 text-xs",

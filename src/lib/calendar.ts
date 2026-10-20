@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "./api";
 import { useContentList } from "./content";
-import type { ContentPiece, Paginated, ScheduleStatus } from "./types";
+import type { ConnectedAccountId, ContentPiece, Paginated, ScheduleStatus } from "./types";
 
 const pad = (value: number) => String(value).padStart(2, "0");
 const MINUTE = 60_000;
@@ -24,7 +24,21 @@ export const SCHEDULE_STATUS: Record<Status, { label: string; chip: string; edge
   reminded: { label: "Reminded", chip: "bg-amber-50 text-amber-800", edge: "border-l-amber-500", dot: "bg-amber-500" },
   posted: { label: "Posted", chip: "bg-emerald-50 text-emerald-700", edge: "border-l-emerald-500", dot: "bg-emerald-500" },
   missed: { label: "Missed", chip: "bg-red-50 text-red-700", edge: "border-l-red-500", dot: "bg-red-500" },
+  // Automatic posting: on its way (the accent, like planned), out (green, like posted), or given up (red, like missed).
+  publishing: { label: "Posting", chip: "bg-primary/10 text-primary", edge: "border-l-primary", dot: "bg-primary" },
+  published: { label: "Published", chip: "bg-emerald-50 text-emerald-700", edge: "border-l-emerald-500", dot: "bg-emerald-500" },
+  failed: { label: "Failed", chip: "bg-red-50 text-red-700", edge: "border-l-red-500", dot: "bg-red-500" },
 };
+
+/** It went out: marked as posted, or posted by Mindra. */
+export function isPostedStatus(status: Status | null): boolean {
+  return status === "posted" || status === "published";
+}
+
+/** It went out or is going out now, so it can't be moved or posted again. */
+export function isSettledStatus(status: Status | null): boolean {
+  return isPostedStatus(status) || status === "publishing";
+}
 
 /** A post's status, or null when it isn't scheduled (also when talking to an API without the calendar yet). */
 export function scheduleStatus(piece: Pick<ContentPiece, "scheduled_at" | "schedule_status">): Status | null {
@@ -272,17 +286,17 @@ export function useComingUp(limit = 5) {
   });
   const query = useContentList({ scheduledAfter: since, pageSize: 100 });
   const now = Date.now();
-  const waiting = (query.data?.results ?? []).filter((piece) => piece.scheduled_at && scheduleStatus(piece) !== "posted");
+  const waiting = (query.data?.results ?? []).filter((piece) => piece.scheduled_at && !isPostedStatus(scheduleStatus(piece)));
   const overdue = waiting.filter((piece) => new Date(piece.scheduled_at!).getTime() <= now);
   const coming = waiting.filter((piece) => new Date(piece.scheduled_at!).getTime() > now);
   const byTime = (a: ContentPiece, b: ContentPiece) => new Date(a.scheduled_at!).getTime() - new Date(b.scheduled_at!).getTime();
-  const missedFirst = (a: ContentPiece, b: ContentPiece) =>
-    Number(scheduleStatus(b) === "missed") - Number(scheduleStatus(a) === "missed") || byTime(a, b);
+  const needsYou = (piece: ContentPiece) => Number(scheduleStatus(piece) === "missed" || scheduleStatus(piece) === "failed");
+  const missedFirst = (a: ContentPiece, b: ContentPiece) => needsYou(b) - needsYou(a) || byTime(a, b);
   return { ...query, posts: [...overdue.sort(missedFirst), ...coming.sort(byTime)].slice(0, limit) };
 }
 
 /** Show a saved post everywhere at once (so a moved post doesn't jump back while lists reload), then reload the lists. */
-function useStorePiece() {
+export function useStorePiece() {
   const queryClient = useQueryClient();
   return (piece: ContentPiece) => {
     queryClient.setQueryData(["content", "detail", piece.id], piece);
@@ -293,12 +307,18 @@ function useStorePiece() {
   };
 }
 
-/** Put a post on the calendar, move it (an ISO time with its offset), or take it off (null). */
+/**
+ * Put a post on the calendar, move it (an ISO time with its offset), or take it off (null). `publish_to` (sent only when
+ * given) sets the account it's posted to automatically at that time, or null to only remind.
+ */
 export function useSchedulePost() {
   const store = useStorePiece();
   return useMutation({
-    mutationFn: ({ id, scheduled_at }: { id: string; scheduled_at: string | null }) =>
-      apiRequest<ContentPiece>(`/api/content/${id}/`, { method: "PATCH", body: { scheduled_at } }),
+    mutationFn: ({ id, scheduled_at, publish_to }: { id: string; scheduled_at: string | null; publish_to?: ConnectedAccountId | null }) =>
+      apiRequest<ContentPiece>(`/api/content/${id}/`, {
+        method: "PATCH",
+        body: publish_to === undefined ? { scheduled_at } : { scheduled_at, publish_to },
+      }),
     onSuccess: store,
   });
 }

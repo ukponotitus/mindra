@@ -46,11 +46,16 @@ export function useAiStatus() {
   });
 }
 
+/** How often a list or a post is fetched again while Mindra is posting one of its posts, to show when it's out. */
+const PUBLISHING_POLL_MS = 4000;
+const isPublishing = (piece: ContentPiece | undefined) => piece?.schedule_status === "publishing";
+
 export function useContentList(filters: ContentFilters) {
   return useQuery({
     queryKey: ["content", "list", filters],
     queryFn: () => apiRequest<Paginated<ContentPiece>>(`/api/content/?${contentQuery(filters)}`),
     placeholderData: keepPreviousData,
+    refetchInterval: (query) => (query.state.data?.results.some(isPublishing) ? PUBLISHING_POLL_MS : false),
   });
 }
 
@@ -59,6 +64,7 @@ export function useContentPiece(id: string | undefined) {
     queryKey: ["content", "detail", id],
     queryFn: () => apiRequest<ContentPiece>(`/api/content/${id}/`),
     enabled: Boolean(id),
+    refetchInterval: (query) => (isPublishing(query.state.data) ? PUBLISHING_POLL_MS : false),
   });
 }
 
