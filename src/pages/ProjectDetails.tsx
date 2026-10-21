@@ -18,6 +18,7 @@ import { cn } from "../lib/cn";
 import { formatDate, formatDuration, languageName } from "../lib/format";
 import {
   isInProgress,
+  isPicturePost,
   projectLength,
   projectSourceDetail,
   SOURCE_LABELS,
@@ -37,9 +38,14 @@ const RECORDING_TABS: { id: TabId; label: string }[] = [
   { id: "clips", label: "Clips" },
 ];
 
-// A photos project has no recording, so no transcript or clips: its pictures, and the posts written from them.
+// A photo or flyer post has no recording, so no transcript or clips: its pictures (with, for a flyer, the text read
+// from it), and the posts written from them.
 const PHOTO_TABS: { id: TabId; label: string }[] = [
   { id: "photos", label: "Photos" },
+  { id: "posts", label: "Posts" },
+];
+const FLYER_TABS: { id: TabId; label: string }[] = [
+  { id: "photos", label: "Flyer" },
   { id: "posts", label: "Posts" },
 ];
 
@@ -54,8 +60,9 @@ export default function ProjectDetails() {
   const startAt = searchParams.has("t") ? Number(searchParams.get("t")) : undefined;
 
   const { data: project, error, isPending } = useProject(projectId);
-  const isPhotos = project?.source_type === "photos";
-  const tabs = isPhotos ? PHOTO_TABS : RECORDING_TABS;
+  const isPhotos = isPicturePost(project?.source_type);
+  const isFlyer = project?.source_type === "flyer";
+  const tabs = isFlyer ? FLYER_TABS : isPhotos ? PHOTO_TABS : RECORDING_TABS;
   const activeTab: TabId = tabs.find((tab) => tab.id === searchParams.get("tab"))?.id ?? tabs[0].id;
   const openTab = (tab: TabId, seconds?: number) =>
     setSearchParams(tab === tabs[0].id ? {} : { tab, ...(seconds != null ? { t: String(seconds) } : {}) }, { replace: true });
@@ -195,9 +202,11 @@ export default function ProjectDetails() {
             }
             title={`Delete "${project.name}"?`}
             description={
-              isPhotos
-                ? "Its photos and written posts will be removed for good. This can't be undone."
-                : "Its recording, transcript and written posts will be removed for good. This can't be undone."
+              isFlyer
+                ? "Its flyer and written posts will be removed for good. This can't be undone."
+                : isPhotos
+                  ? "Its photos and written posts will be removed for good. This can't be undone."
+                  : "Its recording, transcript and written posts will be removed for good. This can't be undone."
             }
             confirmLabel="Delete project"
             onConfirm={remove}
@@ -210,7 +219,8 @@ export default function ProjectDetails() {
         </div>
       </div>
 
-      {isInProgress(project.status) && (
+      {/* A flyer being read, or one that couldn't be, says so on its Flyer and Posts tabs instead. */}
+      {isInProgress(project.status) && !isPhotos && (
         <div
           role="status"
           className="mb-6 flex flex-col gap-3 rounded-xl bg-primary/10 px-4 py-3 text-sm text-foreground sm:flex-row sm:items-center sm:justify-between"
@@ -231,7 +241,7 @@ export default function ProjectDetails() {
         </div>
       )}
 
-      {failed && (
+      {failed && !isFlyer && (
         <div className="mb-6 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-800">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <span className="text-pretty">{project.error || "Processing stopped."}</span>
@@ -332,6 +342,21 @@ export default function ProjectDetails() {
       {activeTab === "posts" &&
         (completed ? (
           <ProjectPosts project={project} />
+        ) : isFlyer ? (
+          <EmptyState
+            icon={PenLine}
+            title="Posts can be written once the flyer is read"
+            description={
+              failed
+                ? "Mindra couldn't read the flyer. Try again on the Flyer tab, or type what it says there."
+                : "Mindra is reading the flyer. This page updates by itself when it's done."
+            }
+            action={
+              <button type="button" onClick={() => openTab("photos")} className={buttonStyles({ variant: "secondary" })}>
+                Open the Flyer tab
+              </button>
+            }
+          />
         ) : (
           <EmptyState
             icon={PenLine}

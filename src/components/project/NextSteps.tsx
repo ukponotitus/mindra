@@ -1,7 +1,7 @@
-import { ArrowRight, Check, Clapperboard, FileText, Images, PenLine, type LucideIcon } from "lucide-react";
+import { ArrowRight, Check, Clapperboard, FileText, Images, Megaphone, PenLine, type LucideIcon } from "lucide-react";
 import { cn } from "../../lib/cn";
 import { formatDuration } from "../../lib/format";
-import { projectLength } from "../../lib/projects";
+import { isPicturePost, projectLength } from "../../lib/projects";
 import type { Project } from "../../lib/types";
 import { buttonStyles } from "../ui/button";
 
@@ -51,6 +51,35 @@ function photoSteps(project: Project, postCount: number): Step[] {
   ];
 }
 
+/** A flyer post: the flyer added and read, then posts written from what it says. */
+function flyerSteps(project: Project, postCount: number): Step[] {
+  const added = project.photo_count > 0;
+  const read = Boolean(project.flyer_text);
+  return [
+    {
+      icon: Megaphone,
+      title: !added ? "Add the flyer" : read ? "Flyer read" : "Flyer added",
+      detail: !added
+        ? "Choose the flyer to post, as a picture."
+        : read
+          ? "Check what Mindra read on the Flyer tab, and correct anything it got wrong."
+          : "Mindra didn't find any writing on it. Type what it says on the Flyer tab.",
+      state: added && read ? "done" : "ready",
+      action: { label: added ? "See the flyer" : "Add the flyer", tab: "photos" },
+    },
+    {
+      icon: PenLine,
+      title: postCount > 0 ? `${postCount} posts written` : "Write posts",
+      detail:
+        postCount > 0
+          ? "Share them with the flyer, plan them on the calendar, or write more for other platforms."
+          : "An announcement for each platform, written from what the flyer says, in your brand voice.",
+      state: postCount > 0 ? "done" : added && read ? "ready" : "todo",
+      action: { label: postCount > 0 ? "See posts" : "Write posts", tab: "posts" },
+    },
+  ];
+}
+
 /** A recording: its transcript, posts and (for videos) clips. */
 function recordingSteps(project: Project, postsAvailable: boolean, postCount: number): Step[] {
   return [
@@ -76,7 +105,7 @@ function recordingSteps(project: Project, postsAvailable: boolean, postCount: nu
       ? {
           icon: Clapperboard,
           title: "Make clips",
-          detail: "Short vertical clips from the strongest moments, framed on the speaker and captioned.",
+          detail: "Short clips from the strongest moments, vertical or as recorded, captioned and with nothing cut off.",
           // The main next step once posts are written; until then it waits its turn.
           state: postCount > 0 ? "ready" : "todo",
           action: { label: "See clips", tab: "clips" },
@@ -93,8 +122,13 @@ function recordingSteps(project: Project, postsAvailable: boolean, postCount: nu
 
 /** What a finished project can turn into, in order, with the one thing to do next made obvious. */
 export default function NextSteps({ project, postsAvailable, postCount, onOpen }: Props) {
-  const isPhotos = project.source_type === "photos";
-  const steps = isPhotos ? photoSteps(project, postCount) : recordingSteps(project, postsAvailable, postCount);
+  const isPhotos = isPicturePost(project.source_type);
+  const steps =
+    project.source_type === "flyer"
+      ? flyerSteps(project, postCount)
+      : isPhotos
+        ? photoSteps(project, postCount)
+        : recordingSteps(project, postsAvailable, postCount);
 
   return (
     <section aria-labelledby="next-steps" className="mb-6 rounded-xl border border-border bg-white p-5">

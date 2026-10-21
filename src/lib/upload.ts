@@ -26,6 +26,9 @@ export type UploadPhase = "uploading" | "waiting" | "finishing";
 
 export type DirectUploadOptions = {
   sourceType: Exclude<SourceType, "transcript">;
+  /** What the file is for: a project's recording (the default), or a video to make vertical, which the server doesn't
+   * count against the month's hours. Kept apart when continuing an interrupted upload. */
+  purpose?: "project" | "vertical";
   onProgress?: (progress: UploadProgress) => void;
   onPhase?: (phase: UploadPhase) => void;
   /** Called when an earlier, interrupted upload of this file is continued, with the bytes already stored. */
@@ -57,11 +60,17 @@ const URL_MARGIN_MS = 5 * 60 * 1000;
 const MAX_HTTP_ATTEMPTS = 10;
 /** Network failures in a row for one part, while the browser says it's online, before giving up (about 30 min). */
 const MAX_NETWORK_ATTEMPTS = 60;
-/** With nothing stored yet, this many network failures in a row (3 rounds of 3 parts) make it check storage. */
+/** With nothing sent yet, this many network failures in a row (3 rounds of 3 parts) make it check storage. */
 const SETUP_CHECK_AFTER = 9;
 const MAX_WAIT_MS = 30 * 1000;
 /** A part that sends nothing for this long is dropped and sent again (stuck mobile connections). */
 const STALL_MS = 60 * 1000;
+/**
+ * How long a part that the browser has finished handing over may wait for storage's answer. Phones report the whole
+ * part as sent while their network is still pushing it out (on slow mobile data, 8 MB can take minutes), so the
+ * answer comes long after the last progress event.
+ */
+const REPLY_WAIT_MS = 10 * 60 * 1000;
 const PROGRESS_EVERY_MS = 200;
 const SPEED_WINDOW_MS = 30 * 1000;
 const SAVED_KEY = "mindra.uploads";
@@ -160,6 +169,11 @@ export class DirectUpload {
   private lastProgressAt = 0;
   private samples: { at: number; loaded: number }[] = [];
   private stored = 0;
+  /** Parts sent at once: CONCURRENCY, then one at a time after a part drops, so on a weak connection one part has
+   * all of it and gets through, instead of several failing together. */
+  private lanes = CONCURRENCY;
+  /** Whether any bytes have left for storage. A bucket that refuses this site stops the browser before any do. */
+  private anythingSent = false;
   /** Network failures in a row, across all parts. */
   private networkFailures = 0;
   private setupChecked = false;
@@ -168,7 +182,7 @@ export class DirectUpload {
     this.file = file;
     this.options = options;
     this.env = env;
-    this.id = fingerprint(file, options.sourceType);
+    this.id = fingerprint(file, options.purpose === "vertical" ? "vertical" : options.sourceType);
   }
 
   async start(): Promise<DirectUploadResult> {
@@ -179,11 +193,16 @@ export class DirectUpload {
       this.report(true); // A continued upload starts from the bytes already stored.
       this.pending = Array.from({ length: saved.partCount }, (_, index) => index + 1).filter((n) => !this.etags.has(n));
       const queue = [...this.pending];
-      const worker = async () => {
-        for (let number = queue.shift(); number !== undefined; number = queue.shift()) await this.sendPart(number);
+      const worker = async (lane: number) => {
+        // Lanes past `this.lanes` stop taking parts once it drops to one; the first lane sends the rest.
+        while (lane < this.lanes) {
+          const number = queue.shift();
+          if (number === undefined) return;
+          await this.sendPart(number);
+        }
       };
       try {
-        await Promise.all(Array.from({ length: Math.min(CONCURRENCY, queue.length) }, worker));
+        await Promise.all(Array.from({ length: Math.min(CONCURRENCY, queue.length) }, (_, lane) => worker(lane)));
       } catch (error) {
         this.controller.abort(); // Stop the other parts too.
         throw error;
@@ -257,6 +276,7 @@ export class DirectUpload {
       size: this.file.size,
       content_type: this.file.type,
       source_type: this.options.sourceType,
+      ...(this.options.purpose ? { purpose: this.options.purpose } : {}),
     });
     this.saved = {
       key: started.key,
@@ -402,6 +422,7 @@ export class DirectUpload {
       if (result.status === 0) {
         networkFailures += 1;
         this.networkFailures += 1;
+        this.lanes = 1;
         if (networkFailures >= MAX_NETWORK_ATTEMPTS) {
           throw new ApiError(
             0,
@@ -428,11 +449,12 @@ export class DirectUpload {
   }
 
   /**
-   * If nothing has reached storage yet and puts keep failing while the Mindra API answers, the browser can reach
-   * Mindra but not storage, which is usually the bucket's CORS rules rather than the connection.
+   * If no bytes have left for storage yet and puts keep failing while the Mindra API answers, the browser can reach
+   * Mindra but not storage, which is usually the bucket's CORS rules rather than the connection. (When bytes do go
+   * out, the bucket accepted this site, and the failures are the connection's.)
    */
   private async checkStorageReachable() {
-    if (this.setupChecked || this.stored > 0 || this.networkFailures < SETUP_CHECK_AFTER) return;
+    if (this.setupChecked || this.stored > 0 || this.anythingSent || this.networkFailures < SETUP_CHECK_AFTER) return;
     this.setupChecked = true;
     const saved = this.saved!;
     try {
@@ -458,6 +480,7 @@ export class DirectUpload {
 
   private progress(number: number, loaded: number) {
     this.sending.set(number, loaded);
+    if (loaded > 0) this.anythingSent = true;
     if (this.phase === "waiting" && loaded > 0) this.setPhase("uploading");
     this.report(false);
   }
@@ -485,12 +508,12 @@ function putWithXhr(url: string, body: Blob, onProgress: (loaded: number) => voi
     const request = new XMLHttpRequest();
     let stalled = false;
     let stallTimer = 0;
-    const watch = () => {
+    const watch = (wait = STALL_MS) => {
       window.clearTimeout(stallTimer);
       stallTimer = window.setTimeout(() => {
         stalled = true;
         request.abort();
-      }, STALL_MS);
+      }, wait);
     };
     const stop = () => request.abort();
     const done = () => {
@@ -499,9 +522,11 @@ function putWithXhr(url: string, body: Blob, onProgress: (loaded: number) => voi
     };
     request.open("PUT", url);
     request.upload.onprogress = (event) => {
-      watch();
+      // Once the whole part is handed over, no more progress comes: wait for storage's answer instead.
+      watch(event.lengthComputable && event.loaded >= event.total ? REPLY_WAIT_MS : STALL_MS);
       onProgress(event.loaded);
     };
+    request.upload.onload = () => watch(REPLY_WAIT_MS);
     request.onload = () => {
       done();
       resolve({ status: request.status, etag: request.getResponseHeader("ETag") });

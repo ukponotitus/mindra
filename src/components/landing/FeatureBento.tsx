@@ -294,7 +294,7 @@ const features: Feature[] = [
   {
     short: "Clips",
     title: "Clips that stop the scroll",
-    text: "Your strongest moments, cut into vertical clips with animated captions and framed on the speaker.",
+    text: "Your strongest moments, cut into vertical or widescreen clips with animated captions, nothing cut off.",
     status: "soon",
     icon: Clapperboard,
     Demo: ClipsDemo,

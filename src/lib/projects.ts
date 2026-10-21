@@ -1,5 +1,5 @@
 import { keepPreviousData, queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AudioLines, FileText, Images, Video, type LucideIcon } from "lucide-react";
+import { AudioLines, FileText, Images, Megaphone, Video, type LucideIcon } from "lucide-react";
 import { apiRequest } from "./api";
 import { formatDuration } from "./format";
 import type { Paginated, Platform, Project, ProjectStatus, ProjectSummary, SourceType, Transcript, UploadOptions } from "./types";
@@ -26,6 +26,7 @@ export const SOURCE_LABELS: Record<SourceType, string> = {
   audio: "Audio",
   transcript: "Transcript",
   photos: "Photos",
+  flyer: "Flyer",
 };
 
 export const SOURCE_ICONS: Record<SourceType, LucideIcon> = {
@@ -33,18 +34,26 @@ export const SOURCE_ICONS: Record<SourceType, LucideIcon> = {
   audio: AudioLines,
   transcript: FileText,
   photos: Images,
+  flyer: Megaphone,
 };
 
-/** How long a recording is, or how many pictures a photos project has: "47:32", "6 photos". */
+/** Photo and flyer posts: projects made of pictures (kept as photos), with no recording. */
+export function isPicturePost(sourceType: SourceType | undefined): boolean {
+  return sourceType === "photos" || sourceType === "flyer";
+}
+
+/** How long a recording is, or how many pictures a photo or flyer post has: "47:32", "6 photos", "1 flyer". */
 export function projectLength(project: Pick<Project, "source_type" | "duration_seconds" | "photo_count">): string {
-  if (project.source_type !== "photos") return formatDuration(project.duration_seconds);
+  if (!isPicturePost(project.source_type)) return formatDuration(project.duration_seconds);
   const count = project.photo_count ?? 0;
-  return `${count} photo${count === 1 ? "" : "s"}`;
+  const noun = project.source_type === "flyer" ? "flyer" : "photo";
+  return `${count} ${noun}${count === 1 ? "" : "s"}`;
 }
 
 /** The line under a project's name: its file, "Pasted transcript", or what its photos show. */
 export function projectSourceDetail(project: Pick<Project, "source_type" | "source_filename" | "note">): string {
   if (project.source_type === "photos") return project.note || "Photo post";
+  if (project.source_type === "flyer") return project.note || "Flyer post";
   return project.source_filename || "Pasted transcript";
 }
 
@@ -74,9 +83,12 @@ export function useAnalyzeProject() {
   });
 }
 
-/** Where to go when someone opens a project: the progress screen while it's working, otherwise the details. */
-export function projectPath(project: Pick<Project, "id" | "status">): string {
-  return isInProgress(project.status) ? `/projects/${project.id}/processing` : `/projects/${project.id}`;
+/** Where to go when someone opens a project: the progress screen while a recording is processed, otherwise the
+ * details (a flyer being read shows that on its own page). */
+export function projectPath(project: Pick<Project, "id" | "status" | "source_type">): string {
+  return isInProgress(project.status) && !isPicturePost(project.source_type)
+    ? `/projects/${project.id}/processing`
+    : `/projects/${project.id}`;
 }
 
 export function useProjects(page = 1) {
@@ -152,8 +164,10 @@ export function useUpdateProject() {
       name?: string;
       target_platforms?: Platform[];
       note?: string;
-      /** Photos projects only: the recording the captions can use, or null for none. */
+      /** Photo and flyer posts only: the recording the captions can use, or null for none. */
       linked_recording?: string | null;
+      /** Flyer posts only: a correction of the text read from the flyers. */
+      flyer_text?: string;
     }) =>
       apiRequest<Project>(`/api/projects/${id}/`, { method: "PATCH", body: changes }),
     onSuccess: (project) => {

@@ -24,11 +24,21 @@ type Props = Shared &
         /** The clip's download link, for browsers that can't share files (most computers). */
         downloadUrl: string | null;
         loadFiles?: never;
+        loadVideo?: never;
+      }
+    | {
+        /** Another made video, such as a vertical video: fetches its file to share. */
+        loadVideo: () => Promise<File>;
+        /** Its download link, for browsers that can't share files (most computers). */
+        downloadUrl: string | null;
+        clipId?: never;
+        loadFiles?: never;
       }
     | {
         /** Fetches the files to share: a photo post's pictures. Browsers that can't share files save each one. */
         loadFiles: () => Promise<File[]>;
         clipId?: never;
+        loadVideo?: never;
         downloadUrl?: never;
       }
   );
@@ -74,7 +84,7 @@ function saveFiles(files: File[]) {
  */
 export default function ShareButton(props: Props) {
   const { text, title, variant = "secondary", size = "sm", wide = false, onShared } = props;
-  const isClip = props.clipId !== undefined;
+  const isClip = props.clipId !== undefined || props.loadVideo !== undefined;
   const words = isClip ? WORDS.video : WORDS.photos;
   const [sharing] = useState(() => canShareFiles(isClip ? undefined : { name: "photo.jpg", type: "image/jpeg" }));
   const [state, setState] = useState<"idle" | "preparing" | "ready">("idle");
@@ -85,6 +95,7 @@ export default function ShareButton(props: Props) {
 
   const load = async () => {
     if (props.clipId !== undefined) return [await clipFile(props.clipId)];
+    if (props.loadVideo !== undefined) return [await props.loadVideo()];
     return props.loadFiles();
   };
 

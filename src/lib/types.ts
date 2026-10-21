@@ -22,8 +22,11 @@ export type AuthResponse = {
   user: User;
 };
 
-/** "photos": a photo post's pictures, uploaded one by one; nothing is processed, so it's ready at once. */
-export type SourceType = "video" | "audio" | "transcript" | "photos";
+/**
+ * "photos": a photo post's pictures, uploaded one by one; nothing is processed, so it's ready at once.
+ * "flyer": a flyer post, uploaded the same way; Mindra reads the text on its flyers ("analyzing") as they're added.
+ */
+export type SourceType = "video" | "audio" | "transcript" | "photos" | "flyer";
 
 export type ProjectStatus = "queued" | "extracting_audio" | "transcribing" | "analyzing" | "completed" | "failed";
 
@@ -64,6 +67,8 @@ export type Project = {
   photo_count: number;
   /** The first photo's thumbnail, or null. */
   cover_url: string | null;
+  /** Flyer posts: the text Mindra read from the flyers, which can be corrected. Empty until they're read. */
+  flyer_text: string;
   created_at: string;
   updated_at: string;
 };
@@ -145,6 +150,39 @@ export type UploadOptions = {
   /** Largest photo the server takes, before it processes it. */
   max_photo_mb: number;
   max_photos: number;
+  /** Vertical videos: the longest video taken, in minutes. */
+  vertical_max_minutes?: number;
+};
+
+/** "follow": a 9:16 window that follows the speaker; "fit": the whole picture on a blurred copy of itself. */
+export type VerticalMode = "follow" | "fit";
+
+/** "framing": finding the speaker (follow only); "rendering": making the video. */
+export type VerticalStatus = "queued" | "framing" | "rendering" | "ready" | "failed";
+
+/** A landscape video made vertical (GET /api/vertical-videos/). The links are signed and expire. */
+export type VerticalVideo = {
+  id: string;
+  workspace: number;
+  name: string;
+  mode: VerticalMode;
+  source_filename: string;
+  status: VerticalStatus;
+  progress: number;
+  error: string;
+  duration_seconds: number | null;
+  source_width: number | null;
+  source_height: number | null;
+  width: number | null;
+  height: number | null;
+  /** The mode the current video was made with ("" before the first one is made). */
+  made_as: VerticalMode | "";
+  video_url: string | null;
+  download_url: string | null;
+  thumbnail_url: string | null;
+  source_url: string | null;
+  created_at: string;
+  updated_at: string;
 };
 
 /** POST /api/uploads/: a direct upload that has started. */
@@ -168,6 +206,10 @@ export type UploadStatus = {
   parts: { part_number: number; etag: string; size: number }[];
 };
 
+/** "vertical": short form, 9:16, the whole picture on a blurred copy of itself; "original": long form, the
+ * recording's own shape. */
+export type ClipShape = "vertical" | "original";
+
 /** What a post shows of the clip it goes with. */
 export type ClipSummary = {
   id: string;
@@ -175,6 +217,7 @@ export type ClipSummary = {
   start: number;
   end: number;
   duration: number;
+  shape: ClipShape;
   status: "suggested" | "rendering" | "ready" | "failed";
   is_stale: boolean;
   video_url: string | null;

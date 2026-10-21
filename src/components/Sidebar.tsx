@@ -8,6 +8,7 @@ import {
   Library,
   PenLine,
   Plus,
+  RectangleVertical,
   Settings,
   type LucideIcon,
 } from "lucide-react";
@@ -28,6 +29,7 @@ const navItems: { label: string; to: string; icon: LucideIcon; soon?: boolean }[
   { label: "Projects", to: "/projects", icon: FolderOpen },
   { label: "Content Library", to: "/library", icon: Library },
   { label: "Clips", to: "/clips", icon: Clapperboard },
+  { label: "Vertical Videos", to: "/vertical", icon: RectangleVertical },
   { label: "AI Studio", to: "/ai-studio", icon: PenLine },
   { label: "Calendar", to: "/calendar", icon: CalendarDays },
   { label: "Brand Voice", to: "/brand-voice", icon: AudioLines },

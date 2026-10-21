@@ -170,9 +170,11 @@ export default function Projects() {
                         }
                         title={`Delete "${project.name}"?`}
                         description={
-                          project.source_type === "photos"
-                            ? "Its photos and written posts will be removed for good. This can't be undone."
-                            : "Its recording, transcript and written posts will be removed for good. This can't be undone."
+                          project.source_type === "flyer"
+                            ? "Its flyer and written posts will be removed for good. This can't be undone."
+                            : project.source_type === "photos"
+                              ? "Its photos and written posts will be removed for good. This can't be undone."
+                              : "Its recording, transcript and written posts will be removed for good. This can't be undone."
                         }
                         confirmLabel="Delete project"
                         onConfirm={() => remove(project)}

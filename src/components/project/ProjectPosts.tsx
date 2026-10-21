@@ -28,12 +28,18 @@ export default function ProjectPosts({ project }: { project: Project }) {
       {firstTime && !formOpen && (
         <div>
           <h3 className="text-lg font-semibold text-balance text-foreground">
-            {project.source_type === "photos" ? "Write posts for these photos" : "Write posts from this recording"}
+            {project.source_type === "flyer"
+              ? "Write posts for this flyer"
+              : project.source_type === "photos"
+                ? "Write posts for these photos"
+                : "Write posts from this recording"}
           </h3>
           <p className="mt-1 text-sm text-pretty text-muted-foreground">
-            {project.source_type === "photos"
-              ? "Pick where you post. Mindra writes a caption for each one in that platform's format, from what the pictures show."
-              : "Pick where you post. Mindra writes each one in that platform's format, from what was actually said."}
+            {project.source_type === "flyer"
+              ? "Pick where you post. Mindra writes an announcement for each one in that platform's format, from what the flyer says."
+              : project.source_type === "photos"
+                ? "Pick where you post. Mindra writes a caption for each one in that platform's format, from what the pictures show."
+                : "Pick where you post. Mindra writes each one in that platform's format, from what was actually said."}
           </p>
         </div>
       )}

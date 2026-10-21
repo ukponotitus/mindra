@@ -1,6 +1,6 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "./api";
-import type { Paginated, Platform } from "./types";
+import type { ClipShape, Paginated, Platform } from "./types";
 
 // Shapes of the clips API (see mindra-backend/clips).
 
@@ -20,11 +20,12 @@ export type Clip = {
   caption: string;
   reason: string;
   caption_style: CaptionStyle;
+  shape: ClipShape;
   /** Made by someone choosing the times, rather than suggested by Mindra. */
   custom: boolean;
   status: ClipStatus;
   error: string;
-  /** Rendered, but trimmed or restyled since: render again to update the video. */
+  /** Rendered, but trimmed, restyled or reshaped since: render again to update the video. */
   is_stale: boolean;
   video_url: string | null;
   download_url: string | null;
@@ -42,6 +43,16 @@ export const CAPTION_STYLES: { id: CaptionStyle; label: string; description: str
   { id: "clean", label: "Clean", description: "Smaller lines on a soft dark box" },
   { id: "none", label: "No captions", description: "For videos that already have captions" },
 ];
+
+export const CLIP_SHAPES: { id: ClipShape; label: string; description: string }[] = [
+  { id: "vertical", label: "Short form", description: "Vertical 9:16, the whole picture on a blurred background. For Reels, TikTok and Shorts" },
+  { id: "original", label: "Long form", description: "As recorded, nothing cut off. For YouTube and Facebook" },
+];
+
+/** Classes for a clip's video frame: tall for short form, wide for long form. */
+export function clipFrame(shape: ClipShape | undefined, tall: string, wide = "aspect-video w-full") {
+  return shape === "original" ? wide : tall;
+}
 
 const key = (projectId: string) => ["clips", "project", projectId];
 
@@ -138,7 +149,7 @@ export function useClips(filters: ClipFilters) {
 export function useCreateClip(projectId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (clip: { start: number; end: number; title?: string }) =>
+    mutationFn: (clip: { start: number; end: number; title?: string; shape?: ClipShape }) =>
       apiRequest<Clip>("/api/clips/", { method: "POST", body: { project: projectId, ...clip } }),
     onSuccess: (clip) => {
       queryClient.setQueryData<ProjectClips>(key(projectId), (data) => (data ? { ...data, clips: [...data.clips, clip] } : data));
@@ -169,7 +180,7 @@ function useStoreClip() {
 export function useUpdateClip() {
   const store = useStoreClip();
   return useMutation({
-    mutationFn: ({ id, ...changes }: { id: string } & Partial<Pick<Clip, "start" | "end" | "title" | "caption" | "caption_style">>) =>
+    mutationFn: ({ id, ...changes }: { id: string } & Partial<Pick<Clip, "start" | "end" | "title" | "caption" | "caption_style" | "shape">>) =>
       apiRequest<Clip>(`/api/clips/${id}/`, { method: "PATCH", body: changes }),
     onSuccess: store,
   });

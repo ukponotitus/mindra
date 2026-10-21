@@ -3,9 +3,9 @@ import { Dialog } from "@base-ui/react/dialog";
 import { LoaderCircle, Play, X } from "lucide-react";
 import { buttonStyles } from "../ui/button";
 import { cn } from "../../lib/cn";
-import { SHORTEST_CLIP_SECONDS, formatClipTime, parseClipTime, useCreateClip, type Clip } from "../../lib/clips";
+import { CLIP_SHAPES, SHORTEST_CLIP_SECONDS, formatClipTime, parseClipTime, useCreateClip, type Clip } from "../../lib/clips";
 import { formatDuration } from "../../lib/format";
-import type { Project } from "../../lib/types";
+import type { ClipShape, Project } from "../../lib/types";
 
 // A new clip starts as the first half minute (or the whole recording, if shorter), to be marked from there.
 const DEFAULT_SECONDS = 30;
@@ -32,6 +32,7 @@ function NewClipForm({ project, onCreated }: { project: Project; onCreated: (cli
   const [startText, setStartText] = useState(formatClipTime(0));
   const [endText, setEndText] = useState(formatClipTime(total ? Math.min(DEFAULT_SECONDS, total) : DEFAULT_SECONDS));
   const [title, setTitle] = useState("");
+  const [shape, setShape] = useState<ClipShape>("vertical");
   const create = useCreateClip(project.id);
 
   const start = parseClipTime(startText);
@@ -55,7 +56,7 @@ function NewClipForm({ project, onCreated }: { project: Project; onCreated: (cli
   const submit = (event: FormEvent) => {
     event.preventDefault();
     if (problem || start == null || end == null) return;
-    create.mutate({ start, end, ...(title.trim() ? { title: title.trim() } : {}) }, { onSuccess: onCreated });
+    create.mutate({ start, end, shape, ...(title.trim() ? { title: title.trim() } : {}) }, { onSuccess: onCreated });
   };
 
   const edges = [
@@ -153,6 +154,32 @@ function NewClipForm({ project, onCreated }: { project: Project; onCreated: (cli
           />
         </div>
 
+        <fieldset>
+          <legend className="text-sm font-medium text-foreground">Shape</legend>
+          <div className="mt-1.5 grid gap-2 sm:grid-cols-2">
+            {CLIP_SHAPES.map((option) => (
+              <label
+                key={option.id}
+                className={cn(
+                  "cursor-pointer rounded-lg border px-3 py-2 transition-colors has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-primary",
+                  shape === option.id ? "border-primary bg-primary/5" : "border-border hover:border-muted-foreground/40",
+                )}
+              >
+                <input
+                  type="radio"
+                  name="new-clip-shape"
+                  value={option.id}
+                  checked={shape === option.id}
+                  onChange={() => setShape(option.id)}
+                  className="sr-only"
+                />
+                <span className="block text-sm font-medium text-foreground">{option.label}</span>
+                <span className="block text-xs text-pretty text-muted-foreground">{option.description}</span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+
         {create.isError && (
           <p role="alert" className="text-sm text-pretty text-red-600">
             {create.error.message}
@@ -184,7 +211,8 @@ export default function NewClipDialog({ project, trigger, onCreated }: { project
             <div>
               <Dialog.Title className="text-lg font-semibold text-balance text-foreground">New clip</Dialog.Title>
               <Dialog.Description className="mt-1 text-sm text-pretty text-muted-foreground">
-                Mark where your clip starts and ends. You can trim it and pick captions after.
+                Mark where your clip starts and ends, and choose short or long form. You can trim it and pick captions
+                after.
               </Dialog.Description>
             </div>
             <Dialog.Close aria-label="Close" className={buttonStyles({ variant: "ghost", size: "icon" })}>

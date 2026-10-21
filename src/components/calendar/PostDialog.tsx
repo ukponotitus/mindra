@@ -6,6 +6,7 @@ import { PostPhotos } from "../content/ContentCard";
 import { buttonStyles } from "../ui/button";
 import { scheduleStatus, useMarkPosted, useSchedulePost } from "../../lib/calendar";
 import { cn } from "../../lib/cn";
+import { clipFrame } from "../../lib/clips";
 import { platformInfo } from "../../lib/projects";
 import type { ContentPiece } from "../../lib/types";
 import { backdropClass, popupClass } from "./dialogStyles";
@@ -46,7 +47,7 @@ function PostBody({ piece, onRescheduled }: { piece: ContentPiece; onRescheduled
             playsInline
             preload="metadata"
             aria-label={`Clip: ${clip.title}`}
-            className="mx-auto block aspect-[9/16] max-h-80 bg-black"
+            className={cn("mx-auto block bg-black", clipFrame(clip.shape, "aspect-[9/16] max-h-80"))}
           />
         </div>
       )}

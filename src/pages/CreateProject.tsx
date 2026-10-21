@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type DragEvent, type FormEvent } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { AudioLines, FileText, Images, Upload, Video, type LucideIcon } from "lucide-react";
+import { AudioLines, FileText, Images, Megaphone, Upload, Video, type LucideIcon } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router";
 import MediaPreview from "../components/project/MediaPreview";
 import { QueuedPhotoTile, RecordingSelect } from "../components/project/ProjectPhotos";
@@ -10,7 +10,7 @@ import { ApiError, apiRequest, uploadWithProgress, type FieldErrors } from "../l
 import { cn } from "../lib/cn";
 import { formatExtensions, formatFileSize, formatMegabytes } from "../lib/format";
 import { PHOTO_PLATFORMS, photoAccept, photoRules, useMoveFocus, usePhotoQueue } from "../lib/photos";
-import { PLATFORMS, uploadOptionsQuery, useUploadOptions } from "../lib/projects";
+import { isPicturePost, PLATFORMS, uploadOptionsQuery, useUploadOptions } from "../lib/projects";
 import type { Platform, Project, SourceType } from "../lib/types";
 import {
   DirectUpload,
@@ -27,6 +27,7 @@ const sourceTypes: { id: SourceType; label: string; icon: LucideIcon }[] = [
   { id: "audio", label: "Audio File", icon: AudioLines },
   { id: "transcript", label: "Paste Transcript", icon: FileText },
   { id: "photos", label: "Photos", icon: Images },
+  { id: "flyer", label: "Flyer", icon: Megaphone },
 ];
 
 const DEFAULT_PLATFORMS: Platform[] = ["instagram", "facebook", "whatsapp"];
@@ -79,8 +80,9 @@ export default function CreateProject() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
-  // Photos: what they show, the recording they go with, the pictures, and the project once it's made (the photos are
-  // uploaded into it one at a time; trying failed ones again uses the same project).
+  // Photos (and flyers, uploaded the same way): what they show, the recording they go with, the pictures, and the
+  // project once it's made (the pictures are uploaded into it one at a time; trying failed ones again uses the same
+  // project).
   const [note, setNote] = useState("");
   const [linked, setLinked] = useState("");
   const [created, setCreated] = useState<Project | null>(null);
@@ -88,7 +90,10 @@ export default function CreateProject() {
   const photoQueue = usePhotoQueue({ onUploaded: (photo) => uploadedOrder.current.push(photo.id) });
   const focusAfterMove = useMoveFocus(photoQueue.items.map((item) => item.key).join());
 
-  const isPhotos = sourceType === "photos";
+  // Photo and flyer posts are both made of pictures; a flyer's are read for their text once they're uploaded.
+  const isPhotos = isPicturePost(sourceType);
+  const isFlyer = sourceType === "flyer";
+  const pictures = isFlyer ? "flyers" : "photos";
   const isMedia = sourceType === "video" || sourceType === "audio";
   const extensions = isMedia && options ? options.extensions[sourceType] : [];
   const spokenLanguage = language ?? options?.default_language ?? "en";
@@ -153,13 +158,13 @@ export default function CreateProject() {
     photoQueue.move(key, by);
   };
 
-  /** Make the photos project (JSON); its photos are uploaded into it next. */
+  /** Make the photo or flyer post (JSON); its pictures are uploaded into it next. */
   const createPhotosProject = () =>
     apiRequest<Project>("/api/projects/", {
       method: "POST",
       body: {
         name: name.trim(),
-        source_type: "photos",
+        source_type: sourceType,
         ...(note.trim() ? { note: note.trim() } : {}),
         ...(linked ? { linked_recording: linked } : {}),
         target_platforms: platforms.filter((platform) => PHOTO_PLATFORMS.includes(platform)),
@@ -173,7 +178,7 @@ export default function CreateProject() {
     try {
       await apiRequest(`/api/projects/${projectId}/photos/order/`, { method: "POST", body: { ids: chosen } });
     } catch {
-      // The photos are all there; the order can still be changed on the project's Photos tab.
+      // The pictures are all there; the order can still be changed on the project's Photos or Flyer tab.
     }
   };
 
@@ -190,7 +195,7 @@ export default function CreateProject() {
   };
 
   /** Send the file straight to storage in parts, then create the project from it. */
-  const uploadDirectly = async (media: File, type: Exclude<SourceType, "transcript" | "photos">) => {
+  const uploadDirectly = async (media: File, type: Exclude<SourceType, "transcript" | "photos" | "flyer">) => {
     const upload = new DirectUpload(media, {
       sourceType: type,
       onProgress: (progress) => {
@@ -235,7 +240,7 @@ export default function CreateProject() {
     if (!name.trim()) problems.name = ["Give this project a name."];
     if (isMedia && !file) problems.source_file = ["Choose a file to upload."];
     if (sourceType === "transcript" && !transcript.trim()) problems.source_text = ["Paste a transcript to process."];
-    if (isPhotos && photoQueue.items.length === 0) problems.photos = ["Choose at least one photo."];
+    if (isPhotos && photoQueue.items.length === 0) problems.photos = [isFlyer ? "Choose the flyer." : "Choose at least one photo."];
     setFieldErrors(problems);
     if (Object.keys(problems).length > 0) return;
 
@@ -282,7 +287,7 @@ export default function CreateProject() {
       }
       queryClient.invalidateQueries({ queryKey: ["projects"] });
       // A pasted transcript is ready in a moment, so go straight to it instead of the progress screen; photos need no
-      // processing at all.
+      // processing at all, and a flyer shows that it's being read on its own page.
       navigate(
         isPhotos
           ? `/projects/${project.id}`
@@ -331,17 +336,22 @@ export default function CreateProject() {
   const uploadingPhoto = photoQueue.items.findIndex((item) => item.status === "uploading");
   let photoProgress = "";
   if (isPhotos && submitting) {
+    const picture = isFlyer ? "flyer" : "photo";
     photoProgress = created
       ? uploadingPhoto >= 0
-        ? `Uploading photo ${uploadingPhoto + 1} of ${photoCount}…`
-        : "Getting the photos ready…"
+        ? photoCount === 1
+          ? `Uploading the ${picture}…`
+          : `Uploading ${picture} ${uploadingPhoto + 1} of ${photoCount}…`
+        : `Getting the ${photoCount === 1 ? picture : pictures} ready…`
       : "Creating the project…";
   }
   let submitLabel = "Start Processing";
   if (isPhotos) {
+    const picture = isFlyer ? "flyer" : "photo";
     if (photoProgress) submitLabel = photoProgress;
-    else if (created && failedPhotos > 0) submitLabel = `Try ${failedPhotos === 1 ? "the photo" : `${failedPhotos} photos`} again`;
+    else if (created && failedPhotos > 0) submitLabel = `Try ${failedPhotos === 1 ? `the ${picture}` : `${failedPhotos} ${pictures}`} again`;
     else if (created) submitLabel = "Open the project";
+    else if (isFlyer) submitLabel = photoCount > 1 ? `Upload ${photoCount} flyers` : "Upload the flyer";
     else submitLabel = photoCount > 0 ? `Upload ${photoCount} photo${photoCount === 1 ? "" : "s"}` : "Upload photos";
   } else if (uploading) {
     submitLabel = percent < 100 ? `Uploading… ${percent}%` : "Starting…";
@@ -354,9 +364,11 @@ export default function CreateProject() {
       <div className="mb-8">
         <h2 className="text-2xl font-semibold text-balance text-foreground">Create New Project</h2>
         <p className="mt-1 text-sm text-pretty text-muted-foreground">
-          {isPhotos
-            ? "Add the photos you want to post. Mindra writes a caption for each platform from the pictures."
-            : "Upload a recording or paste a transcript. Mindra transcribes it and finds the parts worth sharing."}
+          {isFlyer
+            ? "Add your flyer. Mindra reads everything on it, then writes an announcement for each platform."
+            : isPhotos
+              ? "Add the photos you want to post. Mindra writes a caption for each platform from the pictures."
+              : "Upload a recording or paste a transcript. Mindra transcribes it and finds the parts worth sharing."}
         </p>
       </div>
 
@@ -383,7 +395,7 @@ export default function CreateProject() {
 
           <fieldset className={cardClass}>
             <legend className="float-left mb-3 w-full text-sm font-medium text-foreground">Source</legend>
-            <div className="clear-left mb-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <div className="clear-left mb-5 grid grid-cols-2 gap-2 sm:grid-cols-5">
               {sourceTypes.map((type) => {
                 const selected = sourceType === type.id;
                 return (
@@ -603,17 +615,25 @@ export default function CreateProject() {
                   >
                     {photoCount === 0 && (
                       <span className="mb-4 grid size-12 place-items-center rounded-lg bg-secondary text-muted-foreground">
-                        <Images aria-hidden="true" className="size-5" />
+                        {isFlyer ? <Megaphone aria-hidden="true" className="size-5" /> : <Images aria-hidden="true" className="size-5" />}
                       </span>
                     )}
                     <span className="mb-1 block font-medium text-balance text-foreground">
-                      {photoCount > 0 ? "Add more photos" : "Drop your photos here"}
+                      {isFlyer
+                        ? photoCount > 0
+                          ? "Add another flyer"
+                          : "Drop your flyer here"
+                        : photoCount > 0
+                          ? "Add more photos"
+                          : "Drop your photos here"}
                     </span>
                     <span className="mb-4 block text-sm text-muted-foreground">{formatExtensions(rules.types)}</span>
-                    <span className={buttonStyles({ variant: "secondary" })}>Choose Photos</span>
+                    <span className={buttonStyles({ variant: "secondary" })}>{isFlyer ? "Choose Flyer" : "Choose Photos"}</span>
                     <span id="photo-files-hint" className="mt-3 block text-xs text-pretty text-muted-foreground tabular-nums">
-                      Up to {rules.max} photos, from your phone or computer. Each is made smaller on this device before
-                      it&apos;s sent.
+                      {isFlyer
+                        ? "The flyer as a picture (JPEG, PNG or a phone photo of it), or a few for a series of programs. "
+                        : `Up to ${rules.max} photos, from your phone or computer. `}
+                      Each is made smaller on this device before it&apos;s sent.
                     </span>
                   </label>
                   <FieldError id="photo-files-error" message={fieldErrors.photos?.[0]} />
@@ -628,17 +648,18 @@ export default function CreateProject() {
                   <div>
                     <div className="mb-2 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
                       <p className="text-sm font-medium text-foreground tabular-nums">
-                        {photoCount} of {rules.max} photos
+                        {photoCount} of {rules.max} {pictures}
                       </p>
                       <p className="text-xs text-muted-foreground">In the order they&apos;ll be posted</p>
                     </div>
-                    <ol aria-label="Chosen photos" className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                    <ol aria-label={`Chosen ${pictures}`} className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                       {photoQueue.items.map((item, index) => (
                         <li key={item.key} className="min-w-0">
                           <QueuedPhotoTile
                             item={item}
                             index={index}
                             count={photoCount}
+                            noun={isFlyer ? "flyer" : "photo"}
                             waitingToUpload={submitting}
                             onMove={locked ? undefined : (by) => movePhoto(item.key, by)}
                             onRemove={
@@ -655,12 +676,12 @@ export default function CreateProject() {
 
                 <div>
                   <label htmlFor="photo-note" className="mb-2 block text-sm font-medium text-foreground">
-                    What do these photos show?
+                    {isFlyer ? "Anything to add?" : "What do these photos show?"}
                   </label>
                   <input
                     id="photo-note"
                     type="text"
-                    placeholder="Youth Sunday, 12 October"
+                    placeholder={isFlyer ? "Free buses from the city centre" : "Youth Sunday, 12 October"}
                     value={note}
                     maxLength={500}
                     disabled={locked}
@@ -670,8 +691,9 @@ export default function CreateProject() {
                     className={cn(inputClass, fieldErrors.note && invalidClass)}
                   />
                   <p id="photo-note-hint" className="mt-2 text-xs text-pretty text-muted-foreground">
-                    Optional, one line. The captions use it for what the pictures can&apos;t say, such as the event and
-                    date.
+                    {isFlyer
+                      ? "Optional, one line. Nothing to type from the flyer itself: Mindra reads that. Add only what the flyer doesn't say."
+                      : "Optional, one line. The captions use it for what the pictures can't say, such as the event and date."}
                   </p>
                   <FieldError id="photo-note-error" message={fieldErrors.note?.[0]} />
                 </div>
@@ -690,7 +712,9 @@ export default function CreateProject() {
                     />
                   </div>
                   <p id="linked-recording-hint" className="mt-2 text-xs text-pretty text-muted-foreground">
-                    Optional. Connect the sermon these photos are from, and the captions can use its message.
+                    {isFlyer
+                      ? "Optional. Connect a sermon the program follows on from, and the posts can use its message."
+                      : "Optional. Connect the sermon these photos are from, and the captions can use its message."}
                   </p>
                   <FieldError id="linked-recording-error" message={fieldErrors.linked_recording?.[0]} />
                 </div>
@@ -726,9 +750,11 @@ export default function CreateProject() {
           <fieldset className={cardClass} aria-describedby="platforms-hint">
             <legend className="float-left mb-1 w-full text-sm font-medium text-foreground">Platforms</legend>
             <p id="platforms-hint" className="clear-left mb-3 text-xs text-pretty text-muted-foreground">
-              {isPhotos
-                ? "These are picked for you when you write captions for these photos."
-                : "These are picked for you when you write posts from this recording."}
+              {isFlyer
+                ? "These are picked for you when you write posts for this flyer."
+                : isPhotos
+                  ? "These are picked for you when you write captions for these photos."
+                  : "These are picked for you when you write posts from this recording."}
             </p>
             <div className="flex flex-wrap gap-2">
               {platformChoices.map((platform) => {
@@ -765,8 +791,8 @@ export default function CreateProject() {
 
           {isPhotos && created && failedPhotos > 0 && !submitting && (
             <div role="alert" className="rounded-lg bg-red-50 px-4 py-3 text-sm text-pretty text-red-700">
-              {failedPhotos} of {photoCount} photos couldn&apos;t be uploaded; each one says why above. The project is made:
-              try them again, or open it and add photos there later.
+              {failedPhotos} of {photoCount} {pictures} couldn&apos;t be uploaded; each one says why above. The project is
+              made: try them again, or open it and add {pictures} there later.
             </div>
           )}
           <p role="status" className="sr-only">
@@ -799,11 +825,11 @@ export default function CreateProject() {
                 ["Video", options ? formatExtensions(options.extensions.video) : "…"],
                 ["Audio", options ? formatExtensions(options.extensions.audio) : "…"],
                 ["Transcript", "Plain text, SRT, WebVTT"],
-                ["Photos", formatExtensions(rules.types)],
+                ["Photos and flyers", formatExtensions(rules.types)],
                 ...(isPhotos
                   ? [
-                      ["Max photo size", formatMegabytes(rules.maxMb)],
-                      ["Photos per project", String(rules.max)],
+                      [isFlyer ? "Max flyer size" : "Max photo size", formatMegabytes(rules.maxMb)],
+                      [isFlyer ? "Flyers per project" : "Photos per project", String(rules.max)],
                     ]
                   : [
                       ["Max file size", options ? formatMegabytes(options.max_upload_mb) : "…"],
@@ -823,11 +849,13 @@ export default function CreateProject() {
               What happens next
             </h3>
             <p className="text-xs text-pretty text-muted-foreground">
-              {isPhotos
-                ? "Each photo is made smaller on this device (2,048 pixels on the long side, without its location or camera details), then uploaded one at a time. If the connection drops, the upload waits and continues. Then the project opens, ready for you to write captions from the pictures."
-                : isMedia
-                  ? "Once the upload finishes, Mindra pulls out the audio and transcribes it, usually within a few minutes. You can leave the page while that happens."
-                  : "Mindra splits your transcript into timestamped segments, then finds the summary, quotes and hooks. It usually takes a moment."}
+              {isFlyer
+                ? "The flyer is made smaller on this device (2,048 pixels on the long side, which keeps its writing sharp) and uploaded. Then Mindra reads everything on it, usually within a minute. The project opens with that text, ready for you to check and write posts from."
+                : isPhotos
+                  ? "Each photo is made smaller on this device (2,048 pixels on the long side, without its location or camera details), then uploaded one at a time. If the connection drops, the upload waits and continues. Then the project opens, ready for you to write captions from the pictures."
+                  : isMedia
+                    ? "Once the upload finishes, Mindra pulls out the audio and transcribes it, usually within a few minutes. You can leave the page while that happens."
+                    : "Mindra splits your transcript into timestamped segments, then finds the summary, quotes and hooks. It usually takes a moment."}
             </p>
             {isMedia && options?.direct_upload && (
               <p className="mt-2 text-xs text-pretty text-muted-foreground">

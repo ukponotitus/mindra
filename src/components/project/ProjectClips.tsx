@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Check, Clapperboard, Copy, Download, LoaderCircle, Minus, Plus, RefreshCw, Trash2 } from "lucide-react";
 import EmptyState from "../EmptyState";
 import ConfirmDialog from "../ui/ConfirmDialog";
@@ -9,6 +9,8 @@ import { buttonStyles } from "../ui/button";
 import { cn } from "../../lib/cn";
 import {
   CAPTION_STYLES,
+  CLIP_SHAPES,
+  clipFrame,
   SHORTEST_CLIP_SECONDS,
   clipStatusLabel,
   formatClipTime,
@@ -70,7 +72,12 @@ function ClipCard({ clip, selected, onSelect }: { clip: Clip; selected: boolean;
         selected ? "border-primary ring-1 ring-primary" : "border-border hover:border-muted-foreground/40",
       )}
     >
-      <span className="relative grid h-24 w-14 shrink-0 place-items-center overflow-hidden rounded-lg bg-secondary text-muted-foreground">
+      <span
+        className={cn(
+          "relative grid shrink-0 place-items-center overflow-hidden rounded-lg bg-secondary text-muted-foreground",
+          clipFrame(clip.shape, "h-24 w-14", "h-14 w-24"),
+        )}
+      >
         {clip.thumbnail_url ? (
           <img src={clip.thumbnail_url} alt="" className="size-full object-cover" />
         ) : (
@@ -94,7 +101,8 @@ function ClipCard({ clip, selected, onSelect }: { clip: Clip; selected: boolean;
   );
 }
 
-/** The selected clip: a vertical preview, its timing and caption style, and making or downloading the video. */
+/** The selected clip: a preview in its shape, its timing, shape and caption style, and making or downloading the
+ * video. */
 function ClipEditor({ clip, project }: { clip: Clip; project: Project }) {
   const update = useUpdateClip();
   const render = useRenderClip();
@@ -108,17 +116,29 @@ function ClipEditor({ clip, project }: { clip: Clip; project: Project }) {
   const timingChanged = Math.abs(start - clip.start) > 0.01 || Math.abs(end - clip.end) > 0.01;
   const total = project.duration_seconds ?? clip.end;
 
-  const nudge = (edge: "start" | "end", by: number) => {
+  /** Move one edge to `at` (seconds into the recording), keeping the clip inside it and at least the shortest length. */
+  const setEdge = (edge: "start" | "end", at: number) => {
     const next = { ...draft, id: clip.id, start, end };
-    if (edge === "start") next.start = Math.min(Math.max(start + by, 0), end - SHORTEST_CLIP_SECONDS);
-    else next.end = Math.max(Math.min(end + by, total), start + SHORTEST_CLIP_SECONDS);
+    if (edge === "start") next.start = Math.min(Math.max(at, 0), end - SHORTEST_CLIP_SECONDS);
+    else next.end = Math.max(Math.min(at, total), start + SHORTEST_CLIP_SECONDS);
     next.start = Math.round(next.start * 10) / 10;
     next.end = Math.round(next.end * 10) / 10;
     setDraft(next);
   };
+  const nudge = (edge: "start" | "end", by: number) => setEdge(edge, (edge === "start" ? start : end) + by);
 
   const rendered = clip.status === "ready" && clip.video_url && !clip.is_stale && !timingChanged;
   const rendering = clip.status === "rendering" || render.isPending;
+  // The video shown: the made clip (its time counts from the clip's start), or the recording itself.
+  const player = useRef<HTMLVideoElement>(null);
+  const canUseCurrentTime = Boolean(rendered || project.source_url);
+  const takeCurrentTime = (edge: "start" | "end") => {
+    const media = player.current;
+    if (media) setEdge(edge, (rendered ? clip.start : 0) + media.currentTime);
+  };
+  const longForm = clip.shape === "original";
+  // Short form previews tall and narrow; long form wide, in a wider column.
+  const frame = clipFrame(clip.shape, "aspect-[9/16] w-full max-w-60", "aspect-video w-full");
   const copyCaption = async () => {
     await navigator.clipboard.writeText(clip.caption);
     setCopied(true);
@@ -126,10 +146,16 @@ function ClipEditor({ clip, project }: { clip: Clip; project: Project }) {
   };
 
   return (
-    <div className="grid gap-6 rounded-xl border border-border bg-white p-4 sm:p-6 md:grid-cols-[minmax(0,15rem)_1fr]">
+    <div
+      className={cn(
+        "grid gap-6 rounded-xl border border-border bg-white p-4 sm:p-6",
+        longForm ? "md:grid-cols-[minmax(0,24rem)_1fr]" : "md:grid-cols-[minmax(0,15rem)_1fr]",
+      )}
+    >
       <div>
         {rendered ? (
           <video
+            ref={player}
             key={clip.video_url}
             src={clip.video_url ?? undefined}
             poster={clip.thumbnail_url ?? undefined}
@@ -137,25 +163,28 @@ function ClipEditor({ clip, project }: { clip: Clip; project: Project }) {
             playsInline
             preload="metadata"
             aria-label={`Clip: ${clip.title}`}
-            className="mx-auto aspect-[9/16] w-full max-w-60 rounded-xl bg-black"
+            className={cn("mx-auto rounded-xl bg-black", frame)}
           />
         ) : project.source_url ? (
           <>
             <video
+              ref={player}
               key={`${start}-${end}`}
               src={`${project.source_url}#t=${start},${end}`}
               controls
               playsInline
               preload="metadata"
               aria-label={`Preview of ${clip.title} from the recording`}
-              className="mx-auto aspect-[9/16] w-full max-w-60 rounded-xl bg-black object-cover"
+              className={cn("mx-auto rounded-xl bg-black object-contain", frame)}
             />
-            <p className="mx-auto mt-2 max-w-60 text-xs text-pretty text-muted-foreground">
-              A preview from the recording. The finished clip is framed on the speaker and captioned.
+            <p className={cn("mx-auto mt-2 text-xs text-pretty text-muted-foreground", !longForm && "max-w-60")}>
+              {longForm
+                ? "A preview from the recording. The finished clip keeps this shape, with captions."
+                : "A preview from the recording. The finished clip is vertical, with the whole picture on a blurred background, and captioned."}
             </p>
           </>
         ) : (
-          <div className="mx-auto grid aspect-[9/16] w-full max-w-60 place-items-center rounded-xl bg-secondary text-muted-foreground">
+          <div className={cn("mx-auto grid place-items-center rounded-xl bg-secondary text-muted-foreground", frame)}>
             <Clapperboard aria-hidden="true" className="size-6" />
           </div>
         )}
@@ -164,7 +193,7 @@ function ClipEditor({ clip, project }: { clip: Clip; project: Project }) {
       <div className="min-w-0 space-y-5">
         <div>
           <div className="flex items-start justify-between gap-3">
-            <h3 className="text-lg font-semibold text-balance text-foreground">{clip.title}</h3>
+            <h3 className="min-w-0 text-lg font-semibold text-balance break-words text-foreground">{clip.title}</h3>
             <span className="shrink-0 rounded-full bg-secondary px-2.5 py-1 text-xs font-medium text-foreground tabular-nums">
               {clip.custom ? "Made by you" : `Score ${clip.score}`}
             </span>
@@ -177,32 +206,48 @@ function ClipEditor({ clip, project }: { clip: Clip; project: Project }) {
           <legend className="text-sm font-medium text-foreground">Timing</legend>
           <div className="mt-2 grid gap-2 sm:grid-cols-2">
             {(["start", "end"] as const).map((edge) => (
-              <div key={edge} className="flex items-center justify-between gap-2 rounded-lg border border-border px-3 py-2">
-                <span className="text-sm text-muted-foreground">
-                  {edge === "start" ? "Starts" : "Ends"}{" "}
-                  <span className="font-medium text-foreground tabular-nums">{formatClipTime(edge === "start" ? start : end)}</span>
-                </span>
-                <span className="flex gap-1">
-                  <button
-                    type="button"
-                    onClick={() => nudge(edge, -NUDGE_SECONDS)}
-                    aria-label={`${edge === "start" ? "Start" : "End"} half a second earlier`}
-                    className={buttonStyles({ variant: "ghost", size: "icon", className: "size-8" })}
-                  >
-                    <Minus aria-hidden="true" className="size-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => nudge(edge, NUDGE_SECONDS)}
-                    aria-label={`${edge === "start" ? "Start" : "End"} half a second later`}
-                    className={buttonStyles({ variant: "ghost", size: "icon", className: "size-8" })}
-                  >
-                    <Plus aria-hidden="true" className="size-4" />
-                  </button>
-                </span>
+              <div key={edge} className="rounded-lg border border-border px-3 py-2">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm text-muted-foreground">
+                    {edge === "start" ? "Starts" : "Ends"}{" "}
+                    <span className="font-medium text-foreground tabular-nums">{formatClipTime(edge === "start" ? start : end)}</span>
+                  </span>
+                  <span className="flex gap-1">
+                    <button
+                      type="button"
+                      onClick={() => nudge(edge, -NUDGE_SECONDS)}
+                      aria-label={`${edge === "start" ? "Start" : "End"} half a second earlier`}
+                      className={buttonStyles({ variant: "ghost", size: "icon", className: "size-8" })}
+                    >
+                      <Minus aria-hidden="true" className="size-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => nudge(edge, NUDGE_SECONDS)}
+                      aria-label={`${edge === "start" ? "Start" : "End"} half a second later`}
+                      className={buttonStyles({ variant: "ghost", size: "icon", className: "size-8" })}
+                    >
+                      <Plus aria-hidden="true" className="size-4" />
+                    </button>
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => takeCurrentTime(edge)}
+                  disabled={!canUseCurrentTime}
+                  aria-label={`Use current time as the ${edge}`}
+                  className={buttonStyles({ variant: "secondary", size: "sm", className: "mt-2 w-full" })}
+                >
+                  Use current time
+                </button>
               </div>
             ))}
           </div>
+          {canUseCurrentTime && (
+            <p className="mt-2 text-xs text-pretty text-muted-foreground">
+              Pause the video where you want the clip to start or end, then press &quot;Use current time&quot;.
+            </p>
+          )}
           <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-muted-foreground tabular-nums">
             <span>Length {(end - start).toFixed(1)}s</span>
             {timingChanged && (
@@ -220,6 +265,42 @@ function ClipEditor({ clip, project }: { clip: Clip; project: Project }) {
                 </button>
               </>
             )}
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend className="text-sm font-medium text-foreground">Shape</legend>
+          <div role="group" className="mt-2 grid gap-2 sm:grid-cols-2">
+            {CLIP_SHAPES.map((shape) => {
+              const selected = clip.shape === shape.id;
+              return (
+                <button
+                  key={shape.id}
+                  type="button"
+                  aria-pressed={selected}
+                  disabled={update.isPending || rendering}
+                  onClick={() => !selected && update.mutate({ id: clip.id, shape: shape.id })}
+                  className={cn(
+                    "flex items-start gap-3 rounded-lg border px-3 py-2 text-left transition-colors disabled:opacity-60",
+                    "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
+                    selected ? "border-primary bg-primary/5" : "border-border hover:border-muted-foreground/40",
+                  )}
+                >
+                  <span
+                    aria-hidden="true"
+                    className={cn(
+                      "mt-0.5 shrink-0 rounded-sm border-2",
+                      shape.id === "vertical" ? "h-6 w-3.5" : "mt-1.5 h-3.5 w-6",
+                      selected ? "border-primary bg-primary/15" : "border-muted-foreground/40",
+                    )}
+                  />
+                  <span className="min-w-0">
+                    <span className="block text-sm font-medium text-foreground">{shape.label}</span>
+                    <span className="block text-xs text-pretty text-muted-foreground">{shape.description}</span>
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </fieldset>
 
@@ -300,9 +381,10 @@ function ClipEditor({ clip, project }: { clip: Clip; project: Project }) {
             onConfirm={() => remove.mutate(clip.id)}
           />
           <p role="status" className="w-full text-sm text-pretty text-muted-foreground">
-            {rendering && "Cutting, framing and captioning. This usually takes one to two minutes; you can leave this page."}
+            {rendering && "Cutting and captioning. This usually takes one to two minutes; you can leave this page."}
             {!rendering && timingChanged && "Save the new timing before making the clip."}
             {!rendering && !timingChanged && clip.is_stale && "You changed this clip since it was made. Make it again to update the video."}
+            {!rendering && !timingChanged && !clip.is_stale && !clip.video_url && longForm && "Long form keeps the video's own shape, so nothing is cut off."}
           </p>
         </div>
         {(clip.status === "failed" || render.isError || remove.isError) && (

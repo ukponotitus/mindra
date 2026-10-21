@@ -4,10 +4,12 @@ import { Info } from "lucide-react";
 interface Props {
   file: File;
   kind: "video" | "audio";
+  /** What happens anyway when this browser can't play the file. */
+  unplayable?: string;
 }
 
 /** Plays the chosen file before it's uploaded, so you can check it's the right recording. */
-export default function MediaPreview({ file, kind }: Props) {
+export default function MediaPreview({ file, kind, unplayable = "Mindra can still transcribe it." }: Props) {
   const [source, setSource] = useState<{ file: File; url: string } | null>(null);
   const [failedFor, setFailedFor] = useState<File | null>(null);
 
@@ -23,7 +25,7 @@ export default function MediaPreview({ file, kind }: Props) {
     return (
       <p className="flex items-start gap-2 text-xs text-pretty text-muted-foreground">
         <Info aria-hidden="true" className="mt-px size-3.5 shrink-0" />
-        This browser can't play this file type, so there's no preview. Mindra can still transcribe it.
+        This browser can&apos;t play this file type, so there&apos;s no preview. {unplayable}
       </p>
     );
   }

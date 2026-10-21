@@ -10,6 +10,7 @@ import { ClipStrip, PostPhotos } from "../components/content/ContentCard";
 import ShareButton from "../components/content/ShareButton";
 import ConfirmDialog from "../components/ui/ConfirmDialog";
 import { buttonStyles } from "../components/ui/button";
+import { clipFrame } from "../lib/clips";
 import { cn } from "../lib/cn";
 import { TONES, useContentPiece, useDeletePiece, useRewritePiece, useUpdatePiece, type RewriteAction } from "../lib/content";
 import { formatDate } from "../lib/format";
@@ -64,7 +65,7 @@ function PostClip({ clip, project, text, title }: { clip: ClipSummary; project: 
           playsInline
           preload="metadata"
           aria-label={`Clip: ${clip.title}`}
-          className="mx-auto mb-1 aspect-[9/16] max-h-80 rounded-lg bg-black"
+          className={cn("mx-auto mb-1 rounded-lg bg-black", clipFrame(clip.shape, "aspect-[9/16] max-h-80"))}
         />
       )}
       <ClipStrip clip={clip} project={project} />

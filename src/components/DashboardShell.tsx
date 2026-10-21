@@ -17,6 +17,7 @@ const pageTitles: [pattern: string, title: string][] = [
   ["/library/:pieceId", "Edit Post"],
   ["/library", "Content Library"],
   ["/clips", "Clips"],
+  ["/vertical", "Vertical Videos"],
   ["/calendar", "Content Calendar"],
   ["/brand-voice", "Brand Voice"],
   ["/billing", "Billing"],

@@ -3,7 +3,7 @@ import { Link, useSearchParams } from "react-router";
 import EmptyState from "../components/EmptyState";
 import { buttonStyles } from "../components/ui/button";
 import { cn } from "../lib/cn";
-import { clipPath, clipStatusLabel, useClips, type Clip, type ClipFilters } from "../lib/clips";
+import { clipFrame, clipPath, clipStatusLabel, useClips, type Clip, type ClipFilters } from "../lib/clips";
 import { formatDuration } from "../lib/format";
 import { useProjects } from "../lib/projects";
 
@@ -27,7 +27,10 @@ function ClipTile({ clip }: { clip: Clip }) {
         to={clipPath(clip)}
         tabIndex={-1}
         aria-hidden="true"
-        className="grid h-32 w-[4.5rem] shrink-0 place-items-center overflow-hidden rounded-lg bg-secondary text-muted-foreground"
+        className={cn(
+          "grid shrink-0 place-items-center overflow-hidden rounded-lg bg-secondary text-muted-foreground",
+          clipFrame(clip.shape, "h-32 w-[4.5rem]", "h-[4.5rem] w-32"),
+        )}
       >
         {clip.thumbnail_url ? <img src={clip.thumbnail_url} alt="" className="size-full object-cover" /> : <Clapperboard className="size-5" />}
       </Link>

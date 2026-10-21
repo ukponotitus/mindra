@@ -5,7 +5,7 @@ import { CLIP_PLATFORMS } from "../../lib/clips";
 import { cn } from "../../lib/cn";
 import { TONES, useBrandVoice, useGeneration, useStartGeneration } from "../../lib/content";
 import { PHOTO_PLATFORMS } from "../../lib/photos";
-import { PLATFORMS } from "../../lib/projects";
+import { isPicturePost, PLATFORMS } from "../../lib/projects";
 import type { Platform, Project } from "../../lib/types";
 
 const DEFAULT_PLATFORMS: Platform[] = ["instagram", "facebook", "whatsapp"];
@@ -22,8 +22,9 @@ interface Props {
 /** Pick platforms, a tone and how many versions, then watch the posts get written. */
 export default function ContentGenerator({ project, clipId, onStart, onDone }: Props) {
   const voice = useBrandVoice().data;
-  // A photos project's posts are captions for its pictures, so only the platforms that take photos.
-  const isPhotos = project.source_type === "photos";
+  // A photo or flyer post's posts are captions for its pictures, so only the platforms that take photos.
+  const isPhotos = isPicturePost(project.source_type);
+  const isFlyer = project.source_type === "flyer";
   const noPhotos = isPhotos && project.photo_count === 0;
   const allowed = clipId ? CLIP_PLATFORMS : isPhotos ? PHOTO_PLATFORMS : null;
   const choices = allowed ? PLATFORMS.filter((platform) => allowed.includes(platform.id)) : PLATFORMS;
@@ -82,9 +83,11 @@ export default function ContentGenerator({ project, clipId, onStart, onDone }: P
         <p id={`${ids}-platforms-hint`} className="mt-1 mb-3 text-sm text-pretty text-muted-foreground">
           {clipId
             ? "Each one gets a caption to post with this clip, in its own format."
-            : isPhotos
-              ? "Each one gets a caption for these photos, in its own format."
-              : "Each one gets posts written in its own format."}
+            : isFlyer
+              ? "Each one gets an announcement to post with the flyer, in its own format."
+              : isPhotos
+                ? "Each one gets a caption for these photos, in its own format."
+                : "Each one gets posts written in its own format."}
         </p>
         <div className="flex flex-wrap gap-2">
           {choices.map((platform) => {
@@ -165,9 +168,11 @@ export default function ContentGenerator({ project, clipId, onStart, onDone }: P
         <p role="status" className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm text-emerald-800">
           {clipId
             ? "Done. The captions are below, ready to copy with the clip."
-            : isPhotos
-              ? "Done. Your new posts are below, ready to share with the photos."
-              : "Done. Your new posts are below, ready to copy or edit."}
+            : isFlyer
+              ? "Done. Your new posts are below, ready to share with the flyer."
+              : isPhotos
+                ? "Done. Your new posts are below, ready to share with the photos."
+                : "Done. Your new posts are below, ready to copy or edit."}
         </p>
       )}
       {generation?.status === "completed" && !running && generation.notice && (
@@ -207,7 +212,9 @@ export default function ContentGenerator({ project, clipId, onStart, onDone }: P
           className={buttonStyles({ size: "lg", className: "w-full" })}
         >
           {noPhotos
-            ? "Add at least one photo first"
+            ? isFlyer
+              ? "Add the flyer first"
+              : "Add at least one photo first"
             : platforms.length === 0
               ? "Choose at least one platform"
               : start.isPending

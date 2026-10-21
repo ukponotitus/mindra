@@ -7,7 +7,7 @@ import ScheduleDialog from "../calendar/ScheduleDialog";
 import ConfirmDialog from "../ui/ConfirmDialog";
 import { buttonStyles } from "../ui/button";
 import { cn } from "../../lib/cn";
-import { clipPath } from "../../lib/clips";
+import { clipFrame, clipPath } from "../../lib/clips";
 import { useDeletePiece, useUpdatePiece } from "../../lib/content";
 import { formatDate, formatDuration } from "../../lib/format";
 import { photoFiles } from "../../lib/photos";
@@ -29,7 +29,12 @@ export function ClipStrip({ clip, project }: { clip: ClipSummary; project: strin
   const made = clip.status === "ready" && clip.download_url && !clip.is_stale;
   return (
     <div className="mt-3 flex items-center gap-3 rounded-lg bg-secondary p-2">
-      <span className="grid h-12 w-7 shrink-0 place-items-center overflow-hidden rounded bg-white text-muted-foreground">
+      <span
+        className={cn(
+          "grid shrink-0 place-items-center overflow-hidden rounded bg-white text-muted-foreground",
+          clipFrame(clip.shape, "h-12 w-7", "h-7 w-12"),
+        )}
+      >
         {clip.thumbnail_url ? <img src={clip.thumbnail_url} alt="" className="size-full object-cover" /> : <Clapperboard aria-hidden="true" className="size-3.5" />}
       </span>
       <span className="min-w-0 flex-1 text-xs">
@@ -161,7 +166,7 @@ export default function ContentCard({ piece, showProject = false, showClip = tru
               playsInline
               preload="none"
               aria-label={`Clip: ${clip.title}`}
-              className="mx-auto block aspect-[9/16] h-72 bg-black"
+              className={cn("mx-auto block bg-black", clipFrame(clip.shape, "aspect-[9/16] h-72"))}
             />
           </div>
           {showClip && (
