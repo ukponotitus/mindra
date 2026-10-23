@@ -12,6 +12,8 @@ import CalendarPage from "./pages/Calendar";
 import BrandVoice from "./pages/BrandVoice";
 import ContentEditor from "./pages/ContentEditor";
 import Clips from "./pages/Clips";
+import PlanDetail from "./pages/PlanDetail";
+import Plans from "./pages/Plans";
 import VerticalVideos from "./pages/VerticalVideos";
 import ContentLibrary from "./pages/ContentLibrary";
 import CreateProject from "./pages/CreateProject";
@@ -66,6 +68,8 @@ export default function App() {
                 <Route path="/clips" element={<Clips />} />
                 <Route path="/vertical" element={<VerticalVideos />} />
                 <Route path="/calendar" element={<CalendarPage />} />
+                <Route path="/plans" element={<Plans />} />
+                <Route path="/plans/:planId" element={<PlanDetail />} />
                 <Route path="/brand-voice" element={<BrandVoice />} />
                 <Route
                   path="/billing"

@@ -1,7 +1,7 @@
 // Sends a recording straight to file storage (Cloudflare R2) in parts, through presigned URLs from the API
 // (mindra-backend projects/uploads.py), instead of through the Mindra server.
 //
-// Built for 1 to 2 GB services on church Wi-Fi and mobile data:
+// Built for 1 to 2 GB recordings on venue Wi-Fi and mobile data:
 // - the file goes in parts of 8 MB or more, 3 at a time;
 // - a failed part is retried with growing waits, and while the browser is offline it waits for the connection;
 // - the upload's key and id are kept in localStorage, so after a dropped connection, a closed tab or a reload,

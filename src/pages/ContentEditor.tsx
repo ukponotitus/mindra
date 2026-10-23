@@ -15,6 +15,7 @@ import { cn } from "../lib/cn";
 import { TONES, useContentPiece, useDeletePiece, useRewritePiece, useUpdatePiece, type RewriteAction } from "../lib/content";
 import { formatDate } from "../lib/format";
 import { photoFiles } from "../lib/photos";
+import { postOrigin } from "../lib/plans";
 import { platformInfo } from "../lib/projects";
 import type { ClipSummary } from "../lib/types";
 
@@ -131,6 +132,7 @@ export default function ContentEditor() {
   const dirty = title !== piece.title || body !== piece.body;
   const overLimit = info.limit !== undefined && body.length > info.limit;
   const approved = piece.status === "approved";
+  const origin = postOrigin(piece);
   // Approve and favourite share the save mutation with the text; show its error by whichever button was used.
   const lastChange = update.variables ?? {};
   const sideError = update.isError && ("status" in lastChange || "is_favorite" in lastChange) ? update.error.message : "";
@@ -180,9 +182,13 @@ export default function ContentEditor() {
               <ChevronRight className="size-4 shrink-0" />
             </li>
             <li className="min-w-0 truncate">
-              <Link to={`/projects/${piece.project}?tab=posts`} className={crumbLink}>
-                {piece.project_name}
-              </Link>
+              {origin.to ? (
+                <Link to={origin.to} className={crumbLink}>
+                  {origin.label}
+                </Link>
+              ) : (
+                origin.label
+              )}
             </li>
           </ol>
         </nav>

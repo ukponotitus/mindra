@@ -1,5 +1,6 @@
-// Automatic posting to Facebook Pages and Instagram professional accounts: connecting them through Facebook Login,
-// the connected accounts, which account a post can go to, and posting a post now.
+// Automatic posting: connecting accounts (Facebook Pages and Instagram through Facebook Login; YouTube, LinkedIn, X
+// and TikTok through their own sign-ins; WordPress sites with an application password), the connected accounts, which
+// account a post can go to, and posting a post now.
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "./api";
@@ -12,15 +13,36 @@ import type {
   ContentPiece,
   PendingConnection,
   Platform,
+  PublishOptions,
+  SocialService,
+  SocialServiceId,
+  TikTokCreator,
 } from "./types";
 
-export const ACCOUNT_KINDS: Record<ConnectedAccountKind, { label: string; platform: Platform }> = {
-  facebook_page: { label: "Facebook Page", platform: "facebook" },
-  instagram: { label: "Instagram", platform: "instagram" },
+export const ACCOUNT_KINDS: Record<ConnectedAccountKind, { label: string; plural: string; service: SocialServiceId; phrase: string }> = {
+  facebook_page: { label: "Facebook Page", plural: "Pages", service: "meta", phrase: "your Facebook Page" },
+  instagram: { label: "Instagram", plural: "Instagram accounts", service: "meta", phrase: "your Instagram business or creator account" },
+  youtube: { label: "YouTube channel", plural: "YouTube channels", service: "youtube", phrase: "your YouTube channel" },
+  linkedin: { label: "LinkedIn profile", plural: "LinkedIn profiles", service: "linkedin", phrase: "your LinkedIn profile" },
+  x: { label: "X account", plural: "X accounts", service: "x", phrase: "your X account" },
+  tiktok: { label: "TikTok account", plural: "TikTok accounts", service: "tiktok", phrase: "your TikTok account" },
+  wordpress: { label: "WordPress site", plural: "WordPress sites", service: "wordpress", phrase: "your WordPress site" },
 };
 
-/** The kind of account each platform's posts go to. Other platforms can't post automatically yet. */
-const KIND_FOR_PLATFORM: Partial<Record<Platform, ConnectedAccountKind>> = { facebook: "facebook_page", instagram: "instagram" };
+/** The kind of account each platform's posts go to. WhatsApp, newsletters and quote cards get reminders. */
+const KIND_FOR_PLATFORM: Partial<Record<Platform, ConnectedAccountKind>> = {
+  facebook: "facebook_page",
+  instagram: "instagram",
+  youtube_shorts: "youtube",
+  youtube: "youtube",
+  linkedin: "linkedin",
+  x: "x",
+  tiktok: "tiktok",
+  blog: "wordpress",
+};
+
+/** Accounts known by a handle ("@gracechapel"). */
+const HANDLE_KINDS: ConnectedAccountKind[] = ["instagram", "x", "tiktok", "youtube"];
 
 export function accountKindFor(platform: Platform): ConnectedAccountKind | null {
   return KIND_FOR_PLATFORM[platform] ?? null;
@@ -31,16 +53,31 @@ export function sameAccount(a: ConnectedAccountId | null | undefined, b: Connect
   return a != null && b != null && String(a) === String(b);
 }
 
-/** "@gracechapel" for Instagram, the Page's name for a Page. */
+/** "@gracechapel" for an account with a handle, otherwise its name ("Grace Chapel", "Grace Chapel Blog"). */
 export function accountName(account: Pick<ConnectedAccount, "kind" | "name" | "username">): string {
-  return account.kind === "instagram" && account.username ? `@${account.username}` : account.name;
+  if (account.kind === "youtube") return account.name;
+  return HANDLE_KINDS.includes(account.kind) && account.username ? `@${account.username}` : account.name;
 }
 
-/** Where a post goes, for a sentence: "Grace Chapel's Page", "@gracechapel on Instagram". */
+/** Where a post goes, for a sentence: "Grace Chapel's Page", "@gracechapel on Instagram", "Grace Chapel on YouTube". */
 export function accountPlace(account: Pick<ConnectedAccount, "kind" | "name" | "username">): string {
-  if (account.kind === "instagram") return `${accountName(account)} on Instagram`;
   const name = account.name.trim();
-  return `${name}${/s$/i.test(name) ? "'" : "'s"} Page`;
+  switch (account.kind) {
+    case "facebook_page":
+      return `${name}${/s$/i.test(name) ? "'" : "'s"} Page`;
+    case "instagram":
+      return `${accountName(account)} on Instagram`;
+    case "youtube":
+      return `${name} on YouTube`;
+    case "linkedin":
+      return `${name} on LinkedIn`;
+    case "x":
+      return `${accountName(account)} on X`;
+    case "tiktok":
+      return `${accountName(account)} on TikTok`;
+    default:
+      return name;
+  }
 }
 
 /** Whether a post goes out with a made clip's video, or with its photos. */
@@ -50,26 +87,55 @@ export function postMedia(piece: ContentPiece): "video" | "photos" | null {
   return (piece.photos ?? []).length > 0 ? "photos" : null;
 }
 
+/** Why a post can't go out automatically for want of a video or photos (the API checks the rest), or "". */
+export function mediaNeeded(piece: ContentPiece): string {
+  const clip = piece.clip;
+  switch (piece.platform) {
+    case "instagram":
+      return postMedia(piece) ? "" : "Instagram posts need a photo or a video to post automatically.";
+    case "tiktok":
+      return clip || (piece.photos ?? []).length > 0 ? "" : "TikTok posts need a clip or photos to post automatically.";
+    case "youtube_shorts":
+      return clip ? "" : "YouTube Shorts posts need a clip to post automatically.";
+    case "youtube":
+      return clip || piece.project_source_type === "video" ? "" : "YouTube posts need a video (a clip, or a video recording) to post automatically.";
+    default:
+      return "";
+  }
+}
+
 /**
  * Whether a post can go out automatically, and to which accounts: "ready" with the active accounts of its kind;
- * otherwise why not ("unsupported" platform, an Instagram post without a photo or video, no account of that kind yet,
- * or only accounts that need reconnecting). "loading" and "unavailable" (the accounts couldn't be loaded) say nothing yet.
+ * otherwise why not ("unsupported" platform, a post without the video or photos its platform needs, no account of that
+ * kind yet, or only accounts that need reconnecting). "loading" and "unavailable" (the accounts couldn't be loaded) say
+ * nothing yet.
  */
 export type AutoPost =
-  | { state: "loading" | "unavailable" | "unsupported" | "needs-media" }
+  | { state: "loading" | "unavailable" | "unsupported" }
+  | { state: "not-set-up"; kind: ConnectedAccountKind }
+  | { state: "needs-media"; message: string }
   | { state: "no-account"; kind: ConnectedAccountKind }
   | { state: "needs-reconnect"; kind: ConnectedAccountKind; accounts: ConnectedAccount[] }
   | { state: "ready"; kind: ConnectedAccountKind; accounts: ConnectedAccount[] };
 
-export function autoPostFor(piece: ContentPiece, accounts: ConnectedAccount[] | undefined, failed = false): AutoPost {
+export function autoPostFor(
+  piece: ContentPiece,
+  accounts: ConnectedAccount[] | undefined,
+  failed = false,
+  services?: SocialService[],
+): AutoPost {
   const kind = accountKindFor(piece.platform);
   if (!kind) return { state: "unsupported" };
-  if (kind === "instagram" && !postMedia(piece)) return { state: "needs-media" };
+  const needed = mediaNeeded(piece);
+  if (needed) return { state: "needs-media", message: needed };
   if (!accounts) return { state: failed ? "unavailable" : "loading" };
   const ofKind = accounts.filter((account) => account.kind === kind);
   const active = ofKind.filter((account) => account.status === "active");
   if (active.length > 0) return { state: "ready", kind, accounts: active };
   if (ofKind.length > 0) return { state: "needs-reconnect", kind, accounts: ofKind };
+  // No account yet: say so only where one can be connected (the service is switched on for Mindra).
+  const service = services?.find((item) => item.id === ACCOUNT_KINDS[kind].service);
+  if (service && !service.available) return { state: "not-set-up", kind };
   return { state: "no-account", kind };
 }
 
@@ -78,9 +144,15 @@ export function defaultAccount(accounts: ConnectedAccount[], current: ConnectedA
   return accounts.find((account) => sameAccount(account.id, current)) ?? accounts[0];
 }
 
-/** What to call where a post goes, by kind: "your Facebook Page", "your Instagram account". */
+/** What to call where a post goes, by kind: "your Facebook Page", "your YouTube channel". */
 export function kindPhrase(kind: ConnectedAccountKind): string {
-  return kind === "instagram" ? "your Instagram business or creator account" : "your Facebook Page";
+  return ACCOUNT_KINDS[kind].phrase;
+}
+
+/** Whether Mindra's access to an account ends soon (within `days`), so Settings asks to reconnect it. */
+export function accessEndsSoon(account: Pick<ConnectedAccount, "access_ends_at">, days = 7, now = Date.now()): boolean {
+  if (!account.access_ends_at) return false;
+  return new Date(account.access_ends_at).getTime() - now < days * 24 * 60 * 60 * 1000;
 }
 
 /** "View on Facebook". */
@@ -102,35 +174,65 @@ export function useConnectedAccounts(enabled = true) {
   });
 }
 
-/** Whether a post can go out automatically (it loads the accounts only for Facebook and Instagram posts). */
+/** The services accounts can be connected on, and whether each is set up on the server. */
+export function useSocialServices(enabled = true) {
+  return useQuery({
+    queryKey: ["social", "services"],
+    queryFn: () => apiRequest<SocialService[]>("/api/social/services/"),
+    enabled,
+    staleTime: 5 * 60_000,
+  });
+}
+
+/** Whether a post can go out automatically (it loads the accounts only for platforms that can). */
 export function useAutoPost(piece: ContentPiece): AutoPost {
-  const accounts = useConnectedAccounts(accountKindFor(piece.platform) !== null);
-  return autoPostFor(piece, accounts.data, accounts.isError);
+  const supported = accountKindFor(piece.platform) !== null;
+  const accounts = useConnectedAccounts(supported);
+  const services = useSocialServices(supported);
+  return autoPostFor(piece, accounts.data, accounts.isError, services.data);
 }
 
 /**
- * "Connect Facebook and Instagram" (and Reconnect): asks the API for the Facebook Login address and goes there; Facebook
- * sends the person back to Settings. `variables` is what was pressed, so only that button shows it's busy.
+ * "Connect YouTube" (and Reconnect): asks the API for the service's sign-in address and goes there; the service sends
+ * the person back to Settings. `variables.source` is what was pressed, so only that button shows it's busy.
  */
-export function useConnectMeta() {
+export function useConnectService() {
   return useMutation({
-    mutationFn: async (_source: string) => {
-      const { url } = await apiRequest<{ url: string }>("/api/social/meta/start/");
+    mutationFn: async ({ service }: { service: Exclude<SocialServiceId, "wordpress">; source: string }) => {
+      const { url } = await apiRequest<{ url: string }>(`/api/social/${service}/start/`);
       window.location.assign(url);
-      // Stay busy while the browser leaves for Facebook.
+      // Stay busy while the browser leaves for the service.
       await new Promise((resolve) => window.setTimeout(resolve, 10_000));
     },
   });
 }
 
+export type WordPressDetails = { site: string; username: string; password: string };
+
+/** Connect a WordPress site with an application password, and show it in the list at once. */
+export function useConnectWordPress() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (details: WordPressDetails) =>
+      apiRequest<ConnectedAccount>("/api/social/wordpress/connect/", { method: "POST", body: details }),
+    onSuccess: (saved) => {
+      queryClient.setQueryData<ConnectedAccount[]>(ACCOUNTS_KEY, (accounts) => [
+        ...(accounts ?? []).filter((account) => !sameAccount(account.id, saved.id)),
+        saved,
+      ]);
+      queryClient.invalidateQueries({ queryKey: ACCOUNTS_KEY });
+    },
+  });
+}
+
 /**
- * Back from Facebook with ?pending=<id>: the accounts it shared, which aren't saved until the person confirms. A 404
+ * Back from a sign-in with ?pending=<id>: the accounts it shared, which aren't saved until the person confirms. A 404
  * means the link has expired or belongs to someone else.
  */
 export function usePendingConnection(id: string) {
   return useQuery({
     queryKey: ["social", "pending", id],
-    queryFn: () => apiRequest<PendingConnection>(`/api/social/meta/pending/${encodeURIComponent(id)}/`),
+    queryFn: () => apiRequest<PendingConnection>(`/api/social/pending/${encodeURIComponent(id)}/`),
     enabled: Boolean(id),
     retry: false,
     staleTime: Infinity,
@@ -142,7 +244,7 @@ export function useConfirmPending() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) =>
-      apiRequest<ConfirmedConnection>(`/api/social/meta/pending/${encodeURIComponent(id)}/confirm/`, { method: "POST" }),
+      apiRequest<ConfirmedConnection>(`/api/social/pending/${encodeURIComponent(id)}/confirm/`, { method: "POST" }),
     onSuccess: ({ accounts: saved }) => {
       queryClient.setQueryData<ConnectedAccount[]>(ACCOUNTS_KEY, (accounts) => [
         ...(accounts ?? []).filter((account) => !saved.some((item) => sameAccount(item.id, account.id))),
@@ -156,7 +258,7 @@ export function useConfirmPending() {
 /** "Cancel": forget the pending accounts. */
 export function useCancelPending() {
   return useMutation({
-    mutationFn: (id: string) => apiRequest<null>(`/api/social/meta/pending/${encodeURIComponent(id)}/cancel/`, { method: "POST" }),
+    mutationFn: (id: string) => apiRequest<null>(`/api/social/pending/${encodeURIComponent(id)}/cancel/`, { method: "POST" }),
   });
 }
 
@@ -179,12 +281,23 @@ export function useDisconnectAccount() {
  */
 export function usePublishPiece() {
   return useMutation({
-    mutationFn: async ({ piece, account }: { piece: ContentPiece; account?: ConnectedAccountId }) => {
-      if (account !== undefined && !sameAccount(account, piece.publish_to)) {
-        await apiRequest<ContentPiece>(`/api/content/${piece.id}/`, { method: "PATCH", body: { publish_to: account } });
-      }
-      return apiRequest<ContentPiece>(`/api/content/${piece.id}/publish/`, { method: "POST" });
+    mutationFn: ({ piece, account, options }: { piece: ContentPiece; account?: ConnectedAccountId; options?: PublishOptions }) => {
+      const body: Record<string, unknown> = {};
+      if (account !== undefined) body.publish_to = account;
+      if (options !== undefined) body.publish_options = options;
+      return apiRequest<ContentPiece>(`/api/content/${piece.id}/publish/`, { method: "POST", body });
     },
+  });
+}
+
+/** A TikTok account's current settings, which TikTok asks apps to show each time someone posts. */
+export function useTikTokCreator(accountId: ConnectedAccountId | null) {
+  return useQuery({
+    queryKey: ["social", "tiktok-creator", String(accountId)],
+    queryFn: () => apiRequest<TikTokCreator>(`/api/social/accounts/${accountId}/tiktok-creator/`),
+    enabled: accountId != null,
+    retry: false,
+    staleTime: 60_000,
   });
 }
 

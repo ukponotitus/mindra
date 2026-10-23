@@ -227,7 +227,7 @@ function NewVerticalVideo() {
           value={name}
           maxLength={200}
           disabled={busy}
-          placeholder="e.g. Sunday sermon highlight"
+          placeholder="e.g. Conference talk highlight"
           onChange={(event) => setName(event.target.value)}
           className={inputClass}
         />

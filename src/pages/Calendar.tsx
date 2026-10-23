@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useSearchParams } from "react-router";
+import { ChevronLeft, ChevronRight, ClipboardList } from "lucide-react";
+import { Link, useSearchParams } from "react-router";
 import AgendaView from "../components/calendar/AgendaView";
 import CalendarNotice, { type Notice } from "../components/calendar/CalendarNotice";
 import type { DragAndDrop, DragSource } from "../components/calendar/dragAndDrop";
@@ -304,25 +304,31 @@ export default function Calendar() {
             {scheduled.isPending ? "Loading your posts…" : subtitle}
           </p>
         </div>
-        <div role="group" aria-label="Calendar view" className="flex gap-1 rounded-lg bg-secondary p-1">
-          {VIEWS.map((option) => {
-            const active = view === option.id;
-            return (
-              <button
-                key={option.id}
-                type="button"
-                aria-pressed={active}
-                onClick={() => setParam({ view: option.id })}
-                className={buttonStyles({
-                  variant: "ghost",
-                  size: "sm",
-                  className: cn(active && "bg-white text-foreground shadow-sm hover:bg-white"),
-                })}
-              >
-                {option.label}
-              </button>
-            );
-          })}
+        <div className="flex flex-wrap items-center gap-2">
+          <Link to="/plans" className={buttonStyles({ variant: "secondary", size: "sm", className: "h-10" })}>
+            <ClipboardList aria-hidden="true" className="size-4" />
+            Import a plan
+          </Link>
+          <div role="group" aria-label="Calendar view" className="flex gap-1 rounded-lg bg-secondary p-1">
+            {VIEWS.map((option) => {
+              const active = view === option.id;
+              return (
+                <button
+                  key={option.id}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => setParam({ view: option.id })}
+                  className={buttonStyles({
+                    variant: "ghost",
+                    size: "sm",
+                    className: cn(active && "bg-white text-foreground shadow-sm hover:bg-white"),
+                  })}
+                >
+                  {option.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 

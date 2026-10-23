@@ -26,7 +26,7 @@ export type AuthResponse = {
  * "photos": a photo post's pictures, uploaded one by one; nothing is processed, so it's ready at once.
  * "flyer": a flyer post, uploaded the same way; Mindra reads the text on its flyers ("analyzing") as they're added.
  */
-export type SourceType = "video" | "audio" | "transcript" | "photos" | "flyer";
+export type SourceType = "video" | "audio" | "transcript" | "photos" | "flyer" | "plan";
 
 export type ProjectStatus = "queued" | "extracting_audio" | "transcribing" | "analyzing" | "completed" | "failed";
 
@@ -35,6 +35,7 @@ export type Platform =
   | "facebook"
   | "tiktok"
   | "youtube_shorts"
+  | "youtube"
   | "whatsapp"
   | "x"
   | "linkedin"
@@ -237,7 +238,11 @@ export type ContentPiece = {
   id: string;
   project: string;
   project_name: string;
+  /** "plan": written from a content plan's note alone, on the plan's own project (link to the plan instead). */
+  project_source_type: SourceType;
   generation: string | null;
+  /** The content plan it was written for, if any. */
+  plan: { id: string; name: string } | null;
   /** The clip this post is the caption for, if any. */
   clip: ClipSummary | null;
   /** A photo post's pictures, in order (its project's photos); empty for other posts. */
@@ -257,6 +262,8 @@ export type ContentPiece = {
   schedule_status: ScheduleStatus;
   /** The connected account Mindra posts it to automatically at its time, or null to only remind. */
   publish_to: ConnectedAccountId | null;
+  /** What was chosen for it on its service (YouTube's visibility, TikTok's settings); {} for the others. */
+  publish_options: PublishOptions;
   /** That account's name ("" without one). */
   publish_to_name: string;
   /** When Mindra posted it. */
@@ -270,35 +277,88 @@ export type ContentPiece = {
 };
 
 /** GET /api/social/accounts/: a Facebook Page or an Instagram professional account Mindra can post to. */
-export type ConnectedAccountKind = "facebook_page" | "instagram";
+export type ConnectedAccountKind = "facebook_page" | "instagram" | "youtube" | "linkedin" | "x" | "tiktok" | "wordpress";
+
+/** The services accounts are connected on: "meta" (Facebook Pages and Instagram) and the others. */
+export type SocialServiceId = "meta" | "youtube" | "linkedin" | "x" | "tiktok" | "wordpress";
+
+/** GET /api/social/services/: what can be connected, and whether it's set up on the server. */
+export type SocialService = {
+  id: SocialServiceId;
+  name: string;
+  kinds: ConnectedAccountKind[];
+  /** "oauth": the service's sign-in; "form": details typed in (WordPress). */
+  connect: "oauth" | "form";
+  available: boolean;
+};
+
+export type YouTubePrivacy = "public" | "unlisted" | "private";
+export type TikTokPrivacy = "PUBLIC_TO_EVERYONE" | "MUTUAL_FOLLOW_FRIENDS" | "FOLLOWER_OF_CREATOR" | "SELF_ONLY";
+
+/** A post's choices for its service (the API checks them). YouTube: `privacy` and optionally `made_for_kids`
+ * (left out: the channel's own setting). TikTok: `privacy_level` (chosen by the person, never for them), whether
+ * others may comment, duet or stitch, and whether it promotes their own brand or another one. */
+export type PublishOptions = {
+  privacy?: YouTubePrivacy;
+  made_for_kids?: boolean;
+  privacy_level?: TikTokPrivacy;
+  allow_comment?: boolean;
+  allow_duet?: boolean;
+  allow_stitch?: boolean;
+  your_brand?: boolean;
+  branded_content?: boolean;
+};
+
+/** GET /api/social/accounts/<id>/tiktok-creator/: what TikTok says about the account right now. */
+export type TikTokCreator = {
+  nickname: string;
+  username: string;
+  avatar_url: string;
+  privacy_level_options: TikTokPrivacy[];
+  comment_disabled: boolean;
+  duet_disabled: boolean;
+  stitch_disabled: boolean;
+  max_video_post_duration_sec: number | null;
+};
 
 export type ConnectedAccountId = number | string;
 
 export type ConnectedAccount = {
   id: ConnectedAccountId;
   kind: ConnectedAccountKind;
+  /** "Facebook", "YouTube", "WordPress" … */
+  service: string;
+  /** The post platforms it publishes. */
+  platforms: Platform[];
   name: string;
-  /** The Instagram handle without "@", or "". */
+  /** The handle without "@" (Instagram, X, TikTok, a YouTube channel's), the WordPress username, or "". */
   username: string;
   picture_url: string;
-  /** "needs_reconnect": Facebook stopped accepting Mindra's access (expired, password changed, permission removed). */
+  /** The account's own address (the channel, the profile, the site), or "". */
+  profile_url: string;
+  /** "needs_reconnect": the service stopped accepting Mindra's access (expired, password changed, permission removed). */
   status: "active" | "needs_reconnect";
   last_error: string;
+  /** When Mindra's access ends unless it's connected again (LinkedIn's 60 days, TikTok's year), or null. */
+  access_ends_at: string | null;
   connected_at: string;
 };
 
 /**
- * GET /api/social/meta/pending/<id>/: what Facebook shared, waiting for the signed-in person to confirm it (the callback
- * doesn't save accounts, so nobody can connect their accounts to someone else's workspace with a link).
+ * GET /api/social/pending/<id>/: what a service's sign-in shared, waiting for the signed-in person to confirm it (the
+ * callback doesn't save accounts, so nobody can connect their accounts to someone else's workspace with a link).
  */
 export type PendingConnection = {
+  service: SocialServiceId;
+  /** "Facebook and Instagram", "YouTube" … */
+  service_name: string;
   accounts: Pick<ConnectedAccount, "kind" | "name" | "username" | "picture_url">[];
   /** Something to know, such as a Page that was left out; or "". */
   notice: string;
   expires_at: string;
 };
 
-/** POST /api/social/meta/pending/<id>/confirm/: the accounts it saved. */
+/** POST /api/social/pending/<id>/confirm/: the accounts it saved. */
 export type ConfirmedConnection = { accounts: ConnectedAccount[]; notice: string };
 
 /** GET /api/notifications/: how reminders reach the signed-in person. */
@@ -359,4 +419,68 @@ export type Suggestions = {
   ctas: string[];
   hashtags: string[];
   emoji: { emoji: string; where: string }[];
+};
+
+/** What a content plan's post is written from: a recording (a talk, sermon, episode or class), a video clip, a flyer
+ * or photo post, or the plan's note alone. */
+export type PlanFormat = "recording" | "clip" | "pictures" | "text";
+
+/** "needs": something it needs isn't there (see `problem`); "failed": writing it failed (see `problem`). */
+export type PlanEntryStatus = "pending" | "writing" | "written" | "needs" | "failed";
+
+/** One post of a content plan (in GET /api/plans/<id>/). */
+export type PlanEntry = {
+  id: string;
+  position: number;
+  /** When it goes out (ISO 8601), or null when the plan didn't say. */
+  scheduled_at: string | null;
+  /** "" when the plan didn't say where. */
+  platform: Platform | "";
+  format: PlanFormat;
+  /** What the post should be, in the plan's words. */
+  brief: string;
+  /** The project it's written from (chosen, or once written the one used), or null. */
+  source: string | null;
+  source_name: string;
+  clip: ClipSummary | null;
+  /** The draft, once written: a post like any other. */
+  piece: ContentPiece | null;
+  status: PlanEntryStatus;
+  /** Why it couldn't be written, or what it needs. */
+  problem: string;
+  /** What to sort out before it can be written or approved. */
+  problems: string[];
+  /** On the calendar to go out at its time. */
+  approved: boolean;
+  /** Posted (or being posted): it can't change any more. */
+  gone_out: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ContentPlanStatus = "reading" | "ready" | "failed";
+
+/** GET /api/plans/: a content plan someone gave Mindra. */
+export type ContentPlan = {
+  id: string;
+  name: string;
+  status: ContentPlanStatus;
+  error: string;
+  starts_on: string | null;
+  time_zone: string;
+  source_filename: string;
+  has_picture: boolean;
+  counts: { total: number; written: number; approved: number; needs: number; writing: number };
+  first_at: string | null;
+  last_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+/** GET /api/plans/<id>/: a plan with its text and every post. */
+export type ContentPlanDetail = ContentPlan & {
+  text: string;
+  entries: PlanEntry[];
+  /** After approving: the posts that couldn't be approved, and why. */
+  skipped?: { id: string; problem: string }[];
 };

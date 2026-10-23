@@ -281,8 +281,8 @@ function PhotoDetails({ project }: { project: Project }) {
         />
         <p id={`${ids}-recording-hint`} className="mt-1.5 text-xs text-pretty text-muted-foreground">
           {isFlyer
-            ? "Optional. A sermon the program follows on from: the posts can then use its message."
-            : "Optional. The captions can then use that sermon's message."}
+            ? "Optional. A recording the program follows on from: the posts can then use its message."
+            : "Optional. The captions can then use that recording's message."}
           {project.linked_recording && (
             <>
               {" "}

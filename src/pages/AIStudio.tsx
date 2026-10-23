@@ -33,7 +33,7 @@ export default function AIStudio() {
         <EmptyState
           icon={Upload}
           title="No recordings ready yet"
-          description="Upload a sermon, podcast or webinar. Once it's transcribed, you can write posts from it here."
+          description="Upload a talk, podcast, sermon or webinar. Once it's transcribed, you can write posts from it here."
           action={
             <Link to="/projects/new" className={buttonStyles()}>
               Upload a recording

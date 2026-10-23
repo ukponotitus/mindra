@@ -1,26 +1,36 @@
-import { useEffect, useId, useState, type ReactNode } from "react";
-import { LoaderCircle, RefreshCw } from "lucide-react";
+import { useEffect, useId, useState, type FormEvent, type ReactNode } from "react";
+import { Dialog } from "@base-ui/react/dialog";
+import { LoaderCircle, Plus, RefreshCw, X } from "lucide-react";
 import { useLocation, useNavigate } from "react-router";
 import { useAuth } from "../../auth/context";
+import { backdropClass, popupClass } from "../calendar/dialogStyles";
 import ConfirmDialog from "../ui/ConfirmDialog";
 import { buttonStyles } from "../ui/button";
 import { ApiError } from "../../lib/api";
+import { formatDayShort } from "../../lib/calendar";
+import { cn } from "../../lib/cn";
 import { initials } from "../../lib/format";
 import {
   ACCOUNT_KINDS,
+  accessEndsSoon,
   accountName,
   useCancelPending,
   useConfirmPending,
-  useConnectMeta,
+  useConnectService,
+  useConnectWordPress,
   useConnectedAccounts,
   useDisconnectAccount,
   usePendingConnection,
+  useSocialServices,
 } from "../../lib/social";
-import type { ConnectedAccount, PendingConnection } from "../../lib/types";
+import type { ConnectedAccount, PendingConnection, SocialService, SocialServiceId } from "../../lib/types";
 
 type AccountLook = Pick<ConnectedAccount, "kind" | "name" | "username" | "picture_url">;
+type SignInService = Exclude<SocialServiceId, "wordpress">;
 
 const is404 = (error: unknown) => error instanceof ApiError && error.status === 404;
+const fieldClass =
+  "h-10 w-full min-w-0 rounded-lg border border-border bg-white px-3 text-sm text-foreground transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-hidden disabled:opacity-60 aria-invalid:border-red-400";
 
 /** "a", "a and b", "a, b and c". */
 function listOf(items: string[]): string {
@@ -48,8 +58,9 @@ function AccountPicture({ account }: { account: AccountLook }) {
   );
 }
 
-/** Picture, name, and "Facebook Page" or "Instagram · @handle", plus anything after (such as a status). */
+/** Picture, name, and "YouTube channel · @handle", plus anything after (such as a status). */
 function AccountSummary({ account, children }: { account: AccountLook; children?: ReactNode }) {
+  const handle = account.kind !== "wordpress" && account.kind !== "linkedin" && account.username;
   return (
     <div className="flex min-w-0 flex-1 basis-48 items-center gap-3">
       <AccountPicture account={account} />
@@ -57,7 +68,7 @@ function AccountSummary({ account, children }: { account: AccountLook; children?
         <p className="truncate text-sm font-medium text-foreground">{account.name}</p>
         <p className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-muted-foreground">
           <span>{ACCOUNT_KINDS[account.kind].label}</span>
-          {account.username && <span className="min-w-0 truncate">· @{account.username}</span>}
+          {handle && <span className="min-w-0 truncate">· @{account.username}</span>}
           {children}
         </p>
       </div>
@@ -65,48 +76,38 @@ function AccountSummary({ account, children }: { account: AccountLook; children?
   );
 }
 
-/**
- * What came back from Facebook (?connected=meta, a confirmed ?pending=, or ?connect_error=…): what Mindra can post to
- * now, or why it didn't work.
- */
+/** What came back from a sign-in (a confirmed ?pending=, or ?connect_error=…): what Mindra can post to now, or why
+ * it didn't work. */
 function ConnectResult({
-  connected,
   error,
-  accounts,
+  saved,
+  service,
   notice = "",
 }: {
-  connected: boolean;
   error: string;
-  accounts: ConnectedAccount[] | undefined;
+  /** The accounts just connected. */
+  saved: ConnectedAccount[] | null;
+  service: SocialServiceId | "";
   /** Something the API said about the connection, such as a Page it left out. */
   notice?: string;
 }) {
   if (error) {
     return (
       <div role="alert" className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-pretty text-red-700">
-        <p className="font-medium">Couldn't connect to Facebook</p>
+        <p className="font-medium">Couldn't connect the account</p>
         <p className="mt-0.5">{error}</p>
       </div>
     );
   }
-  if (!connected || !accounts) return null;
-
-  const active = accounts.filter((account) => account.status === "active");
-  if (active.length === 0) {
-    return (
-      <p role="status" className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-pretty text-amber-800">
-        Facebook didn't share any Pages Mindra can post to. Connect again and choose at least one Page you manage.
-      </p>
-    );
-  }
-  const pages = active.filter((account) => account.kind === "facebook_page");
-  const instagram = active.filter((account) => account.kind === "instagram");
-  const names = active.map((account) => `${accountName(account)} (${ACCOUNT_KINDS[account.kind].label})`);
+  if (!saved) return null;
+  const names = saved.map((account) => `${accountName(account)} (${ACCOUNT_KINDS[account.kind].label})`);
+  const pages = saved.filter((account) => account.kind === "facebook_page");
+  const instagram = saved.filter((account) => account.kind === "instagram");
   return (
     <div role="status" className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-pretty text-emerald-800">
       <p className="font-medium">Connected. Mindra can post to {listOf(names)}.</p>
       {notice && <p className="mt-0.5">{notice}</p>}
-      {pages.length > 0 && instagram.length === 0 && (
+      {service === "meta" && pages.length > 0 && instagram.length === 0 && (
         <p className="mt-0.5">
           No Instagram business or creator account is linked to {pages.length === 1 ? "this Page" : "these Pages"}. To post to
           Instagram, link one to your Page, then connect again.
@@ -116,9 +117,31 @@ function ConnectResult({
   );
 }
 
-function AccountRow({ account, onReconnect, reconnecting }: { account: ConnectedAccount; onReconnect: () => void; reconnecting: boolean }) {
+/** When Mindra's access ends unless it's connected again: shown when the service doesn't renew it (LinkedIn). */
+function AccessEnds({ account }: { account: ConnectedAccount }) {
+  if (!account.access_ends_at || account.status !== "active") return null;
+  const ends = new Date(account.access_ends_at);
+  const soon = accessEndsSoon(account);
+  return (
+    <p className={cn("mt-2 text-xs text-pretty", soon ? "text-amber-800" : "text-muted-foreground")}>
+      {ACCOUNT_KINDS[account.kind].service === "linkedin" ? "LinkedIn's access lasts 60 days and" : "Mindra's access"}{" "}
+      ends on {formatDayShort(ends)}. {soon ? "Reconnect now to keep posting here." : "Reconnect before then to keep posting here."}
+    </p>
+  );
+}
+
+function AccountRow({
+  account,
+  onReconnect,
+  reconnecting,
+}: {
+  account: ConnectedAccount;
+  onReconnect: () => void;
+  reconnecting: boolean;
+}) {
   const disconnect = useDisconnectAccount();
   const needsReconnect = account.status === "needs_reconnect";
+  const offerReconnect = needsReconnect || accessEndsSoon(account);
 
   return (
     <li className="py-3 first:pt-0 last:pb-0">
@@ -127,7 +150,7 @@ function AccountRow({ account, onReconnect, reconnecting }: { account: Connected
           {needsReconnect && <span className="rounded-full bg-amber-50 px-2 py-0.5 font-medium text-amber-800">Needs reconnecting</span>}
         </AccountSummary>
         <div className="ml-auto flex shrink-0 items-center gap-2">
-          {needsReconnect && (
+          {offerReconnect && (
             <button
               type="button"
               onClick={onReconnect}
@@ -160,9 +183,10 @@ function AccountRow({ account, onReconnect, reconnecting }: { account: Connected
       </div>
       {needsReconnect && (
         <p className="mt-2 text-sm text-pretty text-amber-800">
-          {account.last_error || "Facebook stopped accepting Mindra's access to this account."} Reconnect to post here again.
+          {account.last_error || `${account.service} stopped accepting Mindra's access to this account.`} Reconnect to post here again.
         </p>
       )}
+      <AccessEnds account={account} />
       {disconnect.isError && (
         <p role="alert" className="mt-2 text-sm text-pretty text-red-600">
           {disconnect.error.message}
@@ -173,8 +197,8 @@ function AccountRow({ account, onReconnect, reconnecting }: { account: Connected
 }
 
 /**
- * Back from Facebook with ?pending=<id>: "Connect these to Grace Chapel?" with what Facebook shared. Nothing is saved
- * until the signed-in person presses Connect, so a link from someone else can't connect their accounts here.
+ * Back from a sign-in with ?pending=<id>: "Connect this to Grace Chapel?" with what the service shared. Nothing is
+ * saved until the signed-in person presses Connect, so a link from someone else can't connect their accounts here.
  */
 function PendingPanel({
   pending,
@@ -214,8 +238,8 @@ function PendingPanel({
       {pending ? (
         <>
           <p className="mt-0.5 text-sm text-pretty text-muted-foreground">
-            Facebook shared {count === 1 ? "this account" : "these accounts"}. Mindra saves {count === 1 ? "it" : "them"} and can post
-            there once you connect.
+            {pending.service_name} shared {count === 1 ? "this account" : "these accounts"}. Mindra saves{" "}
+            {count === 1 ? "it" : "them"} and can post there once you connect.
           </p>
           <ul className="mt-3 divide-y divide-border rounded-lg border border-border bg-white">
             {pending.accounts.map((account) => (
@@ -239,7 +263,7 @@ function PendingPanel({
       ) : onRetry ? null : (
         <div className="mt-3 space-y-2">
           <p role="status" className="sr-only">
-            Loading what Facebook shared
+            Loading what was shared
           </p>
           <div className="h-10 animate-pulse rounded-lg bg-white" />
           <div className="h-10 animate-pulse rounded-lg bg-white" />
@@ -259,31 +283,205 @@ function PendingPanel({
   );
 }
 
+/** Connecting a WordPress site: its address, a username and an application password made in WordPress. */
+function WordPressDialog({
+  open,
+  onOpenChange,
+  site: startSite,
+  onConnected,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  site: string;
+  onConnected: (account: ConnectedAccount) => void;
+}) {
+  const ids = { site: useId(), username: useId(), password: useId(), help: useId() };
+  const connect = useConnectWordPress();
+  const [site, setSite] = useState(startSite);
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const fieldErrors = connect.error instanceof ApiError ? connect.error.fieldErrors : {};
+  const fieldError = (name: string) => fieldErrors[name]?.[0] ?? "";
+  const generalError = connect.error && !fieldError("site") && !fieldError("username") && !fieldError("password") ? connect.error.message : "";
+
+  useEffect(() => {
+    if (open) {
+      setSite(startSite);
+      connect.reset();
+    }
+    // Each time it opens.
+  }, [open]);
+
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    if (connect.isPending) return;
+    connect.mutate(
+      { site: site.trim(), username: username.trim(), password },
+      {
+        onSuccess: (account) => {
+          setPassword("");
+          onConnected(account);
+          onOpenChange(false);
+        },
+      },
+    );
+  };
+
+  return (
+    <Dialog.Root open={open} onOpenChange={onOpenChange}>
+      <Dialog.Portal>
+        <Dialog.Backdrop className={backdropClass} />
+        <Dialog.Popup className={cn(popupClass, "w-[min(32rem,calc(100vw-2rem))]")}>
+          <div className="mb-4 flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <Dialog.Title className="text-lg font-semibold text-balance text-foreground">Connect a WordPress site</Dialog.Title>
+              <Dialog.Description id={ids.help} className="mt-1 text-sm text-pretty text-muted-foreground">
+                In WordPress, open Users, then your profile, and under Application Passwords add one named “Mindra”.
+                Paste it here: Mindra posts blog posts with it, and you can revoke it there at any time.
+              </Dialog.Description>
+            </div>
+            <Dialog.Close aria-label="Close" className={buttonStyles({ variant: "ghost", size: "icon", className: "-mt-1 -mr-2" })}>
+              <X aria-hidden="true" className="size-4" />
+            </Dialog.Close>
+          </div>
+          <form onSubmit={submit} noValidate className="space-y-4">
+            <div>
+              <label htmlFor={ids.site} className="mb-1.5 block text-sm font-medium text-foreground">
+                Site address
+              </label>
+              <input
+                id={ids.site}
+                type="url"
+                inputMode="url"
+                autoComplete="url"
+                value={site}
+                disabled={connect.isPending}
+                placeholder="https://yoursite.com"
+                aria-invalid={fieldError("site") ? true : undefined}
+                onChange={(event) => setSite(event.target.value)}
+                className={fieldClass}
+              />
+              {fieldError("site") && (
+                <p role="alert" className="mt-1.5 text-xs text-pretty text-red-600">
+                  {fieldError("site")}
+                </p>
+              )}
+            </div>
+            <div>
+              <label htmlFor={ids.username} className="mb-1.5 block text-sm font-medium text-foreground">
+                WordPress username
+              </label>
+              <input
+                id={ids.username}
+                type="text"
+                autoComplete="username"
+                value={username}
+                disabled={connect.isPending}
+                aria-invalid={fieldError("username") ? true : undefined}
+                onChange={(event) => setUsername(event.target.value)}
+                className={fieldClass}
+              />
+            </div>
+            <div>
+              <label htmlFor={ids.password} className="mb-1.5 block text-sm font-medium text-foreground">
+                Application password
+              </label>
+              <input
+                id={ids.password}
+                type="password"
+                autoComplete="off"
+                value={password}
+                disabled={connect.isPending}
+                placeholder="xxxx xxxx xxxx xxxx xxxx xxxx"
+                aria-invalid={fieldError("password") ? true : undefined}
+                onChange={(event) => setPassword(event.target.value)}
+                className={fieldClass}
+              />
+              <p className="mt-1.5 text-xs text-pretty text-muted-foreground">Not your WordPress password: the one WordPress makes for Mindra.</p>
+            </div>
+            {generalError && (
+              <p role="alert" className="rounded-lg bg-red-50 px-3.5 py-2.5 text-sm text-pretty text-red-700">
+                {generalError}
+              </p>
+            )}
+            <div className="flex justify-end gap-2 border-t border-border pt-4">
+              <Dialog.Close className={buttonStyles({ variant: "secondary" })}>Cancel</Dialog.Close>
+              <button type="submit" disabled={connect.isPending || !site.trim() || !username.trim() || !password} className={buttonStyles()}>
+                {connect.isPending && <LoaderCircle aria-hidden="true" className="size-4 animate-spin" />}
+                Connect site
+              </button>
+            </div>
+          </form>
+        </Dialog.Popup>
+      </Dialog.Portal>
+    </Dialog.Root>
+  );
+}
+
+/** A button for each service that's set up on the server. */
+function ConnectButtons({
+  services,
+  connecting,
+  onConnect,
+  onWordPress,
+  variant,
+}: {
+  services: SocialService[];
+  connecting: string | null;
+  onConnect: (service: SignInService) => void;
+  onWordPress: () => void;
+  variant: "primary" | "secondary";
+}) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {services.map((service) => {
+        const busy = connecting === `connect-${service.id}`;
+        return (
+          <button
+            key={service.id}
+            type="button"
+            onClick={() => (service.id === "wordpress" ? onWordPress() : onConnect(service.id))}
+            disabled={connecting !== null}
+            className={buttonStyles({ variant, size: "sm", className: "h-9" })}
+          >
+            {busy ? <LoaderCircle aria-hidden="true" className="size-4 animate-spin" /> : <Plus aria-hidden="true" className="size-4" />}
+            {busy ? `Opening ${service.name}…` : service.name}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 /**
- * Settings → Connected accounts: connect Facebook Pages and their linked Instagram professional accounts through
- * Facebook Login, see them, reconnect one Facebook stopped accepting, or disconnect one.
+ * Settings → Connected accounts: connect the accounts Mindra posts to by itself (Facebook Pages and Instagram, YouTube,
+ * LinkedIn, X, TikTok and WordPress sites), see them, reconnect one a service stopped accepting, or disconnect one.
  */
 export default function ConnectedAccounts() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
-  // Back from Facebook: /settings?pending=<id>#accounts (confirm it here), ?connected=meta, or ?connect_error=<message>.
+  // Back from a sign-in: /settings?pending=<id>#accounts (confirm it here), or ?connect_error=<message>.
   const [result] = useState(() => {
     const params = new URLSearchParams(location.search);
-    return { connected: params.get("connected") === "meta", error: params.get("connect_error") ?? "", pending: params.get("pending") ?? "" };
+    return { error: params.get("connect_error") ?? "", pending: params.get("pending") ?? "" };
   });
   const accounts = useConnectedAccounts();
-  const connect = useConnectMeta();
+  const services = useSocialServices();
+  const connect = useConnectService();
   const list = accounts.data ?? [];
+  const available = (services.data ?? []).filter((service) => service.available);
   const clearAddress = () => navigate({ search: "", hash: location.hash }, { replace: true });
+  const [wordPress, setWordPress] = useState<{ open: boolean; site: string }>({ open: false, site: "" });
+  const [saved, setSaved] = useState<ConnectedAccount[] | null>(null);
 
   // Show the result once: take it out of the address so a reload doesn't show it again.
   useEffect(() => {
-    if (result.connected || result.error) clearAddress();
+    if (result.error) clearAddress();
     // Only when the page opens.
   }, []);
 
-  // ?pending=: what Facebook shared, saved only once the person confirms it.
+  // ?pending=: what the service shared, saved only once the person confirms it.
   const pending = usePendingConnection(result.pending);
   const confirm = useConfirmPending();
   const cancel = useCancelPending();
@@ -293,13 +491,12 @@ export default function ConnectedAccounts() {
   const expired = waiting && (is404(pending.error) || is404(confirm.error));
   const nothingShared = waiting && !expired && pending.data?.accounts.length === 0;
   const askToConfirm = waiting && !expired && !nothingShared;
-  // While it asks, or says why it can't, the Connect button is there and the list's own is hidden.
-  const pendingShown = waiting;
   const confirmPending = () =>
     confirm.mutate(result.pending, {
-      onSuccess: ({ notice }) => {
+      onSuccess: ({ accounts: confirmed, notice }) => {
         setOutcome("connected");
         setOutcomeNotice(notice);
+        setSaved(confirmed);
         clearAddress();
       },
     });
@@ -321,33 +518,35 @@ export default function ConnectedAccounts() {
   }, [expired, nothingShared]);
 
   const connectError = connect.error;
-  const notSetUp = connectError instanceof ApiError && connectError.status === 400;
-  const connectButton = (variant: "primary" | "secondary") => (
-    <button
-      type="button"
-      onClick={() => connect.mutate("connect")}
-      disabled={connect.isPending}
-      className={buttonStyles({ variant })}
-    >
-      {connect.isPending && connect.variables === "connect" && <LoaderCircle aria-hidden="true" className="size-4 animate-spin" />}
-      {connect.isPending && connect.variables === "connect" ? "Opening Facebook…" : "Connect Facebook and Instagram"}
-    </button>
-  );
+  const connecting = connect.isPending ? connect.variables.source : null;
+  const startConnect = (service: SignInService, source: string) => connect.mutate({ service, source });
+  const reconnect = (account: ConnectedAccount) => {
+    const service = ACCOUNT_KINDS[account.kind].service;
+    if (service === "wordpress") setWordPress({ open: true, site: account.profile_url });
+    else startConnect(service, `account-${account.id}`);
+  };
+  const buttons = (variant: "primary" | "secondary") =>
+    available.length > 0 ? (
+      <ConnectButtons
+        services={available}
+        connecting={connecting}
+        onConnect={(service) => startConnect(service, `connect-${service}`)}
+        onWordPress={() => setWordPress({ open: true, site: "" })}
+        variant={variant}
+      />
+    ) : services.isPending ? null : (
+      <p className="text-sm text-pretty text-muted-foreground">Automatic posting isn't set up yet. Until it is, Mindra reminds you at each post's time.</p>
+    );
 
   return (
     <div>
       <p className="mb-4 text-sm text-pretty text-muted-foreground">
-        Mindra can post for you to Facebook Pages, and to Instagram business or creator accounts linked to a Page. When you
-        schedule a Facebook or Instagram post, turn on "Post automatically" and it goes out at its time. Other platforms, and
-        Instagram posts without a photo or video, still get a reminder.
+        Connect your accounts and Mindra posts for you at each post's time: when you schedule a post, turn on “Post
+        automatically”. Posts for other places (WhatsApp, newsletters) still get a reminder, and so does a post without
+        the video or photos its platform needs.
       </p>
 
-      <ConnectResult
-        connected={result.connected || outcome === "connected"}
-        error={result.error}
-        accounts={accounts.data}
-        notice={outcomeNotice}
-      />
+      <ConnectResult error={result.error} saved={outcome === "connected" ? saved : null} service={pending.data?.service ?? ""} notice={outcomeNotice} />
       {outcome === "cancelled" && (
         <p role="status" className="mb-4 rounded-lg border border-border bg-secondary px-4 py-3 text-sm text-pretty text-foreground">
           Nothing was connected.
@@ -370,10 +569,9 @@ export default function ConnectedAccounts() {
           <p>
             {expired
               ? "This connection link has expired or isn't yours. Connect again."
-              : "Facebook didn't share any Pages Mindra can post to. Connect again and choose at least one Page you manage."}
+              : `${pending.data?.service_name ?? "The service"} didn't share an account Mindra can post to. Connect again.`}
           </p>
           {nothingShared && pending.data?.notice && <p className="mt-0.5">{pending.data.notice}</p>}
-          <div className="mt-3">{connectButton("primary")}</div>
         </div>
       )}
 
@@ -402,13 +600,13 @@ export default function ConnectedAccounts() {
           </button>
         </div>
       ) : list.length === 0 ? (
-        !pendingShown && (
+        !waiting && (
           <div className="rounded-lg border border-dashed border-border px-4 py-6 text-center">
             <p className="text-sm font-medium text-foreground">No accounts connected yet</p>
-            <p className="mx-auto mt-1 max-w-sm text-sm text-pretty text-muted-foreground">
-              Sign in with Facebook to choose the Pages, and their linked Instagram accounts, that Mindra can post to.
+            <p className="mx-auto mt-1 mb-4 max-w-sm text-sm text-pretty text-muted-foreground">
+              Choose where Mindra can post for you. You sign in on each service and choose what to share.
             </p>
-            <div className="mt-4">{connectButton("primary")}</div>
+            <div className="flex justify-center">{buttons("secondary")}</div>
           </div>
         )
       ) : (
@@ -418,28 +616,43 @@ export default function ConnectedAccounts() {
               <AccountRow
                 key={account.id}
                 account={account}
-                onReconnect={() => connect.mutate(String(account.id))}
-                reconnecting={connect.isPending && connect.variables === String(account.id)}
+                onReconnect={() => reconnect(account)}
+                reconnecting={connecting === `account-${account.id}`}
               />
             ))}
           </ul>
-          {!pendingShown && <div className="mt-4 border-t border-border pt-4">{connectButton("secondary")}</div>}
+          {!waiting && (
+            <div className="mt-4 border-t border-border pt-4">
+              <p className="mb-2 text-sm font-medium text-foreground">Connect another account</p>
+              {buttons("secondary")}
+            </div>
+          )}
         </>
       )}
 
       {connectError && (
-        <div role="alert" className="mt-3 text-sm text-pretty text-red-600">
-          <p>{connectError.message}</p>
-          {notSetUp && <p className="mt-0.5 text-muted-foreground">Until it is, Mindra reminds you at each post's time.</p>}
-        </div>
+        <p role="alert" className="mt-3 text-sm text-pretty text-red-600">
+          {connectError.message}
+        </p>
       )}
 
       {list.length > 0 && (
         <p className="mt-4 text-xs text-pretty text-muted-foreground">
-          Disconnecting deletes Mindra's access to that account. You can also remove Mindra in Facebook's settings, under
-          Business integrations.
+          Disconnecting deletes Mindra's access to that account. You can also remove Mindra in each service's own settings
+          (for a WordPress site, revoke its application password).
         </p>
       )}
+
+      <WordPressDialog
+        open={wordPress.open}
+        site={wordPress.site}
+        onOpenChange={(open) => setWordPress((current) => ({ ...current, open }))}
+        onConnected={(account) => {
+          setSaved([account]);
+          setOutcome("connected");
+          setOutcomeNotice("");
+        }}
+      />
     </div>
   );
 }

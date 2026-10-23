@@ -9,6 +9,7 @@ import { useMarkPosted, useStorePiece } from "../../lib/calendar";
 import { cn } from "../../lib/cn";
 import { photoFiles } from "../../lib/photos";
 import { platformInfo } from "../../lib/projects";
+import { hasOptions, optionsProblem, startingOptions } from "../../lib/publishOptions";
 import {
   accountName,
   defaultAccount,
@@ -22,7 +23,8 @@ import {
   viewOnLabel,
   type AutoPost,
 } from "../../lib/social";
-import type { ConnectedAccount, ContentPiece, Platform } from "../../lib/types";
+import type { ConnectedAccount, ContentPiece, Platform, PublishOptions } from "../../lib/types";
+import PublishOptionsFields from "./PublishOptionsFields";
 
 /** Where to post a text post on a computer. `prefill` sites take the text in the link; the rest get it pasted. */
 const PLATFORM_LINKS: Partial<Record<Platform, { url: (text: string) => string; prefill?: boolean }>> = {
@@ -33,6 +35,7 @@ const PLATFORM_LINKS: Partial<Record<Platform, { url: (text: string) => string; 
   linkedin: { url: () => "https://www.linkedin.com/feed/" },
   tiktok: { url: () => "https://www.tiktok.com/upload" },
   youtube_shorts: { url: () => "https://studio.youtube.com/" },
+  youtube: { url: () => "https://studio.youtube.com/" },
 };
 
 function canShareText(): boolean {
@@ -114,7 +117,7 @@ function TextPost({ piece, onShared, variant }: { piece: ContentPiece; onShared:
     );
   }
 
-  // Newsletters, blogs and quote cards go wherever the church sends them from: copy the text.
+  // Newsletters, blogs and quote cards go wherever they're sent from: copy the text.
   return (
     <>
       <button
@@ -151,8 +154,10 @@ function sharingIntro(auto: AutoPost, platformLabel: string): ReactNode {
   switch (auto.state) {
     case "unsupported":
       return `Mindra can't post on ${platformLabel} for you yet. It gets the post ready so you can post it yourself in a tap, then puts it on today's calendar as posted.`;
+    case "not-set-up":
+      return `Automatic posting to ${platformLabel} isn't switched on for Mindra yet. ${ready}`;
     case "needs-media":
-      return `Instagram posts need a photo or a video for Mindra to post them. ${ready}`;
+      return `${auto.message} ${ready}`;
     case "no-account":
       return (
         <>
@@ -215,7 +220,7 @@ function PostToAccount({
   accounts: ConnectedAccount[];
   phase: Exclude<Phase, "published">;
   live: ContentPiece;
-  onStart: (account: ConnectedAccount) => void;
+  onStart: (account: ConnectedAccount, options: PublishOptions | undefined) => void;
   starting: boolean;
   error: string;
 }) {
@@ -225,6 +230,19 @@ function PostToAccount({
   const chosen = account ? accountName(account) : live.publish_to_name || platformInfo(piece.platform).label;
   const busy = starting || phase === "publishing";
   const target = phase === "publishing" ? live.publish_to_name || chosen : chosen;
+  // The choices the account's service needs (YouTube's visibility, TikTok's settings), from the post's own.
+  const [chosenOptions, setChosenOptions] = useState<PublishOptions | null>(null);
+  const [disclose, setDisclose] = useState(Boolean(piece.publish_options?.your_brand || piece.publish_options?.branded_content));
+  const withOptions = Boolean(account && hasOptions(account.kind));
+  const options =
+    chosenOptions ?? (account ? startingOptions(account.kind, sameAccount(account.id, piece.publish_to) ? piece.publish_options : undefined) : {});
+  const [tried, setTried] = useState(false);
+  const optionsError = account && withOptions ? optionsProblem(account.kind, options, disclose) : "";
+  const start = () => {
+    setTried(true);
+    if (!account || optionsError) return;
+    onStart(account, withOptions ? options : undefined);
+  };
 
   return (
     <div className="space-y-3">
@@ -236,7 +254,10 @@ function PostToAccount({
           <select
             id={selectId}
             value={account ? String(account.id) : ""}
-            onChange={(event) => setPicked(event.target.value)}
+            onChange={(event) => {
+              setPicked(event.target.value);
+              setChosenOptions(null);
+            }}
             disabled={busy}
             className="h-10 w-full min-w-0 rounded-lg border border-border bg-white px-3 text-sm text-foreground transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-hidden disabled:opacity-50"
           >
@@ -255,10 +276,27 @@ function PostToAccount({
           <p className="mt-0.5">Try again, or post it yourself below.</p>
         </div>
       )}
+      {account && withOptions && !busy && (
+        <div className="rounded-lg border border-border p-3">
+          <PublishOptionsFields
+            piece={piece}
+            account={account}
+            value={options}
+            onChange={setChosenOptions}
+            disclose={disclose}
+            onDisclose={setDisclose}
+          />
+        </div>
+      )}
+      {tried && optionsError && !busy && (
+        <p role="alert" className="text-sm text-pretty text-red-600">
+          {optionsError}
+        </p>
+      )}
       {(account || busy) && (
         <button
           type="button"
-          onClick={() => account && onStart(account)}
+          onClick={start}
           disabled={busy || !account}
           // After a failure, posting it yourself (below) leads; trying again is the other way.
           className={buttonStyles({ variant: phase === "failed" ? "secondary" : "primary", className: "w-full" })}
@@ -284,7 +322,8 @@ function PostToAccount({
 }
 
 /**
- * "Post now". With a connected Facebook Page or Instagram account for the post, Mindra posts it there itself. Otherwise
+ * "Post now". With a connected account for the post (a Facebook Page, an Instagram account, a YouTube channel, a
+ * LinkedIn profile, an X or TikTok account, a WordPress site), Mindra posts it there itself. Otherwise
  * (and as the way out when that fails) it gets the post out in a tap (the share menu with the video, photos or text; on
  * computers the platform with the text) and then asks whether it went out, to mark it as posted on today's calendar.
  */
@@ -320,9 +359,9 @@ export default function PostNow({ piece, onPosted }: { piece: ContentPiece; onPo
   const phase: Phase =
     status === "publishing" ? "publishing" : watching && status === "published" ? "published" : watching && status === "failed" ? "failed" : "idle";
   const canPublish = auto.state === "ready" || phase !== "idle";
-  const startPublish = (account: ConnectedAccount) =>
+  const startPublish = (account: ConnectedAccount, options: PublishOptions | undefined) =>
     publish.mutate(
-      { piece: live, account: account.id },
+      { piece: live, account: account.id, options },
       {
         onSuccess: (saved) => {
           queryClient.setQueryData(publishProgressKey(piece.id), saved);

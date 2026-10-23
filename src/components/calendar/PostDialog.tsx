@@ -7,6 +7,7 @@ import { buttonStyles } from "../ui/button";
 import { scheduleStatus, useMarkPosted, useSchedulePost } from "../../lib/calendar";
 import { cn } from "../../lib/cn";
 import { clipFrame } from "../../lib/clips";
+import { postOrigin } from "../../lib/plans";
 import { platformInfo } from "../../lib/projects";
 import type { ContentPiece } from "../../lib/types";
 import { backdropClass, popupClass } from "./dialogStyles";
@@ -34,6 +35,7 @@ function PostBody({ piece, onRescheduled }: { piece: ContentPiece; onRescheduled
   const isPosted = scheduleStatus(piece) === "posted";
   // Posted by Mindra, or being posted now: nothing to share, mark, move or take off.
   const automatic = piece.schedule_status === "published" || piece.schedule_status === "publishing";
+  const origin = postOrigin(piece);
   const error = posted.error ?? schedule.error;
 
   return (
@@ -61,12 +63,16 @@ function PostBody({ piece, onRescheduled }: { piece: ContentPiece; onRescheduled
       </p>
       <p className="mt-2 truncate text-xs text-muted-foreground">
         From{" "}
-        <Link
-          to={`/projects/${piece.project}`}
-          className="rounded font-medium text-foreground hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-        >
-          {piece.project_name}
-        </Link>
+        {origin.to ? (
+          <Link
+            to={origin.to}
+            className="rounded font-medium text-foreground hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          >
+            {origin.label}
+          </Link>
+        ) : (
+          <span className="font-medium text-foreground">{origin.label}</span>
+        )}
       </p>
 
       <PublishStatus piece={piece} className="mt-4" />

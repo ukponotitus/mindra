@@ -713,8 +713,8 @@ export default function CreateProject() {
                   </div>
                   <p id="linked-recording-hint" className="mt-2 text-xs text-pretty text-muted-foreground">
                     {isFlyer
-                      ? "Optional. Connect a sermon the program follows on from, and the posts can use its message."
-                      : "Optional. Connect the sermon these photos are from, and the captions can use its message."}
+                      ? "Optional. Connect a recording the program follows on from, and the posts can use its message."
+                      : "Optional. Connect the recording these photos are from, and the captions can use its message."}
                   </p>
                   <FieldError id="linked-recording-error" message={fieldErrors.linked_recording?.[0]} />
                 </div>

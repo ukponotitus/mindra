@@ -1,5 +1,5 @@
 import { keepPreviousData, queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AudioLines, FileText, Images, Megaphone, Video, type LucideIcon } from "lucide-react";
+import { AudioLines, ClipboardList, FileText, Images, Megaphone, Video, type LucideIcon } from "lucide-react";
 import { apiRequest } from "./api";
 import { formatDuration } from "./format";
 import type { Paginated, Platform, Project, ProjectStatus, ProjectSummary, SourceType, Transcript, UploadOptions } from "./types";
@@ -27,6 +27,7 @@ export const SOURCE_LABELS: Record<SourceType, string> = {
   transcript: "Transcript",
   photos: "Photos",
   flyer: "Flyer",
+  plan: "Content plan",
 };
 
 export const SOURCE_ICONS: Record<SourceType, LucideIcon> = {
@@ -35,6 +36,7 @@ export const SOURCE_ICONS: Record<SourceType, LucideIcon> = {
   transcript: FileText,
   photos: Images,
   flyer: Megaphone,
+  plan: ClipboardList,
 };
 
 /** Photo and flyer posts: projects made of pictures (kept as photos), with no recording. */
@@ -63,6 +65,7 @@ export const PLATFORMS: { id: Platform; label: string; badge: string; color: str
   { id: "whatsapp", label: "WhatsApp", badge: "WA", color: "#25D366", limit: 700 },
   { id: "tiktok", label: "TikTok", badge: "♪", color: "#111827" },
   { id: "youtube_shorts", label: "YouTube Shorts", badge: "▶", color: "#FF0033" },
+  { id: "youtube", label: "YouTube", badge: "YT", color: "#CC0000" },
   { id: "x", label: "X (Twitter)", badge: "𝕏", color: "#111827" },
   { id: "linkedin", label: "LinkedIn", badge: "in", color: "#0A66C2", limit: 3000 },
   { id: "newsletter", label: "Newsletter", badge: "✉", color: "#6D5EF5" },

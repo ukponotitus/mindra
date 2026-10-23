@@ -68,12 +68,13 @@ export function useContentPiece(id: string | undefined) {
   });
 }
 
-/** Everything that shows posts or counts them has to refresh after a change. */
+/** Everything that shows posts or counts them has to refresh after a change (content plans show their drafts). */
 function useRefreshContent() {
   const queryClient = useQueryClient();
   return () => {
     queryClient.invalidateQueries({ queryKey: ["content"] });
     queryClient.invalidateQueries({ queryKey: ["projects"] });
+    queryClient.invalidateQueries({ queryKey: ["plans"] });
   };
 }
 

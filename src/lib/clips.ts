@@ -71,7 +71,7 @@ export function clipStatusLabel(clip: Clip) {
 }
 
 /** Where a clip can be posted: the platforms that take short vertical video. */
-export const CLIP_PLATFORMS: Platform[] = ["instagram", "tiktok", "youtube_shorts", "facebook", "whatsapp", "x", "linkedin"];
+export const CLIP_PLATFORMS: Platform[] = ["instagram", "tiktok", "youtube_shorts", "youtube", "facebook", "whatsapp", "x", "linkedin"];
 
 /** Whether this browser can hand a file like `sample` (a video, unless given) to the phone's share menu (most phones
  * can; most computers can't). */

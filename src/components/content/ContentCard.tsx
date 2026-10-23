@@ -11,6 +11,7 @@ import { clipFrame, clipPath } from "../../lib/clips";
 import { useDeletePiece, useUpdatePiece } from "../../lib/content";
 import { formatDate, formatDuration } from "../../lib/format";
 import { photoFiles } from "../../lib/photos";
+import { postOrigin } from "../../lib/plans";
 import type { ClipSummary, ContentPiece, PostPhoto } from "../../lib/types";
 import PlatformBadge from "./PlatformBadge";
 import ShareButton from "./ShareButton";
@@ -123,6 +124,7 @@ export default function ContentCard({ piece, showProject = false, showClip = tru
   const photos = piece.photos ?? [];
   const hasPhotos = !videoReady && photos.length > 0;
   const mainAction = videoReady || hasPhotos;
+  const origin = postOrigin(piece);
 
   const copy = async () => {
     await navigator.clipboard.writeText(piece.body);
@@ -216,12 +218,16 @@ export default function ContentCard({ piece, showProject = false, showClip = tru
       {showProject && (
         <p className="mt-3 truncate text-xs text-muted-foreground">
           From{" "}
-          <Link
-            to={`/projects/${piece.project}`}
-            className="rounded font-medium text-foreground hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-          >
-            {piece.project_name}
-          </Link>{" "}
+          {origin.to ? (
+            <Link
+              to={origin.to}
+              className="rounded font-medium text-foreground hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            >
+              {origin.label}
+            </Link>
+          ) : (
+            <span className="font-medium text-foreground">{origin.label}</span>
+          )}{" "}
           · <span className="tabular-nums">{formatDate(piece.created_at)}</span>
         </p>
       )}

@@ -87,7 +87,7 @@ function FanCard() {
       </div>
 
       <div className="absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-black via-black/90 to-transparent px-8 pt-24 pb-8">
-        <h3 className="text-[1.7rem] leading-tight font-medium text-balance text-white">One sermon. Thirty moments.</h3>
+        <h3 className="text-[1.7rem] leading-tight font-medium text-balance text-white">One recording. Thirty moments.</h3>
         <p className="mt-2 max-w-sm text-[15px] leading-relaxed text-pretty text-white/60">
           Mindra finds the hooks, quotes and stories in every recording, so nothing good is heard only once.
         </p>

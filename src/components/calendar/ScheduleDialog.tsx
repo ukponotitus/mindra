@@ -4,6 +4,7 @@ import { Switch } from "@base-ui/react/switch";
 import { LoaderCircle, X } from "lucide-react";
 import { Link } from "react-router";
 import { buttonStyles } from "../ui/button";
+import { ApiError } from "../../lib/api";
 import {
   LATEST_AHEAD_DAYS,
   addDays,
@@ -24,10 +25,12 @@ import {
 } from "../../lib/calendar";
 import { cn } from "../../lib/cn";
 import { platformInfo } from "../../lib/projects";
-import { accountName, accountPlace, defaultAccount, kindPhrase, sameAccount, useAutoPost, type AutoPost } from "../../lib/social";
-import type { ConnectedAccount, ContentPiece } from "../../lib/types";
+import { hasOptions, optionsProblem, sameOptions, startingOptions } from "../../lib/publishOptions";
+import { ACCOUNT_KINDS, accountName, accountPlace, defaultAccount, kindPhrase, sameAccount, useAutoPost, type AutoPost } from "../../lib/social";
+import type { ConnectedAccount, ContentPiece, PublishOptions } from "../../lib/types";
 import { backdropClass, popupClass, switchClass, thumbClass } from "./dialogStyles";
 import PostNow from "./PostNow";
+import PublishOptionsFields from "./PublishOptionsFields";
 
 interface Props {
   piece: ContentPiece;
@@ -58,8 +61,10 @@ function autoPostNote(auto: AutoPost, platformLabel: string): ReactNode {
   switch (auto.state) {
     case "unsupported":
       return `Mindra can't post on ${platformLabel} by itself yet.`;
+    case "not-set-up":
+      return `Automatic posting to ${platformLabel} isn't switched on for Mindra yet.`;
     case "needs-media":
-      return "Instagram posts need a photo or a video to post automatically.";
+      return auto.message;
     case "no-account":
       return <>To post it automatically, connect {kindPhrase(auto.kind)} in {settingsLink("accounts", "Settings → Connected accounts")}.</>;
     case "needs-reconnect":
@@ -74,23 +79,40 @@ function autoPostNote(auto: AutoPost, platformLabel: string): ReactNode {
   }
 }
 
-/** "Post automatically": a switch, and a choice of account when there are several. */
+/** An error from saving that's about the time (not the account or its choices). */
+function apiErrorFor(error: Error | null): boolean {
+  if (!(error instanceof ApiError)) return Boolean(error);
+  return Boolean(error.fieldErrors.scheduled_at) || Object.keys(error.fieldErrors).length === 0;
+}
+
+/** "Post automatically": a switch, a choice of account when there are several, and the choices the account's service
+ * needs for the post (YouTube's visibility, TikTok's settings). */
 function AutoPostChoice({
+  piece,
   accounts,
   on,
   account,
   onToggle,
   onPick,
+  options,
+  onOptions,
+  disclose,
+  onDisclose,
 }: {
+  piece: ContentPiece;
   accounts: ConnectedAccount[];
   on: boolean;
   account: ConnectedAccount;
   onToggle: (on: boolean) => void;
   onPick: (id: string) => void;
+  options: PublishOptions;
+  onOptions: (options: PublishOptions) => void;
+  disclose: boolean;
+  onDisclose: (on: boolean) => void;
 }) {
   const ids = { toggle: useId(), note: useId(), account: useId() };
   const several = accounts.length > 1;
-  const kind = account.kind === "instagram" ? "Instagram accounts" : "Pages";
+  const kind = ACCOUNT_KINDS[account.kind].plural;
   return (
     <div className="rounded-lg border border-border p-3">
       <div className="flex items-start justify-between gap-4">
@@ -126,6 +148,11 @@ function AutoPostChoice({
           </select>
         </div>
       )}
+      {on && hasOptions(account.kind) && (
+        <div className="mt-3 border-t border-border pt-3">
+          <PublishOptionsFields piece={piece} account={account} value={options} onChange={onOptions} disclose={disclose} onDisclose={onDisclose} />
+        </div>
+      )}
     </div>
   );
 }
@@ -150,12 +177,24 @@ function ScheduleForm({ piece, day, onDone }: { piece: ContentPiece; day?: strin
   const account = activeAccounts.find((option) => sameAccount(option.id, pickedAccount)) ?? defaultAccount(activeAccounts, piece.publish_to);
   // Sent only when the choice was shown; otherwise the post keeps what it has.
   const publishTo = offerAuto ? (autoOn && account ? account.id : null) : undefined;
-  const sameTarget = publishTo === undefined || (publishTo === null ? piece.publish_to == null : sameAccount(publishTo, piece.publish_to));
+  // The service's choices: the post's own when it already goes to that account, otherwise the service's defaults.
+  const [chosenOptions, setChosenOptions] = useState<PublishOptions | null>(null);
+  const [disclose, setDisclose] = useState(Boolean(piece.publish_options?.your_brand || piece.publish_options?.branded_content));
+  const options =
+    chosenOptions ?? (account ? startingOptions(account.kind, sameAccount(account.id, piece.publish_to) ? piece.publish_options : undefined) : {});
+  const publishOptions = publishTo != null && account ? options : undefined;
+  const optionsError = publishOptions && account ? optionsProblem(account.kind, publishOptions, disclose) : "";
+  const sameTarget =
+    publishTo === undefined ||
+    (publishTo === null ? piece.publish_to == null : sameAccount(publishTo, piece.publish_to) && sameOptions(publishOptions, piece.publish_options));
   const note = piece.posted_at ? null : autoPostNote(auto, platformInfo(piece.platform).label);
 
   const when = combine(date, time);
-  const problem = scheduleProblem(when);
+  const timeProblem = scheduleProblem(when);
+  const problem = timeProblem || optionsError;
   const shownProblem = tried ? problem : "";
+  // Only a problem with the time (or the API's answer) marks the date and time fields.
+  const timeInvalid = Boolean((tried && timeProblem) || apiErrorFor(schedule.error)) || undefined;
   const apiError = schedule.isError ? schedule.error.message : "";
   const unchanged = Boolean(scheduled && when && scheduled.getTime() === when.getTime()) && sameTarget;
   const today = new Date();
@@ -165,7 +204,10 @@ function ScheduleForm({ piece, day, onDone }: { piece: ContentPiece; day?: strin
     setTried(true);
     if (problem || !when) return;
     if (unchanged) return onDone(piece);
-    schedule.mutate({ id: piece.id, scheduled_at: toOffsetIso(when), publish_to: publishTo }, { onSuccess: onDone });
+    schedule.mutate(
+      { id: piece.id, scheduled_at: toOffsetIso(when), publish_to: publishTo, publish_options: publishOptions },
+      { onSuccess: onDone },
+    );
   };
 
   const pick = (date: Date) => {
@@ -218,7 +260,7 @@ function ScheduleForm({ piece, day, onDone }: { piece: ContentPiece; day?: strin
               schedule.reset();
             }}
             required
-            aria-invalid={Boolean(shownProblem || apiError) || undefined}
+            aria-invalid={timeInvalid}
             aria-describedby="schedule-zone schedule-problem"
             className={fieldClass}
           />
@@ -236,7 +278,7 @@ function ScheduleForm({ piece, day, onDone }: { piece: ContentPiece; day?: strin
               schedule.reset();
             }}
             required
-            aria-invalid={Boolean(shownProblem || apiError) || undefined}
+            aria-invalid={timeInvalid}
             aria-describedby="schedule-zone schedule-problem"
             className={fieldClass}
           />
@@ -249,6 +291,7 @@ function ScheduleForm({ piece, day, onDone }: { piece: ContentPiece; day?: strin
         </p>
         {offerAuto && account && (
           <AutoPostChoice
+            piece={piece}
             accounts={activeAccounts}
             on={autoOn}
             account={account}
@@ -258,8 +301,16 @@ function ScheduleForm({ piece, day, onDone }: { piece: ContentPiece; day?: strin
             }}
             onPick={(id) => {
               setPickedAccount(id);
+              setChosenOptions(null);
               schedule.reset();
             }}
+            options={options}
+            onOptions={(next) => {
+              setChosenOptions(next);
+              schedule.reset();
+            }}
+            disclose={disclose}
+            onDisclose={setDisclose}
           />
         )}
         <p>

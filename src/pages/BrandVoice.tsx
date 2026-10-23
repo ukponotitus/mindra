@@ -100,7 +100,7 @@ export default function BrandVoicePage() {
             Who you are
           </h3>
           <div className="grid gap-4 md:grid-cols-2">
-            <Field id="voice-brand-name" label="Church, ministry or brand name" error={fieldError("brand_name")}>
+            <Field id="voice-brand-name" label="Your name or brand" error={fieldError("brand_name")}>
               <input
                 {...describe("voice-brand-name", "brand_name")}
                 value={form.brand_name}
@@ -159,7 +159,7 @@ export default function BrandVoicePage() {
               value={form.words_to_use}
               onChange={set("words_to_use")}
               rows={2}
-              placeholder="church family, grace, testimony"
+              placeholder="e.g. community, growth, our story"
               className={cn(inputClass, "resize-y")}
             />
           </Field>

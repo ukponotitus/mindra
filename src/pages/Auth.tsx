@@ -210,7 +210,7 @@ export default function AuthPage({ mode }: Props) {
           </ul>
         </div>
 
-        <p className="text-sm text-white/60">Built for churches, podcasters and creators.</p>
+        <p className="text-sm text-white/60">Built for creators, podcasters, businesses and churches.</p>
       </aside>
 
       <main className="flex flex-1 items-start justify-center bg-background px-4 py-8 sm:items-center sm:px-8 sm:py-10">
@@ -275,7 +275,7 @@ export default function AuthPage({ mode }: Props) {
                       type="email"
                       autoComplete="email"
                       required
-                      placeholder="you@church.org"
+                      placeholder="you@example.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       className={inputClass}

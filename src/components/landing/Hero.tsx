@@ -140,7 +140,7 @@ function Stage({ progress, pointerX, pointerY }: StageProps) {
       <div className="absolute top-[300px] left-1/2 z-30 ml-[calc(-262px-var(--offset))] hidden min-[1180px]:block">
         <motion.div style={reduce ? undefined : { transform: leftCard }}>
           <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 1.6, duration: 0.6, ease: "easeOut" }}>
-            <GlassCard icon={Captions} label="Transcribed in 3 minutes" title="A 52-minute sermon, every word timestamped." />
+            <GlassCard icon={Captions} label="Transcribed in 3 minutes" title="A 52-minute talk, every word timestamped." />
           </motion.div>
         </motion.div>
       </div>
@@ -209,7 +209,7 @@ export default function Hero() {
         </h1>
 
         <motion.p {...enter(3)} className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-pretty text-white/60 sm:text-[21px]">
-          Turn every sermon, podcast and class into clips, captions and posts for every platform. Written in your voice.
+          Turn every talk, podcast, class and sermon into clips, captions and posts for every platform. Written in your voice.
         </motion.p>
 
         <motion.div {...enter(4)} className="mt-9 flex flex-col items-center justify-center gap-5 sm:flex-row sm:gap-9">

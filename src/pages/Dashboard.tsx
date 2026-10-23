@@ -129,7 +129,7 @@ export default function Dashboard() {
                 className="border-0 py-8"
                 icon={Video}
                 title="No projects yet"
-                description="Upload a sermon, podcast episode or webinar and Mindra will transcribe it."
+                description="Upload a talk, podcast episode, sermon or webinar and Mindra will transcribe it."
                 action={
                   <Link to="/projects/new" className={buttonStyles()}>
                     Upload your first recording

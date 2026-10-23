@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "./api";
 import { useContentList } from "./content";
-import type { ConnectedAccountId, ContentPiece, Paginated, ScheduleStatus } from "./types";
+import type { ConnectedAccountId, ContentPiece, Paginated, PublishOptions, ScheduleStatus } from "./types";
 
 const pad = (value: number) => String(value).padStart(2, "0");
 const MINUTE = 60_000;
@@ -304,21 +304,35 @@ export function useStorePiece() {
       data ? { ...data, results: data.results.map((item) => (item.id === piece.id ? piece : item)) } : data,
     );
     queryClient.invalidateQueries({ queryKey: ["content", "list"] });
+    // A content plan's posts follow the calendar.
+    queryClient.invalidateQueries({ queryKey: ["plans"] });
   };
 }
 
 /**
  * Put a post on the calendar, move it (an ISO time with its offset), or take it off (null). `publish_to` (sent only when
- * given) sets the account it's posted to automatically at that time, or null to only remind.
+ * given) sets the account it's posted to automatically at that time, or null to only remind; `publish_options`, the
+ * choices for that account's service (YouTube's visibility, TikTok's settings).
  */
 export function useSchedulePost() {
   const store = useStorePiece();
   return useMutation({
-    mutationFn: ({ id, scheduled_at, publish_to }: { id: string; scheduled_at: string | null; publish_to?: ConnectedAccountId | null }) =>
-      apiRequest<ContentPiece>(`/api/content/${id}/`, {
-        method: "PATCH",
-        body: publish_to === undefined ? { scheduled_at } : { scheduled_at, publish_to },
-      }),
+    mutationFn: ({
+      id,
+      scheduled_at,
+      publish_to,
+      publish_options,
+    }: {
+      id: string;
+      scheduled_at: string | null;
+      publish_to?: ConnectedAccountId | null;
+      publish_options?: PublishOptions;
+    }) => {
+      const body: Record<string, unknown> = { scheduled_at };
+      if (publish_to !== undefined) body.publish_to = publish_to;
+      if (publish_options !== undefined) body.publish_options = publish_options;
+      return apiRequest<ContentPiece>(`/api/content/${id}/`, { method: "PATCH", body });
+    },
     onSuccess: store,
   });
 }

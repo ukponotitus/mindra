@@ -19,6 +19,8 @@ const pageTitles: [pattern: string, title: string][] = [
   ["/clips", "Clips"],
   ["/vertical", "Vertical Videos"],
   ["/calendar", "Content Calendar"],
+  ["/plans/:planId", "Content Plan"],
+  ["/plans", "Content Plans"],
   ["/brand-voice", "Brand Voice"],
   ["/billing", "Billing"],
   ["/settings", "Settings"],
