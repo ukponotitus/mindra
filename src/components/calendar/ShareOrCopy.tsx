@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Check, Copy } from "lucide-react";
 import ShareButton from "../content/ShareButton";
 import { buttonStyles } from "../ui/button";
-import { photoFiles } from "../../lib/photos";
+import { postPhotoFiles } from "../../lib/photos";
 import { postMedia } from "../../lib/social";
 import type { ContentPiece } from "../../lib/types";
 
@@ -26,7 +26,7 @@ export default function ShareOrCopy({ piece, text, variant = "primary" }: { piec
       <ShareButton
         // New photos or a new order: fetch the files again.
         key={piece.photos.map((photo) => photo.id).join()}
-        loadFiles={() => photoFiles(piece.project)}
+        loadFiles={() => postPhotoFiles(piece.id)}
         text={text}
         title={piece.title || piece.project_name}
         variant={variant}

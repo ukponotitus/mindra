@@ -5,6 +5,7 @@ import ConfirmDialog from "../ui/ConfirmDialog";
 import ShareButton from "../content/ShareButton";
 import ClipPosts from "./ClipPosts";
 import NewClipDialog from "./NewClipDialog";
+import SeePlans from "../SeePlans";
 import { buttonStyles } from "../ui/button";
 import { cn } from "../../lib/cn";
 import {
@@ -22,7 +23,15 @@ import {
   type Clip,
 } from "../../lib/clips";
 import { formatDuration } from "../../lib/format";
+import { useBilling } from "../../lib/billing";
 import type { Project } from "../../lib/types";
+
+/** About how long making a clip takes: around four times its length on Mindra's clip worker, and never under two
+ * minutes ("about 5 minutes"). */
+function makingMinutes(seconds: number) {
+  const minutes = Math.max(2, Math.ceil((seconds * 4) / 60));
+  return `${minutes} minutes`;
+}
 
 // Trimming moves a clip's start or end by this much at a time.
 const NUDGE_SECONDS = 0.5;
@@ -106,6 +115,7 @@ function ClipCard({ clip, selected, onSelect }: { clip: Clip; selected: boolean;
 function ClipEditor({ clip, project }: { clip: Clip; project: Project }) {
   const update = useUpdateClip();
   const render = useRenderClip();
+  const billing = useBilling();
   const remove = useDeleteClip(project.id);
   const [draft, setDraft] = useState({ id: clip.id, start: clip.start, end: clip.end });
   const [copied, setCopied] = useState(false);
@@ -129,6 +139,8 @@ function ClipEditor({ clip, project }: { clip: Clip; project: Project }) {
 
   const rendered = clip.status === "ready" && clip.video_url && !clip.is_stale && !timingChanged;
   const rendering = clip.status === "rendering" || render.isPending;
+  // Made on the Free plan with the mark, and the plan now doesn't add it: it can be made again without.
+  const planDropsMark = billing.data ? !billing.data.plan.watermark : false;
   // The video shown: the made clip (its time counts from the clip's start), or the recording itself.
   const player = useRef<HTMLVideoElement>(null);
   const canUseCurrentTime = Boolean(rendered || project.source_url);
@@ -380,8 +392,16 @@ function ClipEditor({ clip, project }: { clip: Clip; project: Project }) {
             confirmLabel="Remove clip"
             onConfirm={() => remove.mutate(clip.id)}
           />
+          {rendered && clip.watermarked && planDropsMark && !rendering && (
+            <button type="button" onClick={() => render.mutate(clip.id)} className={buttonStyles({ variant: "secondary" })}>
+              <Clapperboard aria-hidden="true" className="size-4" />
+              Make it again without the mark
+            </button>
+          )}
           <p role="status" className="w-full text-sm text-pretty text-muted-foreground">
-            {rendering && "Cutting and captioning. This usually takes one to two minutes; you can leave this page."}
+            {rendering &&
+              `Cutting and captioning. A clip takes a few times its own length to make (about ${makingMinutes(clip.duration)} for this one); you can leave this page.`}
+            {!rendering && rendered && clip.watermarked && planDropsMark && "This clip was made on the Free plan, with the “Made with Mindra” mark. Your plan doesn't add it."}
             {!rendering && timingChanged && "Save the new timing before making the clip."}
             {!rendering && !timingChanged && clip.is_stale && "You changed this clip since it was made. Make it again to update the video."}
             {!rendering && !timingChanged && !clip.is_stale && !clip.video_url && longForm && "Long form keeps the video's own shape, so nothing is cut off."}
@@ -389,7 +409,7 @@ function ClipEditor({ clip, project }: { clip: Clip; project: Project }) {
         </div>
         {(clip.status === "failed" || render.isError || remove.isError) && (
           <p role="alert" className="text-sm text-red-600">
-            {clip.error || render.error?.message || remove.error?.message}
+            {clip.error || render.error?.message || remove.error?.message} <SeePlans error={render.error} text={clip.error} />
           </p>
         )}
       </div>

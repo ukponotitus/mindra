@@ -394,8 +394,16 @@ export function useReorderPhotos(projectId: string) {
  * the playback links would follow a redirect that the storage bucket refuses for pages.
  */
 export async function photoFiles(projectId: string): Promise<File[]> {
-  const list = await apiRequest<PhotoFile[]>(`/api/projects/${projectId}/photos/files/`);
-  if (list.length === 0) throw new Error("This post has no photos yet. Add them on the project's Photos tab.");
+  return downloadPhotos(await apiRequest<PhotoFile[]>(`/api/projects/${projectId}/photos/files/`), "This post has no photos yet. Add them on the project's Photos tab.");
+}
+
+/** A post's photos as files to share: its own, or its photo or flyer project's. */
+export async function postPhotoFiles(pieceId: string): Promise<File[]> {
+  return downloadPhotos(await apiRequest<PhotoFile[]>(`/api/content/${pieceId}/photos/files/`), "This post has no photos yet.");
+}
+
+async function downloadPhotos(list: PhotoFile[], none: string): Promise<File[]> {
+  if (list.length === 0) throw new Error(none);
   return Promise.all(
     list.map(async (info) => {
       let response: Response;

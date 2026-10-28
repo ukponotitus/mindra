@@ -4,6 +4,8 @@ import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import PostSchedule from "../components/calendar/PostSchedule";
 import ReminderBanner from "../components/calendar/ReminderBanner";
 import AiWriterNotice from "../components/content/AiWriterNotice";
+import PostMedia from "../components/content/PostMedia";
+import PostResults from "../components/content/PostResults";
 import PlatformBadge from "../components/content/PlatformBadge";
 import SuggestionsPanel from "../components/content/SuggestionsPanel";
 import { ClipStrip, PostPhotos } from "../components/content/ContentCard";
@@ -14,9 +16,9 @@ import { clipFrame } from "../lib/clips";
 import { cn } from "../lib/cn";
 import { TONES, useContentPiece, useDeletePiece, useRewritePiece, useUpdatePiece, type RewriteAction } from "../lib/content";
 import { formatDate } from "../lib/format";
-import { photoFiles } from "../lib/photos";
+import { postPhotoFiles } from "../lib/photos";
 import { postOrigin } from "../lib/plans";
-import { platformInfo } from "../lib/projects";
+import { isPicturePost, platformInfo } from "../lib/projects";
 import type { ClipSummary } from "../lib/types";
 
 const toolButton = buttonStyles({ variant: "secondary", size: "sm", className: "h-9" });
@@ -129,6 +131,7 @@ export default function ContentEditor() {
   }
 
   const info = platformInfo(piece.platform);
+  const ownMedia = !isPicturePost(piece.project_source_type) && (!piece.clip || piece.clip.uploaded);
   const dirty = title !== piece.title || body !== piece.body;
   const overLimit = info.limit !== undefined && body.length > info.limit;
   const approved = piece.status === "approved";
@@ -362,8 +365,11 @@ export default function ContentEditor() {
         </div>
 
         <div className="space-y-4">
-          {piece.clip && <PostClip clip={piece.clip} project={piece.project} text={body} title={piece.title} />}
-          {piece.photos.length > 0 && (
+          {/* A post with no media of its own kind (a plan's note, a recording's text post) gets photos or a video here;
+              a clip's post and a photo or flyer post show theirs. */}
+          {ownMedia && <PostMedia piece={piece} text={body} />}
+          {!ownMedia && piece.clip && <PostClip clip={piece.clip} project={piece.project} text={body} title={piece.title} />}
+          {!ownMedia && piece.photos.length > 0 && (
             <section aria-labelledby="post-photos" className="rounded-xl border border-border bg-white p-5">
               <h3 id="post-photos" className="mb-3 text-sm font-semibold text-foreground">
                 Photos
@@ -373,7 +379,7 @@ export default function ContentEditor() {
                 <ShareButton
                   // New photos or a new order: fetch the files again.
                   key={piece.photos.map((photo) => photo.id).join()}
-                  loadFiles={() => photoFiles(piece.project)}
+                  loadFiles={() => postPhotoFiles(piece.id)}
                   text={body}
                   title={piece.title || piece.project_name}
                   variant="primary"
@@ -383,6 +389,7 @@ export default function ContentEditor() {
             </section>
           )}
           <PostSchedule piece={piece} />
+          <PostResults piece={piece} body={body} onBodyChange={setBody} />
           <SuggestionsPanel
             key={piece.id}
             pieceId={piece.id}

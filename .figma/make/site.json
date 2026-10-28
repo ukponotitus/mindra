@@ -1,6 +1,9 @@
 {
-  "title": "Mindra",
-  "description": "Mindra turns one recorded talk, podcast, class or sermon into a month of ready-to-post content.",
+  "title": "Mindra · AI Content Creation, Repurposing & Social Media Automation",
+  "description": "Create social media posts, captions and short videos from audio, video, text and images with Mindra. Plan, organise and publish content with AI.",
+  "openGraph": {
+    "image": "https://mindra.online/og-image.png"
+  },
   "robots": {
     "index": false
   },

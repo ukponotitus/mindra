@@ -27,6 +27,10 @@ export type Clip = {
   error: string;
   /** Rendered, but trimmed, restyled or reshaped since: render again to update the video. */
   is_stale: boolean;
+  /** The Motion Studio project whose video this clip carries (studio/posting.py), or null for a clip of a recording. */
+  studio_project: string | null;
+  /** Made with the Free plan's "Made with Mindra" mark. */
+  watermarked: boolean;
   video_url: string | null;
   download_url: string | null;
   thumbnail_url: string | null;
@@ -56,9 +60,9 @@ export function clipFrame(shape: ClipShape | undefined, tall: string, wide = "as
 
 const key = (projectId: string) => ["clips", "project", projectId];
 
-/** A clip's place in its project's Clips tab. */
-export function clipPath(clip: Pick<Clip, "id" | "project">) {
-  return `/projects/${clip.project}?tab=clips&clip=${clip.id}`;
+/** A clip's place in its project's Clips tab, or the Motion Studio video it carries. */
+export function clipPath(clip: Pick<Clip, "id" | "project"> & { studio_project?: string | null }) {
+  return clip.studio_project ? `/studio/${clip.studio_project}` : `/projects/${clip.project}?tab=clips&clip=${clip.id}`;
 }
 
 /** The badge for a clip's state. */

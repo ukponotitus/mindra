@@ -5,6 +5,7 @@ import { useLocation, useNavigate } from "react-router";
 import { useAuth } from "../../auth/context";
 import { backdropClass, popupClass } from "../calendar/dialogStyles";
 import ConfirmDialog from "../ui/ConfirmDialog";
+import SeePlans from "../SeePlans";
 import { buttonStyles } from "../ui/button";
 import { ApiError } from "../../lib/api";
 import { formatDayShort } from "../../lib/calendar";
@@ -271,7 +272,7 @@ function PendingPanel({
       )}
       {error && (
         <p role="alert" className="mt-3 text-sm text-pretty text-red-600">
-          {error}
+          {error} <SeePlans text={error} />
         </p>
       )}
       {onRetry && (
@@ -401,7 +402,7 @@ function WordPressDialog({
             </div>
             {generalError && (
               <p role="alert" className="rounded-lg bg-red-50 px-3.5 py-2.5 text-sm text-pretty text-red-700">
-                {generalError}
+                {generalError} <SeePlans error={connect.error} />
               </p>
             )}
             <div className="flex justify-end gap-2 border-t border-border pt-4">

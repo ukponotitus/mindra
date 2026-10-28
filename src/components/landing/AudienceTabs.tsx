@@ -2,14 +2,13 @@ import { useRef, useState } from "react";
 import { AnimatePresence, motion, useInView, useReducedMotion } from "framer-motion";
 import {
   ArrowRight,
-  AudioLines,
-  BookOpen,
+  Briefcase,
+  CalendarDays,
   Church,
   Clapperboard,
   FileText,
   GraduationCap,
-  Layers,
-  ListChecks,
+  Images,
   Mail,
   Megaphone,
   MessageCircle,
@@ -17,7 +16,7 @@ import {
   Newspaper,
   Play,
   Quote,
-  Users,
+  RectangleVertical,
 } from "lucide-react";
 import { Link } from "react-router";
 import { cn } from "../../lib/cn";
@@ -25,6 +24,7 @@ import Ribbon from "./hero/Ribbon";
 import Reveal from "./Reveal";
 import { useCtaLinks } from "./useCtaLinks";
 
+// Each audience's outputs are things Mindra makes today.
 const audiences = [
   {
     id: "churches",
@@ -34,14 +34,14 @@ const audiences = [
     length: "48 min",
     noun: "sermon",
     headline: "Keep Sunday's message going all week.",
-    text: "Members who missed the service catch up on WhatsApp, the whole church shares clips from the message, and your media team gets its weekends back.",
+    text: "Turn sermons, devotionals and church events into content that keeps your community engaged throughout the week.",
     outputs: [
-      { icon: Clapperboard, label: "Captioned clips" },
-      { icon: BookOpen, label: "Daily devotionals" },
-      { icon: MessageCircle, label: "WhatsApp summary" },
-      { icon: Users, label: "Small-group guide" },
-      { icon: Quote, label: "Scripture quote cards" },
+      { icon: Clapperboard, label: "Captioned clips from the message" },
+      { icon: MessageCircle, label: "WhatsApp Channel message" },
       { icon: Megaphone, label: "Facebook & Instagram posts" },
+      { icon: Images, label: "Announcements from your event flyer" },
+      { icon: Quote, label: "Quote card text" },
+      { icon: CalendarDays, label: "The week planned on the calendar" },
     ],
     // Left panel, right backdrop and the ribbon that runs through it.
     panel: "#1C1B20",
@@ -50,20 +50,20 @@ const audiences = [
     ribbon: ["#121318", "#4A5162", "#C9CDD8", "#2A2E38"],
   },
   {
-    id: "podcasters",
-    label: "Podcasters",
+    id: "creators",
+    label: "Podcasters & video creators",
     icon: Mic,
     source: "Episode 42",
     length: "63 min",
     noun: "episode",
     headline: "Every episode becomes a week of promotion.",
-    text: "Promote each episode on every platform without hiring an editor, and turn casual listeners into subscribers.",
+    text: "Turn long-form episodes into short clips, captions and social media posts without recreating everything by hand.",
     outputs: [
-      { icon: AudioLines, label: "Audiogram clips" },
-      { icon: FileText, label: "Show notes with timestamps" },
-      { icon: Mail, label: "Newsletter recap" },
+      { icon: Clapperboard, label: "Short clips with captions" },
+      { icon: RectangleVertical, label: "Vertical versions for Reels and Shorts" },
+      { icon: FileText, label: "TikTok and YouTube posts" },
       { icon: Megaphone, label: "LinkedIn & X posts" },
-      { icon: Quote, label: "Guest quote cards" },
+      { icon: Mail, label: "Newsletter recap" },
       { icon: Newspaper, label: "Blog post" },
     ],
     panel: "#16132A",
@@ -78,20 +78,42 @@ const audiences = [
     source: "Live masterclass",
     length: "72 min",
     noun: "class",
-    headline: "Turn every class into your next clients.",
-    text: "Teach once, then let the best moments find new students all week across social media, email and your blog.",
+    headline: "Teach once. Share it all week.",
+    text: "Repurpose lessons, webinars, workshops and training material into educational content for your audience.",
     outputs: [
       { icon: Clapperboard, label: "Teaching clips" },
-      { icon: Layers, label: "Carousel of key lessons" },
-      { icon: Mail, label: "Email sequence" },
+      { icon: Megaphone, label: "LinkedIn & Instagram posts" },
+      { icon: Mail, label: "Newsletter" },
       { icon: Newspaper, label: "Blog article" },
-      { icon: ListChecks, label: "Lead-magnet checklist" },
-      { icon: Users, label: "Community post" },
+      { icon: Quote, label: "Quote card text" },
+      { icon: MessageCircle, label: "WhatsApp message for your community" },
     ],
     panel: "#0F1C19",
     accent: "#5EEAD4",
     backdrop: "radial-gradient(110% 90% at 60% 20%,#EAF6F2 0%,#D3ECE5 55%,#B9DDD3 100%)",
     ribbon: ["#0F766E", "#2DD4BF", "#99F6E4", "#115E59"],
+  },
+  {
+    id: "businesses",
+    label: "Businesses & marketing teams",
+    icon: Briefcase,
+    source: "Launch flyer",
+    length: "6 product photos",
+    noun: "launch",
+    headline: "Promote every launch, offer and event.",
+    text: "Create promotional content from product photos, announcements, videos, event flyers and the marketing material you already have.",
+    outputs: [
+      { icon: Images, label: "Instagram & Facebook posts from your photos" },
+      { icon: Megaphone, label: "Announcements from your flyer" },
+      { icon: FileText, label: "LinkedIn & X posts" },
+      { icon: MessageCircle, label: "WhatsApp broadcast message" },
+      { icon: Clapperboard, label: "Short clips from product videos" },
+      { icon: CalendarDays, label: "Scheduled on the calendar" },
+    ],
+    panel: "#1E1712",
+    accent: "#FDBA74",
+    backdrop: "radial-gradient(110% 90% at 65% 20%,#FBEFE3 0%,#F4DCC4 55%,#E9C6A5 100%)",
+    ribbon: ["#7C2D12", "#EA580C", "#FDBA74", "#431407"],
   },
 ];
 
@@ -113,14 +135,14 @@ export default function AudienceTabs() {
   };
 
   return (
-    <section className="bg-[#EDEDED] px-4 pb-24 sm:px-6 lg:pb-32">
+    <section id="who" className="scroll-mt-16 bg-[#EDEDED] px-4 pb-24 sm:px-6 lg:pb-32">
       <Reveal className="mx-auto max-w-7xl">
         <div ref={cardRef} className="grid overflow-hidden rounded-[2rem] shadow-2xl lg:min-h-[640px] lg:grid-cols-2">
           {/* Left: the message, on a dark panel that changes tone with the audience */}
           <div className="relative flex flex-col overflow-hidden px-7 py-10 text-white transition-colors duration-200 sm:px-12 sm:py-14" style={{ background: audience.panel }}>
             <div className="relative flex flex-1 flex-col justify-center lg:pt-10">
               <p className="text-[13px] font-medium" style={{ color: audience.accent }}>
-                Built for people who speak every week
+                Built for people who create every week
               </p>
               <div className="relative mt-6 min-h-[250px] sm:min-h-[220px]">
                 <AnimatePresence mode="wait" initial={false}>

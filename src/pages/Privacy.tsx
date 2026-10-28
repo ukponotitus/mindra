@@ -44,6 +44,22 @@ export default function PrivacyPage() {
           <a href="#facebook-instagram">Connected Facebook and Instagram accounts</a> below.
         </li>
         <li>
+          <strong>Post results:</strong> for a post Mindra posts to one of your connected accounts, or one whose link you
+          paste in, the number of views, likes, comments and shares the platform reports, read for a month after the post
+          goes out. Mindra reads the numbers only, not the comments themselves or who left them.
+        </li>
+        <li>
+          <strong>Clicks on Mindra links:</strong> when you choose to count the clicks on a web address in a post, Mindra
+          puts a short link (mindra.online/l/…) in its place. When someone clicks it, Mindra counts the click, by day and
+          by the country Cloudflare says it came from, then sends them on. It doesn’t keep the IP address, browser or any
+          cookie of the person who clicked, and link previews (WhatsApp, Facebook and the like) aren’t counted.
+        </li>
+        <li>
+          <strong>Payments, if you pay for a plan:</strong> the plan, the amounts and dates, each payment’s reference, how it
+          was paid, and the card’s brand and last four digits, which Paystack tells us. Your full card number never reaches
+          Mindra: you enter it on Paystack’s page.
+        </li>
+        <li>
           <strong>Usage records:</strong> how much AI writing each workspace uses, so we can keep costs under control. These
           records hold amounts, not your content.
         </li>
@@ -52,13 +68,14 @@ export default function PrivacyPage() {
           pages requested, to keep Mindra running and secure.
         </li>
       </ul>
-      <p>We don’t ask for payment details. Mindra is free during the beta.</p>
 
       <h2>How we use it</h2>
       <ul>
         <li>To run Mindra for you: signing you in, transcribing your recordings, and writing the analysis, posts and clips you ask for.</li>
         <li>To publish the posts you choose to the Facebook Pages and Instagram accounts you connect.</li>
-        <li>To email you about your account, such as password reset links, and about important changes to the beta.</li>
+        <li>To show you how your posts did: their views, likes, comments and shares, and the clicks on their links.</li>
+        <li>To take payments for paid plans, and keep a record of them.</li>
+        <li>To email you about your account, such as password reset links and a renewal that wasn’t paid, and about important changes to the beta.</li>
         <li>To keep Mindra secure, fix problems and keep costs in check.</li>
       </ul>
       <p>
@@ -92,6 +109,10 @@ export default function PrivacyPage() {
         <li>
           After posting, it keeps the post’s id and its link on Facebook or Instagram, so you can open it from Mindra, or the
           reason Meta gave if the post couldn’t go out.
+        </li>
+        <li>
+          For a month after a post goes out, it reads how many likes (reactions), comments and shares the post has, to show
+          you how it did. It reads only those numbers.
         </li>
         <li>
           It doesn’t read your messages, comments or followers, doesn’t post to your personal Facebook profile, and doesn’t
@@ -147,6 +168,11 @@ export default function PrivacyPage() {
           , and you manage it there.
         </li>
         <li>
+          <strong>Paystack</strong> takes payments for paid plans. It receives your email address and the plan you pay for,
+          and handles your card or bank details under{" "}
+          <a href="https://paystack.com/privacy">Paystack’s Privacy Policy</a>.
+        </li>
+        <li>
           <strong>Sentry</strong> receives technical reports when something goes wrong, so we can fix it.
         </li>
         <li>
@@ -173,6 +199,14 @@ export default function PrivacyPage() {
         <li>
           A connected Facebook Page or Instagram account, and its access token, stays until you disconnect it, or until Meta
           sends us a deletion request for the Facebook account that connected it.
+        </li>
+        <li>
+          A post’s results stay until the post is deleted. A Mindra short link keeps working, and counting, after its post is
+          deleted, since it may still be shared somewhere; its counts are deleted with the workspace.
+        </li>
+        <li>
+          Deleting a workspace deletes Mindra’s record of its payments too. Paystack keeps its own records of payments, under
+          its privacy policy.
         </li>
         <li>Copies can remain in our database backups until those backups are replaced.</li>
         <li>Your account stays until you ask us to delete it.</li>

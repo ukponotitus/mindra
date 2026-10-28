@@ -14,6 +14,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router";
+import SeePlans from "../components/SeePlans";
 import { buttonStyles } from "../components/ui/button";
 import { ApiError } from "../lib/api";
 import { cn } from "../lib/cn";
@@ -134,7 +135,9 @@ export default function Processing() {
         <h2 className="mb-2 text-2xl font-semibold text-balance break-words text-foreground">
           {done ? "Your transcript is ready" : failed ? "Processing stopped" : `Processing "${project.name}"`}
         </h2>
-        <p className={cn("text-sm text-pretty break-words", failed ? "text-red-700" : "text-muted-foreground")}>{subtitle}</p>
+        <p className={cn("text-sm text-pretty break-words", failed ? "text-red-700" : "text-muted-foreground")}>
+          {subtitle} {failed && <SeePlans text={project.error} />}
+        </p>
       </div>
 
       <div className="mb-6 rounded-xl border border-border bg-white p-5 sm:p-6">

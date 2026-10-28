@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ArrowRight, FileText, LoaderCircle, PenLine, Pencil } from "lucide-react";
-import { Link, useNavigate, useParams, useSearchParams } from "react-router";
+import { Link, Navigate, useNavigate, useParams, useSearchParams } from "react-router";
 import EmptyState from "../components/EmptyState";
 import NextSteps from "../components/project/NextSteps";
 import ProjectAnalysis from "../components/project/ProjectAnalysis";
@@ -12,6 +12,7 @@ import TranscriptPanel from "../components/project/TranscriptPanel";
 import RenameProjectInput from "../components/RenameProjectInput";
 import StatusBadge from "../components/StatusBadge";
 import ConfirmDialog from "../components/ui/ConfirmDialog";
+import SeePlans from "../components/SeePlans";
 import { buttonStyles } from "../components/ui/button";
 import { ApiError } from "../lib/api";
 import { cn } from "../lib/cn";
@@ -103,6 +104,9 @@ export default function ProjectDetails() {
       </div>
     );
   }
+
+  // A Motion Studio video's posting project: the video and its posts are in Motion Studio.
+  if (project.studio_project) return <Navigate to={`/studio/${project.studio_project}`} replace />;
 
   const segments = transcript.data?.segments ?? [];
   const speakers = new Set(segments.map((segment) => segment.speaker).filter(Boolean)).size;
@@ -244,7 +248,9 @@ export default function ProjectDetails() {
       {failed && !isFlyer && (
         <div className="mb-6 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-800">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <span className="text-pretty">{project.error || "Processing stopped."}</span>
+            <span className="text-pretty">
+              {project.error || "Processing stopped."} <SeePlans text={project.error} />
+            </span>
             <button
               type="button"
               onClick={() => retry.mutate(project.id)}

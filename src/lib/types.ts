@@ -70,6 +70,8 @@ export type Project = {
   cover_url: string | null;
   /** Flyer posts: the text Mindra read from the flyers, which can be corrected. Empty until they're read. */
   flyer_text: string;
+  /** For the project that carries a Motion Studio video into the Content Library: that video, edited in Motion Studio. */
+  studio_project: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -221,6 +223,12 @@ export type ClipSummary = {
   shape: ClipShape;
   status: "suggested" | "rendering" | "ready" | "failed";
   is_stale: boolean;
+  /** The Motion Studio project whose video this clip carries, or null for a clip of a recording. */
+  studio_project: string | null;
+  /** A video someone added to a post themselves (not cut from a recording, not in the project's clips). */
+  uploaded: boolean;
+  /** Made with the Free plan's mark. */
+  watermarked: boolean;
   video_url: string | null;
   download_url: string | null;
   thumbnail_url: string | null;
@@ -272,8 +280,24 @@ export type ContentPiece = {
   published_url: string | null;
   /** Why automatic posting failed, in words for the person. */
   publish_error: string;
+  /** How it did (src/lib/results.ts), or null when Mindra follows neither its numbers nor clicks on its links. */
+  results: PostNumbers | null;
+  /** Why it can't have photos or a video of its own (they come from its photo project or its clip, it's out, …), or
+   * "" when it can (`useSetPostMedia`). */
+  media_problem: string;
   created_at: string;
   updated_at: string;
+};
+
+/** A post's numbers on its platform (null: not shared, or not read yet) and the clicks on its Mindra links (null: it
+ * has none). `following`: Mindra reads its numbers. */
+export type PostNumbers = {
+  views: number | null;
+  likes: number | null;
+  comments: number | null;
+  shares: number | null;
+  clicks: number | null;
+  following: boolean;
 };
 
 /** GET /api/social/accounts/: a Facebook Page or an Instagram professional account Mindra can post to. */

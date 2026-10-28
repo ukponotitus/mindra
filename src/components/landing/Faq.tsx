@@ -5,30 +5,75 @@ import { cn } from "../../lib/cn";
 import Reveal from "./Reveal";
 import SectionLabel from "./SectionLabel";
 
+// Answers describe what Mindra does today; anything still to come says so.
 const questions = [
   {
-    q: "Is Mindra really free right now?",
-    a: "Yes. Everything that's live is free while Mindra is in beta. Paid plans start after the beta, and you'll hear from us before anything changes.",
+    q: "What exactly does Mindra do?",
+    a: "Mindra turns what you already have (videos, audio, text, photos, event flyers and content plans) into posts, captions and short videos for 11 platforms, written in your brand voice. You review everything, plan it on a calendar, and Mindra reminds you when each post is due or publishes it for you where that's available.",
+  },
+  {
+    q: "Can I use Mindra without uploading a video?",
+    a: "Yes. You can upload audio, paste text or a transcript, add photos or a flyer, or import a content plan. A video is only needed for clips.",
   },
   {
     q: "What can I upload?",
-    a: "Video (MP4, MOV, AVI, MKV, WEBM), audio (MP3, WAV, AAC, M4A, FLAC) up to 2 GB, or a transcript you already have, including SRT and WebVTT captions.",
+    a: "Video (MP4, MOV, AVI, MKV, WEBM) and audio (MP3, WAV, AAC, M4A, FLAC) up to 2 GB, a transcript you already have (including SRT and WebVTT captions), photos, and event flyers.",
   },
   {
-    q: "Will the posts sound like me?",
-    a: "That's the point. Mindra learns from your past posts, your preferred tone and the words you do and don't use. Nothing goes out until you've reviewed and approved it.",
+    q: "Can Mindra create posts from images and flyers?",
+    a: "Yes. Photo posts get captions written from what's in the pictures. For a flyer, Mindra reads every word on it (names, dates, times, venues and phone numbers) and writes announcements from it. You can check and correct what it read.",
   },
   {
-    q: "Who owns my recordings and content?",
-    a: "You do. Your recordings and transcripts are private to your workspace, and you can delete them at any time.",
+    q: "Which social media platforms does Mindra support?",
+    a: "Mindra writes for Instagram, Facebook, TikTok, YouTube Shorts, YouTube, WhatsApp, X, LinkedIn, newsletters, blogs and quote cards. It publishes automatically to YouTube, LinkedIn and WordPress today; Facebook, Instagram, TikTok and X are built and waiting on each platform's approval. Everywhere else, you share in one tap from your phone or copy the post.",
+  },
+  {
+    q: "Can Mindra publish posts automatically?",
+    a: "Yes, to connected YouTube channels, LinkedIn profiles and WordPress sites, at the time you schedule. Where automatic posting isn't available yet, Mindra reminds you when a post is due so you can share it.",
+  },
+  {
+    q: "Is my content published without my approval?",
+    a: "No. Nothing is posted unless you schedule it or choose Post now, and only to an account you've connected and picked for that post. You can change or unschedule a post at any time before it goes out.",
+  },
+  {
+    q: "Can I edit content before publishing?",
+    a: "Yes. Every post opens in an editor where you can change the text, ask for suggestions or have it written again. Clips can be trimmed and their caption style changed.",
+  },
+  {
+    q: "Does Mindra support my brand voice?",
+    a: "Yes. In Brand Voice you set your tone, your audience, the words you use and avoid, and sample posts. Everything Mindra writes follows them.",
+  },
+  {
+    q: "Can I import an existing content calendar?",
+    a: "Yes. Paste your plan, or upload a spreadsheet (.xlsx), a CSV or text file, or a photo of it. Mindra reads it into posts and writes each one, and the ones you approve go on your calendar.",
+  },
+  {
+    q: "Can I use Mindra for my church or business?",
+    a: "Yes. Mindra is for anyone who makes content regularly: churches and ministries, podcasters and creators, coaches and educators, and businesses and marketing teams.",
+  },
+  {
+    q: "Will Mindra provide analytics and performance reports?",
+    a: "Yes, the basics. Mindra counts the clicks on its links in any post, on any platform, and shows the views, likes and comments of your YouTube posts, with the days and times that work best. Facebook, Instagram and X posts get theirs once Mindra can post there, and reach and watch time come as each platform gives access.",
+  },
+  {
+    q: "Is Mindra free during the beta?",
+    a: "Yes. Everything that's live is free while Mindra is in beta, with no credit card needed. While the beta is private, sign-up may ask for an invite code.",
+  },
+  {
+    q: "What happens when the beta ends?",
+    a: "The beta ends on 1 December 2026. After that, workspaces that haven't chosen a paid plan move to the Free plan, and paid plans start at ₦5,000 a month. Nothing you've made is removed, and you'll hear from us before anything changes.",
+  },
+  {
+    q: "Who owns the content I upload?",
+    a: "You do. Your recordings, transcripts and posts are private to your workspace, and you can delete them at any time.",
   },
   {
     q: "Which languages does it support?",
     a: "Transcription works in many languages, including English. Better support for Yoruba, Hausa, Igbo, Swahili and Pidgin is a priority on our roadmap.",
   },
   {
-    q: "Can my whole media team use it?",
-    a: "Workspaces are built for teams. Inviting teammates, roles and approval before publishing are coming soon.",
+    q: "Can my whole team use it?",
+    a: "Inviting teammates with their own sign-in, roles and approval before publishing are planned.",
   },
 ];
 

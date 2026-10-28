@@ -5,11 +5,13 @@ import PublishStatus from "../calendar/PublishStatus";
 import ScheduleChip from "../calendar/ScheduleChip";
 import { ClipStrip, PostPhotos } from "../content/ContentCard";
 import PlatformBadge from "../content/PlatformBadge";
+import SeePlans from "../SeePlans";
 import ConfirmDialog from "../ui/ConfirmDialog";
 import { buttonStyles } from "../ui/button";
 import { formatTime, scheduleStatus } from "../../lib/calendar";
 import { clipFrame } from "../../lib/clips";
 import { cn } from "../../lib/cn";
+import { isPicturePost } from "../../lib/projects";
 import { formatLabel, useEntryAction } from "../../lib/plans";
 import type { ContentPiece, PlanEntry, Project } from "../../lib/types";
 import EntryForm from "./EntryForm";
@@ -84,7 +86,7 @@ function Draft({ piece, approved }: { piece: ContentPiece; approved: boolean }) 
       )}
       {!videoReady && photos.length > 0 && (
         <div className="mb-3 max-w-72">
-          <PostPhotos photos={photos} project={piece.project} />
+          <PostPhotos photos={photos} project={isPicturePost(piece.project_source_type) ? piece.project : null} />
         </div>
       )}
       {piece.title && <p className="mb-1 truncate text-xs font-medium text-muted-foreground">{piece.title}</p>}
@@ -160,7 +162,7 @@ export default function EntryCard({ planId, entry, projects, projectsLoading, pl
                 entry.status === "failed" ? "text-red-700" : entry.status === "needs" ? "text-amber-800" : "text-muted-foreground",
               )}
             >
-              {entry.problem}
+              {entry.problem} <SeePlans text={entry.problem} />
             </p>
           )}
           {problems.length > 0 && !writing && (

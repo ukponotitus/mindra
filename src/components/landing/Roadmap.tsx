@@ -1,39 +1,57 @@
 import { motion } from "framer-motion";
-import { ArrowRight, Captions, Clapperboard, Flag, PenLine, Send } from "lucide-react";
+import { ArrowRight, Check, Circle, Flag, Hammer } from "lucide-react";
 import { Link } from "react-router";
+import { cn } from "../../lib/cn";
 import Reveal from "./Reveal";
 import SectionLabel from "./SectionLabel";
 import { useCtaLinks } from "./useCtaLinks";
 
-const stages = [
+// What works today, what's built and waiting (on a platform's approval, or testing), and what's planned. Only the first
+// group may be described as available anywhere on the page.
+const groups = [
   {
-    when: "Live now",
-    icon: Captions,
-    title: "Transcripts",
-    text: "Upload a video, audio file or transcript and get every word, timestamped and searchable.",
-    live: true,
+    when: "Available now",
+    tone: "live",
+    icon: Check,
+    items: [
+      "Transcripts of video and audio, with speakers",
+      "Posts for 11 platforms in your brand voice",
+      "Posts from photos and event flyers",
+      "Captioned clips and vertical videos",
+      "Content plans turned into draft posts",
+      "Content library and calendar, with one-tap sharing",
+      "Automatic posting to YouTube, LinkedIn and WordPress",
+      "Post results: YouTube views, likes and comments, and clicks on Mindra links",
+    ],
   },
   {
-    when: "Live now",
-    icon: PenLine,
-    title: "Posts in your voice",
-    text: "Captions and posts for every platform in your brand voice, from a recording or from photos.",
-    live: true,
+    when: "In development",
+    tone: "building",
+    icon: Hammer,
+    items: [
+      "Automatic posting to Facebook, Instagram, TikTok and X: built, waiting on each platform's approval",
+      "Paying for plans online, in naira: built, being tested",
+    ],
   },
   {
-    when: "Live now",
-    icon: Clapperboard,
-    title: "Clips and a calendar",
-    text: "Captioned vertical clips from your strongest moments, and a calendar that reminds you when each post is due.",
-    live: true,
+    when: "Planned",
+    tone: "planned",
+    icon: Circle,
+    items: [
+      "Reach and impressions, as each platform gives access",
+      "Video watch time, where platforms share it",
+      "AI recommendations for what to post next",
+      "Advanced workflow automation",
+      "Team collaboration and approvals",
+    ],
   },
-  {
-    when: "Coming next",
-    icon: Send,
-    title: "Posting for you",
-    text: "Scheduled posts that go out to Facebook and Instagram by themselves, and new recordings imported automatically.",
-  },
-];
+] as const;
+
+const TONE = {
+  live: { label: "text-[#047857]", dot: "bg-[#10B981]", icon: "bg-[#10B981] text-white", mark: "text-[#10B981]" },
+  building: { label: "text-[#6D28D9]", dot: "bg-[#8B5CF6]", icon: "bg-[#EDE9FE] text-[#6D28D9]", mark: "text-[#8B5CF6]" },
+  planned: { label: "text-[#71717A]", dot: "bg-[#A1A1AA]", icon: "bg-[#F4F4F5] text-[#71717A]", mark: "text-[#A1A1AA]" },
+};
 
 export default function Roadmap() {
   const { startTo } = useCtaLinks();
@@ -52,7 +70,7 @@ export default function Roadmap() {
           </div>
           <div className="max-w-sm lg:pb-2">
             <p className="text-[15px] leading-relaxed text-[#52525B]">
-              Here's what you can use now and what's on the way. Beta members help decide what we build first.
+              What you can use now, what we're finishing and what's planned. Beta members help decide what we build first.
             </p>
             <Link
               to={startTo}
@@ -64,17 +82,17 @@ export default function Roadmap() {
           </div>
         </Reveal>
 
-        {/* A track across the top: the live part is lit, the rest is still to come */}
+        {/* A track across the top: the part that's live is lit, the rest is still to come */}
         <div className="relative mt-16 hidden h-px bg-black/10 lg:block">
           <motion.div
-            className="absolute inset-y-0 left-0 w-3/4 origin-left bg-[#10B981]"
+            className="absolute inset-y-0 left-0 w-1/3 origin-left bg-[#10B981]"
             initial={{ scaleX: 0 }}
             whileInView={{ scaleX: 1 }}
             viewport={{ once: true, amount: 1 }}
             transition={{ duration: 0.8, ease: "easeOut" }}
           />
           <motion.span
-            className="absolute -top-[5px] left-3/4 h-[11px] w-[11px] -translate-x-1/2 rounded-full bg-[#10B981] ring-4 ring-[#10B981]/20"
+            className="absolute -top-[5px] left-1/3 h-[11px] w-[11px] -translate-x-1/2 rounded-full bg-[#10B981] ring-4 ring-[#10B981]/20"
             initial={{ scale: 0 }}
             whileInView={{ scale: 1 }}
             viewport={{ once: true, amount: 1 }}
@@ -82,32 +100,34 @@ export default function Roadmap() {
           />
         </div>
 
-        <div className="mt-10 grid gap-y-10 sm:grid-cols-2 lg:mt-0 lg:grid-cols-4">
-          {stages.map((stage, i) => {
-            const Icon = stage.icon;
+        <div className="mt-10 grid gap-y-10 md:grid-cols-3 lg:mt-0">
+          {groups.map((group, i) => {
+            const tone = TONE[group.tone];
+            const Icon = group.icon;
             return (
-              <Reveal key={stage.title} delay={i * 110} className="border-l border-black/10 px-6 lg:pt-10">
-                <div className="flex items-center justify-between">
-                  <span className={`inline-flex items-center gap-2 text-xs font-semibold ${stage.live ? "text-[#047857]" : "text-[#A1A1AA]"}`}>
-                    {stage.live && (
-                      <span className="relative flex h-2 w-2">
-                        <span className="absolute inset-0 animate-ping-soft rounded-full bg-[#10B981]" />
-                        <span className="relative h-2 w-2 rounded-full bg-[#10B981]" />
-                      </span>
-                    )}
-                    {stage.when}
+              <Reveal key={group.when} delay={i * 110} className="border-l border-black/10 px-6 lg:pt-10">
+                <h3 className={cn("inline-flex items-center gap-2 text-xs font-semibold", tone.label)}>
+                  <span className="relative flex h-2 w-2">
+                    {group.tone === "live" && <span className="absolute inset-0 animate-ping-soft rounded-full bg-[#10B981]" />}
+                    <span className={cn("relative h-2 w-2 rounded-full", tone.dot)} />
                   </span>
-                  <span className="text-xs font-medium text-[#D4D4D8]">0{i + 1}</span>
-                </div>
-                <span
-                  className={`mt-6 grid h-11 w-11 place-items-center rounded-xl ${
-                    stage.live ? "bg-[#10B981] text-white" : "bg-[#F4F4F5] text-[#71717A]"
-                  }`}
-                >
+                  {group.when}
+                </h3>
+                <span className={cn("mt-6 grid h-11 w-11 place-items-center rounded-xl", tone.icon)}>
                   <Icon aria-hidden="true" className="size-5" />
                 </span>
-                <h3 className="mt-5 text-xl font-medium text-balance text-[#0B0B0F]">{stage.title}</h3>
-                <p className="mt-2 text-[14.5px] leading-relaxed text-[#71717A]">{stage.text}</p>
+                <ul className="mt-6 space-y-3">
+                  {group.items.map((item) => (
+                    <li key={item} className="flex gap-2.5 text-[14.5px] leading-relaxed text-[#3F3F46]">
+                      {group.tone === "live" ? (
+                        <Check aria-hidden="true" className={cn("mt-1 size-4 shrink-0", tone.mark)} strokeWidth={2.5} />
+                      ) : (
+                        <Circle aria-hidden="true" className={cn("mt-1.5 size-3 shrink-0 mx-0.5", tone.mark)} strokeWidth={2.5} />
+                      )}
+                      <span className="text-pretty">{item}</span>
+                    </li>
+                  ))}
+                </ul>
               </Reveal>
             );
           })}

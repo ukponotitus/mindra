@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
+import SeePlans from "../SeePlans";
 import { buttonStyles } from "../ui/button";
 import { ApiError } from "../../lib/api";
 import { CLIP_PLATFORMS } from "../../lib/clips";
@@ -15,12 +16,14 @@ interface Props {
   project: Project;
   /** Write captions to post with this clip, for the platforms that take video. */
   clipId?: string;
+  /** What the clip is called: a Motion Studio video is a "video". */
+  noun?: "clip" | "video";
   onStart?: () => void;
   onDone?: () => void;
 }
 
 /** Pick platforms, a tone and how many versions, then watch the posts get written. */
-export default function ContentGenerator({ project, clipId, onStart, onDone }: Props) {
+export default function ContentGenerator({ project, clipId, noun = "clip", onStart, onDone }: Props) {
   const voice = useBrandVoice().data;
   // A photo or flyer post's posts are captions for its pictures, so only the platforms that take photos.
   const isPhotos = isPicturePost(project.source_type);
@@ -82,7 +85,7 @@ export default function ContentGenerator({ project, clipId, onStart, onDone }: P
         <legend className="text-sm font-semibold text-foreground">Platforms</legend>
         <p id={`${ids}-platforms-hint`} className="mt-1 mb-3 text-sm text-pretty text-muted-foreground">
           {clipId
-            ? "Each one gets a caption to post with this clip, in its own format."
+            ? `Each one gets a caption to post with this ${noun}, in its own format.`
             : isFlyer
               ? "Each one gets an announcement to post with the flyer, in its own format."
               : isPhotos
@@ -161,7 +164,7 @@ export default function ContentGenerator({ project, clipId, onStart, onDone }: P
 
       {error && (
         <p role="alert" className="text-sm text-pretty text-red-600">
-          {error}
+          {error} <SeePlans error={start.error} text={error} />
         </p>
       )}
       {generation?.status === "completed" && !running && (

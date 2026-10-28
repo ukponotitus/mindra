@@ -91,6 +91,21 @@ export function useUpdatePiece() {
   });
 }
 
+/** A post's own photos or video (the backend's content/media.py): `assets` (ready uploads: up to 10 photos or one
+ * video) replace what it had; null removes them. */
+export function useSetPostMedia() {
+  const queryClient = useQueryClient();
+  const refresh = useRefreshContent();
+  return useMutation({
+    mutationFn: ({ id, assets }: { id: string; assets: string[] | null }) =>
+      apiRequest<ContentPiece>(`/api/content/${id}/media/`, assets ? { method: "POST", body: { assets } } : { method: "DELETE" }),
+    onSuccess: (piece) => {
+      queryClient.setQueryData(["content", "detail", piece.id], piece);
+      refresh();
+    },
+  });
+}
+
 export function useDeletePiece() {
   const refresh = useRefreshContent();
   return useMutation({

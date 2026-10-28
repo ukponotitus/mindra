@@ -2,13 +2,13 @@ import { Dialog } from "@base-ui/react/dialog";
 import { CalendarClock, Check, PenLine, Undo2, X } from "lucide-react";
 import { Link } from "react-router";
 import PlatformBadge from "../content/PlatformBadge";
-import { PostPhotos } from "../content/ContentCard";
+import { PostPhotos, ResultsLine } from "../content/ContentCard";
 import { buttonStyles } from "../ui/button";
 import { scheduleStatus, useMarkPosted, useSchedulePost } from "../../lib/calendar";
 import { cn } from "../../lib/cn";
 import { clipFrame } from "../../lib/clips";
 import { postOrigin } from "../../lib/plans";
-import { platformInfo } from "../../lib/projects";
+import { isPicturePost, platformInfo } from "../../lib/projects";
 import type { ContentPiece } from "../../lib/types";
 import { backdropClass, popupClass } from "./dialogStyles";
 import PublishStatus from "./PublishStatus";
@@ -55,7 +55,7 @@ function PostBody({ piece, onRescheduled }: { piece: ContentPiece; onRescheduled
       )}
       {media === "photos" && (
         <div className="mx-auto mb-4 max-w-80">
-          <PostPhotos photos={piece.photos} project={piece.project} />
+          <PostPhotos photos={piece.photos} project={isPicturePost(piece.project_source_type) ? piece.project : null} />
         </div>
       )}
       <p className="max-h-64 overflow-y-auto rounded-lg bg-background p-3 text-sm leading-relaxed whitespace-pre-wrap text-gray-700">
@@ -76,6 +76,7 @@ function PostBody({ piece, onRescheduled }: { piece: ContentPiece; onRescheduled
       </p>
 
       <PublishStatus piece={piece} className="mt-4" />
+      <ResultsLine numbers={piece.results} />
 
       <div className="mt-5 flex flex-wrap gap-2 border-t border-border pt-4">
         {!automatic && <ShareOrCopy piece={piece} text={piece.body} />}

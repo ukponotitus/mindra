@@ -1,16 +1,19 @@
-import { useCallback, useEffect, useRef, useState, type ComponentType } from "react";
+import { useCallback, useRef, useState, type ComponentType } from "react";
 import { AnimatePresence, motion, useInView } from "framer-motion";
 import {
   ArrowUpRight,
   AudioLines,
   CalendarDays,
-  Captions,
   Check,
+  ClipboardList,
   Clapperboard,
   Heart,
   Layers,
+  Library,
   MessageCircle,
+  PenLine,
   Send,
+  Sparkles,
   TrendingUp,
 } from "lucide-react";
 import { cn } from "../../lib/cn";
@@ -25,7 +28,7 @@ type Status = "live" | "next" | "soon";
 const STATUS: Record<Status, { label: string; className: string }> = {
   live: { label: "Live now", className: "bg-[#DCFCE7] text-[#15803D]" },
   next: { label: "Coming next", className: "bg-[#EDE9FE] text-[#6D28D9]" },
-  soon: { label: "On the roadmap", className: "bg-[#F4F4F5] text-[#71717A]" },
+  soon: { label: "Coming soon", className: "bg-[#F4F4F5] text-[#71717A]" },
 };
 
 /** Steps through 0..length-1 on a timer, for looping demos. Pauses while the section is off-screen. */
@@ -40,80 +43,54 @@ function useTicker(length: number, intervalMs: number) {
 
 /* ---------- The small demos shown in an open card ---------- */
 
-const transcriptLines = [
-  ["0:00", "Welcome, church. Today we're talking about courage."],
-  ["0:42", "Fear is loud, but faith is louder."],
-  ["1:15", "Turn with me to Joshua chapter one."],
-  ["2:03", "Be strong and courageous. Do not be afraid."],
+const sources = [
+  { kind: "Video", platform: "Instagram", color: "#E1306C", post: "Fear is loud. Faith is louder. The full message is on our page." },
+  { kind: "Audio", platform: "LinkedIn", color: "#0A66C2", post: "Three lessons from this week's episode on building in public." },
+  { kind: "Text", platform: "X", color: "#E5E7EB", post: "Most plans fail on day three. Here's how to get past it:" },
+  { kind: "Photos", platform: "Facebook", color: "#1877F2", post: "What a night! Thank you to everyone who came out on Friday." },
+  { kind: "Flyer", platform: "WhatsApp", color: "#25D366", post: "*Youth Conference 2026* Saturday 14 November, 10am. Bring a friend." },
 ];
 
-function TranscriptDemo() {
-  const active = useTicker(transcriptLines.length, 1600);
+function SourcesDemo() {
+  const active = useTicker(sources.length, 1800);
+  const source = sources[active];
   return (
-    <div className="w-full space-y-1">
-      {transcriptLines.map(([time, text], i) => (
-        <div key={time} className="relative flex gap-3 rounded-lg px-3 py-1.5 text-[13px]">
-          {i === active && (
-            <motion.span layoutId="feature-transcript" className="absolute inset-0 rounded-lg bg-white/10" transition={{ duration: 0.3, ease: "easeOut" }} />
-          )}
-          <span className={cn("relative w-8 shrink-0 pt-0.5 font-mono text-[11px] tabular-nums", i === active ? "font-bold text-[#C4BBFF]" : "text-white/40")}>
-            {time}
+    <div className="flex w-full max-w-[420px] items-center gap-4">
+      <div className="flex shrink-0 flex-col gap-1.5">
+        {sources.map((item, i) => (
+          <span
+            key={item.kind}
+            className={cn(
+              "rounded-full px-3 py-1 text-[11px] font-medium transition-colors duration-200",
+              i === active ? "bg-white text-[#0B0B0F]" : "bg-white/[0.06] text-white/50",
+            )}
+          >
+            {item.kind}
           </span>
-          <span className={`relative ${i === active ? "text-white" : "text-white/45"}`}>{text}</span>
-        </div>
-      ))}
+        ))}
+      </div>
+      <div className="min-w-0 flex-1 rounded-xl border border-white/10 bg-white/[0.05] p-3">
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div key={source.kind} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.2, ease: "easeOut" }}>
+            <p className="flex items-center gap-1.5 text-[11px] font-semibold text-white/70">
+              <span className="size-2 rounded-full" style={{ background: source.color }} />
+              {source.platform}
+            </p>
+            <p className="mt-1.5 text-[12.5px] leading-snug text-white/85">{source.post}</p>
+          </motion.div>
+        </AnimatePresence>
+      </div>
     </div>
   );
 }
 
 function VoiceDemo() {
-  const ref = useRef<HTMLDivElement>(null);
-  const inView = useInView(ref, { once: true, amount: 0.6 });
-  const [score, setScore] = useState(0);
-  useEffect(() => {
-    if (!inView) return;
-    let frame = 0;
-    const start = performance.now();
-    const tick = (now: number) => {
-      const progress = Math.min((now - start) / 1400, 1);
-      setScore(Math.round(94 * (1 - Math.pow(1 - progress, 3))));
-      if (progress < 1) frame = requestAnimationFrame(tick);
-    };
-    frame = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frame);
-  }, [inView]);
-  const radius = 44;
-  const circumference = 2 * Math.PI * radius;
   return (
-    <div ref={ref} className="flex items-center gap-6">
-      <div className="relative size-28 shrink-0">
-        <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90" aria-hidden="true">
-          <circle cx="50" cy="50" r={radius} stroke="rgba(255,255,255,0.08)" strokeWidth="8" fill="none" />
-          <motion.circle
-            cx="50"
-            cy="50"
-            r={radius}
-            stroke="#8B7CFF"
-            strokeWidth="8"
-            fill="none"
-            strokeLinecap="round"
-            strokeDasharray={circumference}
-            initial={{ strokeDashoffset: circumference }}
-            animate={{ strokeDashoffset: inView ? circumference * 0.06 : circumference }}
-            transition={{ duration: 1.2, ease: "easeOut" }}
-          />
-        </svg>
-        <div className="absolute inset-0 grid place-items-center text-center">
-          <div>
-            <p className="text-2xl font-semibold text-white tabular-nums">{score}%</p>
-            <p className="-mt-0.5 text-[10px] text-white/50">match</p>
-          </div>
-        </div>
-      </div>
-      <dl className="space-y-2.5 text-xs">
+    <div className="flex w-full max-w-[420px] items-center gap-5">
+      <dl className="shrink-0 space-y-2.5 text-xs">
         {[
           ["Tone", "Warm and hopeful"],
-          ["Words you use", "“church family”, “grace”"],
+          ["Words you use", "“family”, “grace”"],
           ["Words you avoid", "“synergy”"],
         ].map(([term, detail]) => (
           <div key={term}>
@@ -122,6 +99,13 @@ function VoiceDemo() {
           </div>
         ))}
       </dl>
+      <div className="min-w-0 flex-1 rounded-xl border border-white/10 bg-white/[0.05] p-3">
+        <p className="text-[11px] font-semibold text-white/50">Draft</p>
+        <p className="mt-1.5 text-[12.5px] leading-snug text-white/85">
+          Welcome to the <span className="rounded bg-[#8B7CFF]/30 px-0.5">family</span>. Whatever this week brings, there is{" "}
+          <span className="rounded bg-[#8B7CFF]/30 px-0.5">grace</span> for it.
+        </p>
+      </div>
     </div>
   );
 }
@@ -152,7 +136,7 @@ function ClipsDemo() {
         </div>
       </div>
       <div className="flex flex-col gap-2">
-        {["Reframed to 9:16", "Speaker kept in frame", "Animated captions", "Strongest moments first"].map((label, i) => (
+        {["Found for you", "Vertical 9:16", "Nothing cut off", "Captions as they speak"].map((label, i) => (
           <motion.span
             key={label}
             initial={{ opacity: 0, x: 10 }}
@@ -169,32 +153,52 @@ function ClipsDemo() {
   );
 }
 
-function WhatsAppDemo() {
+const planLines = ["Mon 9am · Instagram · quote from Sunday", "Wed 6pm · WhatsApp · midweek reminder", "Fri 12pm · TikTok · best clip", "Sat 10am · Facebook · event flyer"];
+
+function PlanDemo() {
+  const written = useTicker(planLines.length + 2, 900);
   return (
-    <div className="w-full max-w-[300px] rounded-2xl border border-white/5 bg-[#0B141A] p-3">
-      <div className="mb-2.5 flex items-center gap-2">
-        <span className="grid size-7 place-items-center rounded-full bg-[#25D366]">
-          <MessageCircle aria-hidden="true" className="size-3.5 text-white" />
-        </span>
-        <div className="leading-tight">
-          <p className="text-xs font-semibold text-white">Grace Chapel</p>
-          <p className="text-[10px] text-white/45">WhatsApp Channel</p>
-        </div>
-      </div>
-      <motion.div
-        initial={{ opacity: 0, y: 10, scale: 0.96 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ delay: 0.2, duration: 0.3, ease: "easeOut" }}
-        className="rounded-xl rounded-tl-sm bg-[#1F2C34] p-2"
-      >
-        <div className="mb-2 grid h-14 place-items-center rounded-lg bg-[#231E4A]">
-          <span className="grid size-7 place-items-center rounded-full bg-white/20">
-            <span className="ml-0.5 border-y-[5px] border-l-[9px] border-y-transparent border-l-white" />
+    <div className="w-full max-w-[400px] space-y-1.5">
+      {planLines.map((line, i) => (
+        <div key={line} className="flex items-center gap-3 rounded-lg bg-white/[0.04] px-3 py-2">
+          <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-white/75">{line}</span>
+          <span
+            className={cn(
+              "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold transition-colors duration-200",
+              i < written ? "bg-[#34D399]/15 text-[#6EE7B7]" : "bg-white/[0.06] text-white/40",
+            )}
+          >
+            {i < written ? "Written" : "Waiting"}
           </span>
         </div>
-        <p className="px-1 text-[11px] leading-snug text-white/85">This week's message in 3 minutes, plus a reading plan for every day 🙏</p>
-        <p className="mt-1 px-1 text-right text-[9px] text-white/40">9:41</p>
-      </motion.div>
+      ))}
+    </div>
+  );
+}
+
+const libraryRows = [
+  { title: "Fear is loud. Faith is louder.", platform: "#E1306C", status: "Published", tone: "bg-[#34D399]/15 text-[#6EE7B7]" },
+  { title: "Youth Conference: 3 days to go", platform: "#25D366", status: "Planned", tone: "bg-[#8B7CFF]/20 text-[#C4BBFF]" },
+  { title: "Three lessons from episode 42", platform: "#0A66C2", status: "Posted", tone: "bg-[#34D399]/15 text-[#6EE7B7]" },
+  { title: "Small steps change everything", platform: "#25F4EE", status: "Reminded", tone: "bg-[#FBBF24]/15 text-[#FCD34D]" },
+];
+
+function LibraryDemo() {
+  return (
+    <div className="w-full max-w-[400px] space-y-1.5">
+      {libraryRows.map((row, i) => (
+        <motion.div
+          key={row.title}
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 + i * 0.06, duration: 0.25, ease: "easeOut" }}
+          className="flex items-center gap-3 rounded-lg bg-white/[0.04] px-3 py-2"
+        >
+          <span className="size-2 shrink-0 rounded-full" style={{ background: row.platform }} />
+          <span className="min-w-0 flex-1 truncate text-[12px] text-white/80">{row.title}</span>
+          <span className={cn("shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold", row.tone)}>{row.status}</span>
+        </motion.div>
+      ))}
     </div>
   );
 }
@@ -233,36 +237,6 @@ function CalendarDemo() {
   );
 }
 
-const growth = [28, 36, 33, 47, 55, 68, 84];
-
-function InsightsDemo() {
-  return (
-    <div className="w-full">
-      <div className="flex h-28 items-end gap-2">
-        {growth.map((value, i) => (
-          <div key={i} className="flex h-full flex-1 items-end">
-            <motion.div
-              className={cn("w-full origin-bottom rounded-t-md", i === growth.length - 1 ? "bg-[#8B7CFF]" : "bg-white/15")}
-              style={{ height: `${value}%` }}
-              initial={{ scaleY: 0 }}
-              animate={{ scaleY: 1 }}
-              transition={{ delay: 0.1 + i * 0.05, duration: 0.5, ease: "easeOut" }}
-            />
-          </div>
-        ))}
-      </div>
-      <div className="mt-3 flex items-center justify-between text-[11px] text-white/45">
-        <span>Week 1</span>
-        <span className="inline-flex items-center gap-1 font-semibold text-[#6EE7B7]">
-          <TrendingUp aria-hidden="true" className="size-3.5" />
-          More of what works
-        </span>
-        <span>Week 7</span>
-      </div>
-    </div>
-  );
-}
-
 /* ---------- The cards ---------- */
 
 interface Feature {
@@ -274,54 +248,70 @@ interface Feature {
   Demo: ComponentType;
 }
 
+// What works today, each with a demo. What's still to come is listed below the cards, without one.
 const features: Feature[] = [
   {
-    short: "Transcripts",
-    title: "Every word, timestamped",
-    text: "Accurate transcripts you can search, copy, and click to replay any moment.",
+    short: "Content creation",
+    title: "Posts from anything you have",
+    text: "Platform-specific captions and posts for 11 platforms, written from your videos, audio, text, photos and flyers.",
     status: "live",
-    icon: Captions,
-    Demo: TranscriptDemo,
+    icon: PenLine,
+    Demo: SourcesDemo,
   },
   {
-    short: "Your voice",
-    title: "Sounds like you",
-    text: "Mindra learns from your past posts, and every draft gets a voice-match score before you approve it.",
-    status: "next",
-    icon: AudioLines,
-    Demo: VoiceDemo,
-  },
-  {
-    short: "Clips",
+    short: "Video",
     title: "Clips that stop the scroll",
-    text: "Your strongest moments, cut into vertical or widescreen clips with animated captions, nothing cut off.",
-    status: "soon",
+    text: "Mindra finds the strongest moments in a long recording and turns them into short vertical videos with captions. Landscape videos can be made 9:16 too.",
+    status: "live",
     icon: Clapperboard,
     Demo: ClipsDemo,
   },
   {
-    short: "WhatsApp",
-    title: "WhatsApp-ready",
-    text: "Share packs for Status and Channels, and summaries for people who missed it.",
-    status: "soon",
-    icon: MessageCircle,
-    Demo: WhatsAppDemo,
+    short: "Brand voice",
+    title: "Sounds like you",
+    text: "Give Mindra your tone, sample posts and the words you use and avoid, and every draft follows them. A voice-match score is on the way.",
+    status: "live",
+    icon: AudioLines,
+    Demo: VoiceDemo,
   },
   {
-    short: "Calendar",
-    title: "Plan the whole month",
-    text: "Drop posts onto a calendar and get a reminder when each one is due.",
-    status: "soon",
+    short: "Content plans",
+    title: "Your plan, written for you",
+    text: "Import your weekly or monthly plan (pasted, a spreadsheet or a photo of it) and Mindra turns each line into a draft ready for review.",
+    status: "live",
+    icon: ClipboardList,
+    Demo: PlanDemo,
+  },
+  {
+    short: "Library",
+    title: "Everything in one place",
+    text: "Every post and clip you make stays in one workspace, with what's planned, posted and published at a glance.",
+    status: "live",
+    icon: Library,
+    Demo: LibraryDemo,
+  },
+  {
+    short: "Publishing",
+    title: "Plan the month, post on time",
+    text: "Schedule posts on a calendar and publish automatically to YouTube, LinkedIn and WordPress, with more platforms on the way. Everything else gets a reminder and one-tap sharing.",
+    status: "live",
     icon: CalendarDays,
     Demo: CalendarDemo,
   },
+];
+
+const upcoming: { title: string; text: string; status: Status; icon: ComponentType<{ className?: string }> }[] = [
   {
-    short: "Insights",
-    title: "Gets smarter every week",
-    text: "Mindra learns which hooks and formats your audience loves, and does more of what works.",
-    status: "soon",
+    title: "Post results",
+    text: "Views, likes and comments for your YouTube posts, clicks on Mindra links in any post, and which days and times work best. Facebook, Instagram and X follow once Mindra can post there.",
+    status: "live",
     icon: TrendingUp,
-    Demo: InsightsDemo,
+  },
+  {
+    title: "AI recommendations and automation",
+    text: "Suggestions for what to post next, based on what performed well, and smarter content workflows.",
+    status: "soon",
+    icon: Sparkles,
   },
 ];
 
@@ -491,14 +481,14 @@ export default function FeatureBento() {
           <div>
             <SectionLabel icon={Layers}>Features</SectionLabel>
             <h2 className="mt-6 text-[2.6rem] leading-[1.02] font-medium text-balance text-[#0B0B0F] sm:text-6xl lg:text-[4.2rem]">
-              One upload.
+              Everything you need
               <br />
-              <span className="text-[#A3A3AB]">A whole content team.</span>
+              <span className="text-[#A3A3AB]">to create and publish.</span>
             </h2>
           </div>
           <div className="max-w-sm lg:pb-2">
             <p className="text-[15px] leading-relaxed text-[#52525B]">
-              Everything between “we just finished recording” and “it's posted everywhere”, in one place that learns how you speak.
+              Everything between “we have something to share” and “it's posted everywhere”, in one workspace that learns how you sound.
             </p>
             <a
               href="#roadmap"
@@ -514,6 +504,26 @@ export default function FeatureBento() {
           <PlaybackContext.Provider value={onScreen}>
             {wide ? <CardRow active={active} setActive={setActive} /> : <CardStack active={active} setActive={setActive} />}
           </PlaybackContext.Provider>
+        </Reveal>
+
+        <Reveal delay={200} className="mt-3 grid gap-3 sm:grid-cols-2">
+          {upcoming.map((item) => {
+            const Icon = item.icon;
+            return (
+              <div key={item.title} className="flex gap-4 rounded-[1.4rem] bg-white/60 p-5 ring-1 ring-black/[0.06]">
+                <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-[#F4F4F5] ring-1 ring-black/5">
+                  <Icon aria-hidden="true" className="size-4 text-[#71717A]" />
+                </span>
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                    <h3 className="text-[17px] font-medium text-[#18181B]">{item.title}</h3>
+                    <StatusPill status={item.status} />
+                  </div>
+                  <p className="mt-1.5 text-[14.5px] leading-relaxed text-pretty text-[#52525B]">{item.text}</p>
+                </div>
+              </div>
+            );
+          })}
         </Reveal>
       </div>
     </section>

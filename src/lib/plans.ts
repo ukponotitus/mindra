@@ -3,7 +3,7 @@ import { apiRequest } from "./api";
 import { CLIP_PLATFORMS } from "./clips";
 import { PHOTO_PLATFORMS } from "./photos";
 import { PLATFORMS } from "./projects";
-import type { ContentPiece, ContentPlan, ContentPlanDetail, Paginated, Platform, PlanEntry, PlanFormat, Project } from "./types";
+import type { ClipSummary, ContentPiece, ContentPlan, ContentPlanDetail, Paginated, Platform, PlanEntry, PlanFormat, Project } from "./types";
 
 // Content plans: someone's plan for their posts, read by Mindra into one entry per post, written as drafts and
 // approved onto the calendar (see mindra-backend README, "Content plans").
@@ -56,10 +56,14 @@ export function sourcesFor(format: PlanFormat, projects: Project[]): Project[] {
 
 /** Where a post came from, for its "From …" link: its project, or for a post written from a plan's note alone, the
  * plan (its own project isn't one to open). */
-export function postOrigin(piece: Pick<ContentPiece, "project" | "project_name" | "project_source_type" | "plan">): { to: string | null; label: string } {
+export function postOrigin(
+  piece: Pick<ContentPiece, "project" | "project_name" | "project_source_type" | "plan"> & { clip?: Pick<ClipSummary, "studio_project" | "title"> | null },
+): { to: string | null; label: string } {
   if (piece.project_source_type === "plan") {
     return { to: piece.plan ? `/plans/${piece.plan.id}` : null, label: piece.plan?.name ?? piece.project_name };
   }
+  // A Motion Studio video's posts go back to the video in Motion Studio.
+  if (piece.clip?.studio_project) return { to: `/studio/${piece.clip.studio_project}`, label: piece.clip.title };
   return { to: `/projects/${piece.project}`, label: piece.project_name };
 }
 

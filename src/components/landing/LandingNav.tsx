@@ -8,6 +8,7 @@ import { useCtaLinks } from "./useCtaLinks";
 
 const links = [
   { label: "How it works", href: "#how" },
+  { label: "Who it's for", href: "#who" },
   { label: "Features", href: "#features" },
   { label: "Pricing", href: "#pricing" },
   { label: "FAQ", href: "#faq" },

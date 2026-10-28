@@ -27,12 +27,20 @@ export type FieldErrors = Record<string, string[]>;
 export class ApiError extends Error {
   status: number;
   fieldErrors: FieldErrors;
+  /** What kind of refusal it is, when the API says ("plan_limit": a limit of the workspace's plan), or "". */
+  code: string;
 
-  constructor(status: number, message: string, fieldErrors: FieldErrors = {}) {
+  constructor(status: number, message: string, fieldErrors: FieldErrors = {}, code = "") {
     super(message);
     this.status = status;
     this.fieldErrors = fieldErrors;
+    this.code = code;
   }
+}
+
+/** The error is a limit of the workspace's plan, so the plans in Billing are the way on. */
+export function isPlanLimit(error: unknown): boolean {
+  return error instanceof ApiError && error.code === "plan_limit";
 }
 
 let unauthorizedHandler: (() => void) | null = null;
@@ -54,7 +62,9 @@ function messagesFrom(value: unknown): string[] {
 function toApiError(status: number, body: unknown): ApiError {
   if (body && typeof body === "object" && !Array.isArray(body)) {
     const record = body as Record<string, unknown>;
-    if (typeof record.detail === "string") return new ApiError(status, record.detail);
+    if (typeof record.detail === "string") {
+      return new ApiError(status, record.detail, {}, typeof record.code === "string" ? record.code : "");
+    }
     const fieldErrors: FieldErrors = {};
     for (const [field, value] of Object.entries(record)) fieldErrors[field] = messagesFrom(value);
     const message = fieldErrors.non_field_errors?.[0] ?? Object.values(fieldErrors)[0]?.[0];

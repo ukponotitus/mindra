@@ -26,9 +26,10 @@ export type UploadPhase = "uploading" | "waiting" | "finishing";
 
 export type DirectUploadOptions = {
   sourceType: Exclude<SourceType, "transcript">;
-  /** What the file is for: a project's recording (the default), or a video to make vertical, which the server doesn't
-   * count against the month's hours. Kept apart when continuing an interrupted upload. */
-  purpose?: "project" | "vertical";
+  /** What the file is for: a project's recording (the default), a video to make vertical, or media for Motion Studio;
+   * the server only counts a project's recording against the month's hours. Kept apart when continuing an
+   * interrupted upload. */
+  purpose?: "project" | "vertical" | "studio";
   onProgress?: (progress: UploadProgress) => void;
   onPhase?: (phase: UploadPhase) => void;
   /** Called when an earlier, interrupted upload of this file is continued, with the bytes already stored. */
@@ -153,6 +154,13 @@ export function formatTimeLeft(seconds: number): string {
  * One file's upload. `start()` resolves with the storage key to create the project with (`source_key`).
  * `pause()` stops it but keeps what was sent; `cancel()` stops it and throws the sent parts away.
  */
+/** What an interrupted upload is saved under, so a file sent for one purpose isn't continued as another. */
+export function uploadKind(options: Pick<DirectUploadOptions, "purpose" | "sourceType">): string {
+  if (options.purpose === "vertical") return "vertical";
+  if (options.purpose === "studio") return `studio-${options.sourceType}`;
+  return options.sourceType;
+}
+
 export class DirectUpload {
   private readonly file: File;
   private readonly options: DirectUploadOptions;
@@ -182,7 +190,7 @@ export class DirectUpload {
     this.file = file;
     this.options = options;
     this.env = env;
-    this.id = fingerprint(file, options.purpose === "vertical" ? "vertical" : options.sourceType);
+    this.id = fingerprint(file, uploadKind(options));
   }
 
   async start(): Promise<DirectUploadResult> {

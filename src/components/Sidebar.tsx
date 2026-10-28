@@ -1,19 +1,24 @@
 import {
   AudioLines,
   CalendarDays,
+  ChartColumn,
+  ChevronsUpDown,
   Clapperboard,
   ClipboardList,
   CreditCard,
+  Film,
   FolderOpen,
   LayoutDashboard,
   Library,
+  LogOut,
   PenLine,
   Plus,
   RectangleVertical,
   Settings,
   type LucideIcon,
 } from "lucide-react";
-import { Link, NavLink } from "react-router";
+import { Menu } from "@base-ui/react/menu";
+import { Link, NavLink, useLocation, useNavigate } from "react-router";
 import { fullName, useAuth } from "../auth/context";
 import { cn } from "../lib/cn";
 import { initials } from "../lib/format";
@@ -31,19 +36,38 @@ const navItems: { label: string; to: string; icon: LucideIcon; soon?: boolean }[
   { label: "Content Library", to: "/library", icon: Library },
   { label: "Clips", to: "/clips", icon: Clapperboard },
   { label: "Vertical Videos", to: "/vertical", icon: RectangleVertical },
+  { label: "Motion Studio", to: "/studio", icon: Film },
   { label: "AI Studio", to: "/ai-studio", icon: PenLine },
   { label: "Calendar", to: "/calendar", icon: CalendarDays },
+  { label: "Results", to: "/results", icon: ChartColumn },
   { label: "Content Plans", to: "/plans", icon: ClipboardList },
   { label: "Brand Voice", to: "/brand-voice", icon: AudioLines },
-  { label: "Billing", to: "/billing", icon: CreditCard, soon: true },
+];
+
+// In the account menu at the bottom, which opens upwards.
+const accountItems: { label: string; to: string; icon: LucideIcon }[] = [
+  { label: "Billing", to: "/billing", icon: CreditCard },
   { label: "Settings", to: "/settings", icon: Settings },
 ];
 
+const menuItemClass =
+  "flex w-full cursor-default items-center gap-2.5 px-3 py-2 text-sm text-foreground outline-none select-none data-[highlighted]:bg-secondary";
+
 /** The app's navigation. DashboardShell shows it as a column on large screens and in a drawer on small ones. */
 export default function Sidebar({ onNavigate }: Props) {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
   const name = user ? fullName(user) : "";
   const workspace = user?.workspaces[0];
+  // On Billing or Settings, the account menu's button shows it, as a link would.
+  const inAccount = accountItems.some((item) => pathname.startsWith(item.to));
+
+  const logOut = async () => {
+    onNavigate?.();
+    await signOut();
+    navigate("/login");
+  };
 
   return (
     <div className="flex h-full flex-col">
@@ -89,15 +113,46 @@ export default function Sidebar({ onNavigate }: Props) {
           </div>
         )}
         {user && (
-          <div className="mt-3 flex items-center gap-2 px-1">
-            <span className="grid size-7 shrink-0 place-items-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
-              {initials(name)}
-            </span>
-            <div className="min-w-0">
-              <p className="truncate text-xs font-semibold text-foreground">{name}</p>
-              <p className="truncate text-[11px] text-muted-foreground">{user.email}</p>
-            </div>
-          </div>
+          <Menu.Root>
+            <Menu.Trigger
+              aria-label={`Account: ${name}`}
+              className={cn(
+                "mt-2 flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left transition-colors hover:bg-secondary focus-visible:outline-2 focus-visible:outline-primary data-[popup-open]:bg-secondary",
+                inAccount && "bg-primary/10 hover:bg-primary/10",
+              )}
+            >
+              <span className="grid size-7 shrink-0 place-items-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+                {initials(name)}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-xs font-semibold text-foreground">{name}</span>
+                <span className="block truncate text-[11px] text-muted-foreground">{user.email}</span>
+              </span>
+              <ChevronsUpDown aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
+            </Menu.Trigger>
+            <Menu.Portal>
+              <Menu.Positioner side="top" align="start" sideOffset={6} className="z-50">
+                <Menu.Popup className="w-[var(--anchor-width)] min-w-52 origin-[var(--transform-origin)] rounded-xl border border-border bg-white py-1.5 shadow-lg outline-none transition-[opacity,scale] duration-150 ease-out data-[ending-style]:scale-95 data-[ending-style]:opacity-0 data-[starting-style]:scale-95 data-[starting-style]:opacity-0">
+                  {accountItems.map(({ label, to, icon: Icon }) => (
+                    <Menu.LinkItem
+                      key={to}
+                      render={<Link to={to} />}
+                      onClick={onNavigate}
+                      className={cn(menuItemClass, pathname.startsWith(to) && "font-medium text-primary")}
+                    >
+                      <Icon aria-hidden="true" className="size-4 text-muted-foreground" />
+                      {label}
+                    </Menu.LinkItem>
+                  ))}
+                  <Menu.Separator className="my-1.5 h-px bg-border" />
+                  <Menu.Item onClick={logOut} className={cn(menuItemClass, "text-red-600 data-[highlighted]:bg-red-50")}>
+                    <LogOut aria-hidden="true" className="size-4" />
+                    Log out
+                  </Menu.Item>
+                </Menu.Popup>
+              </Menu.Positioner>
+            </Menu.Portal>
+          </Menu.Root>
         )}
       </div>
     </div>

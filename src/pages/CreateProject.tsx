@@ -5,6 +5,7 @@ import { useNavigate, useSearchParams } from "react-router";
 import MediaPreview from "../components/project/MediaPreview";
 import { QueuedPhotoTile, RecordingSelect } from "../components/project/ProjectPhotos";
 import ConfirmDialog from "../components/ui/ConfirmDialog";
+import SeePlans from "../components/SeePlans";
 import { buttonStyles } from "../components/ui/button";
 import { ApiError, apiRequest, uploadWithProgress, type FieldErrors } from "../lib/api";
 import { cn } from "../lib/cn";
@@ -785,7 +786,7 @@ export default function CreateProject() {
 
           {error && (
             <p role="alert" className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
-              {error}
+              {error} <SeePlans text={error} />
             </p>
           )}
 

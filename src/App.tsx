@@ -1,12 +1,11 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { CreditCard } from "lucide-react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router";
 import AuthProvider from "./auth/AuthProvider";
 import RequireAuth from "./auth/RequireAuth";
-import ComingSoon from "./components/ComingSoon";
 import DashboardShell from "./components/DashboardShell";
 import { ApiError } from "./lib/api";
 import AIStudio from "./pages/AIStudio";
+import Billing from "./pages/Billing";
 import AuthPage from "./pages/Auth";
 import CalendarPage from "./pages/Calendar";
 import BrandVoice from "./pages/BrandVoice";
@@ -15,6 +14,9 @@ import Clips from "./pages/Clips";
 import PlanDetail from "./pages/PlanDetail";
 import Plans from "./pages/Plans";
 import VerticalVideos from "./pages/VerticalVideos";
+import Studio from "./pages/Studio";
+import StudioCreate from "./pages/StudioCreate";
+import StudioEditor from "./pages/StudioEditor";
 import ContentLibrary from "./pages/ContentLibrary";
 import CreateProject from "./pages/CreateProject";
 import Dashboard from "./pages/Dashboard";
@@ -24,7 +26,9 @@ import PrivacyPage from "./pages/Privacy";
 import Processing from "./pages/Processing";
 import ProjectDetails from "./pages/ProjectDetails";
 import Projects from "./pages/Projects";
+import Results from "./pages/Results";
 import Settings from "./pages/Settings";
+import ShortLink from "./pages/ShortLink";
 import TermsPage from "./pages/Terms";
 
 const queryClient = new QueryClient({
@@ -54,6 +58,7 @@ export default function App() {
             <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="/terms" element={<TermsPage />} />
             <Route path="/data-deletion" element={<DataDeletionPage />} />
+            <Route path="/l/:code" element={<ShortLink />} />
 
             <Route element={<RequireAuth />}>
               <Route element={<DashboardShell />}>
@@ -67,27 +72,15 @@ export default function App() {
                 <Route path="/library/:pieceId" element={<ContentEditor />} />
                 <Route path="/clips" element={<Clips />} />
                 <Route path="/vertical" element={<VerticalVideos />} />
+                <Route path="/studio" element={<Studio />} />
+                <Route path="/studio/new" element={<StudioCreate />} />
+                <Route path="/studio/:projectId" element={<StudioEditor />} />
                 <Route path="/calendar" element={<CalendarPage />} />
+                <Route path="/results" element={<Results />} />
                 <Route path="/plans" element={<Plans />} />
                 <Route path="/plans/:planId" element={<PlanDetail />} />
                 <Route path="/brand-voice" element={<BrandVoice />} />
-                <Route
-                  path="/billing"
-                  element={
-                    <ComingSoon
-                      icon={CreditCard}
-                      title="Plans & Billing"
-                      description="Mindra is free while it's in beta. Paid plans arrive after the beta."
-                      points={[
-                        "Plans priced by hours of video, never per post",
-                        "Pay in naira with Paystack, or in dollars with a card",
-                        "See your usage for the month at a glance",
-                        "Download invoices for your records",
-                      ]}
-                      note="You'll hear from us well before anything changes."
-                    />
-                  }
-                />
+                <Route path="/billing" element={<Billing />} />
                 <Route path="/settings" element={<Settings />} />
               </Route>
             </Route>

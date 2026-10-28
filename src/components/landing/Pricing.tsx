@@ -1,53 +1,15 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Check, Tag } from "lucide-react";
+import { Check, Minus, Tag } from "lucide-react";
 import { Link } from "react-router";
 import Reveal from "./Reveal";
 import SectionLabel from "./SectionLabel";
+import { recordingAllowance, usePricingPlans } from "../../lib/billing";
 import { useCtaLinks } from "./useCtaLinks";
 
-// Monthly prices in naira; yearly billing gives two months free. Features Mindra doesn't have yet are listed with
-// `soon`, so the cards never promise what isn't built.
-type Feature = string | { text: string; soon: true };
-
-const plans: { name: string; monthly: number; hours: string; features: Feature[]; recommended?: boolean }[] = [
-  {
-    name: "Free",
-    monthly: 0,
-    hours: "1 hour of video a month",
-    features: ["Transcripts and posts", "3 watermarked clips per recording", "1 brand"],
-  },
-  {
-    name: "Creator",
-    monthly: 5000,
-    hours: "8 hours of video a month",
-    features: ["Clips without watermark", { text: "Branded quote cards and carousels", soon: true }, "Scheduling to 3 accounts"],
-  },
-  {
-    name: "Pro",
-    monthly: 12000,
-    hours: "25 hours of video a month",
-    features: [
-      { text: "Auto-import from your channel", soon: true },
-      { text: "Brand voice score", soon: true },
-      { text: "Translation", soon: true },
-      "10 connected accounts",
-    ],
-    recommended: true,
-  },
-  {
-    name: "Ministry & Teams",
-    monthly: 25000,
-    hours: "40 hours of video a month",
-    features: [
-      { text: "5 team seats", soon: true },
-      { text: "Approval before publishing", soon: true },
-      { text: "WhatsApp broadcasts", soon: true },
-      { text: "Scripture, series and devotionals", soon: true },
-    ],
-  },
-];
-
+// Monthly prices in naira; yearly billing gives two months free. The plans come from the API (billing/plans.py, the
+// one list of prices and limits), shown from the built-in copy until it answers. Features Mindra doesn't have yet are
+// marked `soon`, so the cards never promise what isn't built.
 const naira = (amount: number) => amount.toLocaleString("en-NG");
 
 function yearlyPerMonth(monthly: number) {
@@ -57,6 +19,13 @@ function yearlyPerMonth(monthly: number) {
 export default function Pricing() {
   const { startTo } = useCtaLinks();
   const [yearly, setYearly] = useState(false);
+  const pricing = usePricingPlans().data;
+  const plans = pricing?.plans ?? [];
+  const inBeta = pricing?.in_beta ?? true;
+  // beta_ends_on is the first day after the beta, as YYYY-MM-DD.
+  const betaEnds = pricing?.beta_ends_on
+    ? new Date(`${pricing.beta_ends_on}T12:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })
+    : null;
 
   return (
     <section id="pricing" className="relative scroll-mt-16 overflow-hidden bg-black px-6 py-24 lg:py-32">
@@ -70,13 +39,15 @@ export default function Pricing() {
             <br />
             <span className="text-white/40">priced by hours.</span>
           </h2>
-          <p className="mt-5 text-lg text-white/50">You pay for the hours of recording you bring, never per post.</p>
+          <p className="mt-5 text-lg text-white/50">Every plan comes with recording time, posts, clips and image or flyer projects each month.</p>
         </Reveal>
 
         <Reveal className="mt-10 flex flex-col items-center gap-5">
-          <div className="inline-flex items-center rounded-full bg-[#34D399]/10 px-4 py-2 text-sm font-medium text-[#6EE7B7] ring-1 ring-[#34D399]/20">
-            Everything is free while Mindra is in beta
-          </div>
+          {inBeta && (
+            <div className="inline-flex items-center rounded-full bg-[#34D399]/10 px-4 py-2 text-sm font-medium text-[#6EE7B7] ring-1 ring-[#34D399]/20">
+              Everything is free while Mindra is in beta
+            </div>
+          )}
           <div role="group" aria-label="Billing period" className="relative flex rounded-full bg-white/[0.06] p-1 ring-1 ring-white/10">
             {[
               { label: "Monthly", value: false },
@@ -109,7 +80,7 @@ export default function Pricing() {
 
         <div className="mt-12 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {plans.map((plan, i) => {
-            const price = yearly ? yearlyPerMonth(plan.monthly) : plan.monthly;
+            const price = yearly ? yearlyPerMonth(plan.monthly_price) : plan.monthly_price;
             return (
               <Reveal key={plan.name} delay={i * 90}>
                 <div
@@ -125,6 +96,7 @@ export default function Pricing() {
                       <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-black">Recommended</span>
                     )}
                   </div>
+                  {plan.tagline && <p className="mt-1.5 min-h-10 text-sm text-white/50">{plan.tagline}</p>}
                   <p className="mt-5 flex h-14 items-baseline overflow-hidden">
                     <span className="text-[2.75rem] font-medium text-white">₦</span>
                     <AnimatePresence mode="popLayout" initial={false}>
@@ -142,16 +114,15 @@ export default function Pricing() {
                     <span className="ml-1.5 text-sm text-white/40">/month</span>
                   </p>
                   <p className="mt-1 h-4 text-xs text-white/40 tabular-nums">
-                    {plan.monthly > 0 && yearly ? `₦${naira(plan.monthly * 10)} paid once a year` : ""}
+                    {plan.monthly_price > 0 && yearly ? `₦${naira(plan.yearly_price)} paid once a year` : ""}
                   </p>
-                  <p className="mt-5 text-sm font-medium text-[#B4A9FF]">{plan.hours}</p>
+                  <p className="mt-5 text-sm font-medium text-[#B4A9FF]">{recordingAllowance(plan.hours_per_month)}</p>
                   <ul className="mt-5 flex-1 space-y-3">
-                    {plan.features.map((feature) => {
-                      const text = typeof feature === "string" ? feature : feature.text;
-                      const soon = typeof feature !== "string";
+                    {plan.features.map(({ text, soon, included }) => {
+                      const Icon = included ? Check : Minus;
                       return (
-                        <li key={text} className={`flex items-start gap-2.5 text-sm ${soon ? "text-white/45" : "text-white/70"}`}>
-                          <Check className={`mt-0.5 h-4 w-4 flex-shrink-0 ${soon ? "text-white/25" : "text-[#5EEAD4]"}`} strokeWidth={3} />
+                        <li key={text} className={`flex items-start gap-2.5 text-sm ${soon || !included ? "text-white/45" : "text-white/70"}`}>
+                          <Icon aria-hidden="true" className={`mt-0.5 h-4 w-4 flex-shrink-0 ${soon || !included ? "text-white/25" : "text-[#5EEAD4]"}`} strokeWidth={3} />
                           <span>
                             {text}
                             {soon && (
@@ -179,7 +150,9 @@ export default function Pricing() {
         </div>
 
         <p className="mx-auto mt-10 max-w-2xl text-center text-sm text-white/35">
-          Prices in naira. Paid plans start after the beta. Agency plans for teams running many brands are on the way.
+          Prices in naira.
+          {inBeta && (betaEnds ? ` Everything is free until the beta ends on ${betaEnds}; paid plans start then.` : " Paid plans start after the beta.")}{" "}
+          Agency plans for teams running many brands are on the way.
         </p>
       </div>
     </section>

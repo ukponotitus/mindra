@@ -123,6 +123,43 @@ html { scroll-behavior: smooth; }
 .animate-breathe { animation: breathe 7s ease-in-out infinite; }
 .animate-spin-slower { animation: spin-slow 180s linear infinite; }
 
+/* Motion Studio's transition previews: the incoming clip (the orange card) caught half way, playing on hover. */
+[class*="studio-demo-"] {
+  animation: 1.8s ease-in-out -0.9s infinite paused;
+}
+.group:hover [class*="studio-demo-"], .group:focus-visible [class*="studio-demo-"] { animation-play-state: running; }
+.studio-demo-fade { animation-name: studio-fade; }
+.studio-demo-fade-black { animation-name: studio-fade-black; }
+.studio-demo-fade-white { animation-name: studio-fade-white; }
+.studio-demo-slide-left { animation-name: studio-slide-left; }
+.studio-demo-slide-right { animation-name: studio-slide-right; }
+.studio-demo-slide-up { animation-name: studio-slide-up; }
+.studio-demo-slide-down { animation-name: studio-slide-down; }
+.studio-demo-wipe-left { animation-name: studio-wipe-left; }
+.studio-demo-wipe-right { animation-name: studio-wipe-right; }
+.studio-demo-circle { animation-name: studio-circle; }
+.studio-demo-zoom { animation-name: studio-zoom; }
+
+@keyframes studio-fade { 0%, 15% { opacity: 0; } 75%, 100% { opacity: 1; } }
+@keyframes studio-fade-black {
+  0%, 15% { opacity: 0; background-color: #000; }
+  45% { opacity: 1; background-color: #000; }
+  75%, 100% { opacity: 1; }
+}
+@keyframes studio-fade-white {
+  0%, 15% { opacity: 0; background-color: #fff; }
+  45% { opacity: 1; background-color: #fff; }
+  75%, 100% { opacity: 1; }
+}
+@keyframes studio-slide-left { 0%, 15% { transform: translateX(100%); } 75%, 100% { transform: translateX(0); } }
+@keyframes studio-slide-right { 0%, 15% { transform: translateX(-100%); } 75%, 100% { transform: translateX(0); } }
+@keyframes studio-slide-up { 0%, 15% { transform: translateY(100%); } 75%, 100% { transform: translateY(0); } }
+@keyframes studio-slide-down { 0%, 15% { transform: translateY(-100%); } 75%, 100% { transform: translateY(0); } }
+@keyframes studio-wipe-left { 0%, 15% { clip-path: inset(0 0 0 100%); } 75%, 100% { clip-path: inset(0); } }
+@keyframes studio-wipe-right { 0%, 15% { clip-path: inset(0 100% 0 0); } 75%, 100% { clip-path: inset(0); } }
+@keyframes studio-circle { 0%, 15% { clip-path: circle(0% at 50% 50%); } 75%, 100% { clip-path: circle(75% at 50% 50%); } }
+@keyframes studio-zoom { 0%, 15% { opacity: 0; transform: scale(0.3); } 75%, 100% { opacity: 1; transform: scale(1); } }
+
 [data-offscreen] *, [data-offscreen] { animation-play-state: paused !important; }
 
 @media (prefers-reduced-motion: reduce) {

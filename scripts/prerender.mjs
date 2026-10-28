@@ -69,6 +69,13 @@ for (const page of pages) {
   html = setMeta(html, "name", "description", page.description);
   html = setMeta(html, "property", "og:title", title);
   html = setMeta(html, "property", "og:description", page.description);
+  // index.html's canonical address is the home page's; each page gets its own on the same site.
+  const home = html.match(/<link rel="canonical" href="([^"]*)"/)?.[1];
+  if (home) {
+    const address = new URL(page.path, home).href;
+    html = html.replace(/<link rel="canonical" href="[^"]*"/, () => `<link rel="canonical" href="${escapeAttribute(address)}"`);
+    html = setMeta(html, "property", "og:url", address);
+  }
   html = html.replace('<div id="root"></div>', () => `<div id="root">${body}</div>`);
 
   await writeFile(path.join(dist, page.file), html);
@@ -76,13 +83,16 @@ for (const page of pages) {
 }
 
 // 3. The site asks crawlers to stay away (.figma/make/site.json, "robots": {"index": false}). Let them fetch these
-// pages, so Meta's URL checker can read them; their noindex tag still keeps them out of search results.
+// pages, so Meta's URL checker can read them; their noindex tag still keeps them out of search results. And Mindra's
+// short links (/l/<code>): X's and LinkedIn's link previews follow robots.txt, so without this a post with a Mindra
+// link would show no preview card. The API answers them with X-Robots-Tag: noindex.
 const robotsPath = path.join(dist, "robots.txt");
 const robots = await readFile(robotsPath, "utf8").catch(() => null);
 if (robots && /^Disallow: \/$/m.test(robots)) {
-  const allow = pages.map((page) => `Allow: ${page.path}`).join("\n");
+  const allowed = [...pages.map((page) => page.path), "/l/"];
+  const allow = allowed.map((address) => `Allow: ${address}`).join("\n");
   await writeFile(robotsPath, robots.replace(/^Disallow: \/$/m, () => `${allow}\nDisallow: /`));
-  console.log(`prerender: robots.txt allows ${pages.map((page) => page.path).join(", ")}`);
+  console.log(`prerender: robots.txt allows ${allowed.join(", ")}`);
 }
 
 await rm(out, { recursive: true, force: true });

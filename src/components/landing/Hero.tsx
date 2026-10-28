@@ -140,7 +140,7 @@ function Stage({ progress, pointerX, pointerY }: StageProps) {
       <div className="absolute top-[300px] left-1/2 z-30 ml-[calc(-262px-var(--offset))] hidden min-[1180px]:block">
         <motion.div style={reduce ? undefined : { transform: leftCard }}>
           <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 1.6, duration: 0.6, ease: "easeOut" }}>
-            <GlassCard icon={Captions} label="Transcribed in 3 minutes" title="A 52-minute talk, every word timestamped." />
+            <GlassCard icon={Captions} label="Transcribed" title="A 52-minute talk, every word timestamped." />
           </motion.div>
         </motion.div>
       </div>
@@ -189,7 +189,7 @@ export default function Hero() {
       }}
       className="relative overflow-hidden bg-black text-white"
     >
-      <div className="relative mx-auto max-w-5xl px-6 pt-32 text-center sm:pt-36">
+      <div className="relative mx-auto max-w-6xl px-6 pt-32 text-center sm:pt-36">
         <motion.a
           {...enter(0)}
           href="#roadmap"
@@ -199,30 +199,31 @@ export default function Hero() {
           <ChevronRight aria-hidden="true" className="size-3.5 text-white/50 transition-transform group-hover:translate-x-0.5" />
         </motion.a>
 
-        <h1 className="mt-7 text-[3.2rem] leading-[1.02] font-semibold text-balance sm:text-7xl lg:text-[6.1rem]">
+        <h1 className="mt-7 text-[2.6rem] leading-[1.04] font-semibold text-balance sm:text-6xl lg:text-[5.2rem]">
           <motion.span {...enter(1)} className="block">
-            Record once.
+            One platform to create,
           </motion.span>
           <motion.span {...enter(2)} className="block text-white/50">
-            Post all month.
+            repurpose and publish your content.
           </motion.span>
         </h1>
 
-        <motion.p {...enter(3)} className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-pretty text-white/60 sm:text-[21px]">
-          Turn every talk, podcast, class and sermon into clips, captions and posts for every platform. Written in your voice.
+        <motion.p {...enter(3)} className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-pretty text-white/60 sm:text-[21px]">
+          Turn videos, audio, text, images and content plans into platform-ready posts, captions and short videos with AI.
+          Organise everything in one workspace, schedule your content and publish to supported social platforms.
         </motion.p>
 
         <motion.div {...enter(4)} className="mt-9 flex flex-col items-center justify-center gap-5 sm:flex-row sm:gap-9">
           <Link to={startTo} className="rounded-full bg-white px-8 py-3.5 text-[15px] font-semibold text-black transition-colors hover:bg-white/85">
-            {signedIn ? "Open your workspace" : "Start free"}
+            {signedIn ? "Open your workspace" : "Start creating for free"}
           </Link>
           <a href="#how" className="group inline-flex items-center gap-1 text-[15px] font-medium text-[#B4A9FF] transition-colors hover:text-white">
-            See how it works
+            See how Mindra works
             <ChevronRight aria-hidden="true" className="size-4 transition-transform group-hover:translate-x-0.5" />
           </a>
         </motion.div>
         <motion.p {...enter(5)} className="mt-5 text-xs text-white/40">
-          Free during the beta · No credit card
+          Free during the beta · No credit card required
         </motion.p>
       </div>
 

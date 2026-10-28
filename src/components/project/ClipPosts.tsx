@@ -7,11 +7,21 @@ import type { Clip } from "../../lib/clips";
 import { useContentList } from "../../lib/content";
 import type { Project } from "../../lib/types";
 
-/** The captions written to post with one clip, and a form to write more. */
-export default function ClipPosts({ clip, project }: { clip: Clip; project: Project }) {
+/** The captions written to post with one clip, and a form to write more. Motion Studio calls its video a "video". */
+export default function ClipPosts({
+  clip,
+  project,
+  noun = "clip",
+  startWriting = false,
+}: {
+  clip: Clip;
+  project: Project;
+  noun?: "clip" | "video";
+  startWriting?: boolean;
+}) {
   const posts = useContentList({ clip: clip.id, pageSize: 50 });
   const list = posts.data?.results ?? [];
-  const [writing, setWriting] = useState(false);
+  const [writing, setWriting] = useState(startWriting);
   const formId = useId();
 
   return (
@@ -19,12 +29,12 @@ export default function ClipPosts({ clip, project }: { clip: Clip; project: Proj
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h3 id={`${formId}-title`} className="font-semibold text-balance text-foreground">
-            Posts for this clip
+            Posts for this {noun}
           </h3>
           <p className="mt-1 text-sm text-pretty text-muted-foreground tabular-nums">
             {list.length
               ? `${list.length} caption${list.length === 1 ? "" : "s"} to post with “${clip.title}”.`
-              : "Captions to post with this clip on Instagram, TikTok, YouTube Shorts, WhatsApp and more."}
+              : `Captions to post with this ${noun} on Instagram, TikTok, YouTube Shorts, WhatsApp and more.`}
           </p>
         </div>
         <button
@@ -35,12 +45,12 @@ export default function ClipPosts({ clip, project }: { clip: Clip; project: Proj
           className={buttonStyles({ variant: list.length ? "secondary" : "primary" })}
         >
           <PenLine aria-hidden="true" className="size-4" />
-          {writing ? "Close" : list.length ? "Write more" : "Write posts for this clip"}
+          {writing ? "Close" : list.length ? "Write more" : `Write posts for this ${noun}`}
         </button>
       </div>
 
       <div id={formId} hidden={!writing}>
-        {writing && <ContentGenerator project={project} clipId={clip.id} />}
+        {writing && <ContentGenerator project={project} clipId={clip.id} noun={noun} />}
       </div>
 
       {posts.isError && (

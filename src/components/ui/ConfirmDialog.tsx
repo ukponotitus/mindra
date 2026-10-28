@@ -9,13 +9,25 @@ interface Props {
   description: string;
   confirmLabel: string;
   onConfirm: () => void;
+  /** "danger" (the default) for something that can't be undone; "primary" for a step that only asks to be sure. */
+  tone?: "danger" | "primary";
+  /** The button that closes the dialog without doing it. */
+  cancelLabel?: string;
 }
 
 /**
- * Asks before something that can't be undone, such as a delete. Built on Base UI's AlertDialog, which traps focus,
- * closes on Escape and returns focus to the trigger.
+ * Asks before something that can't be undone, such as a delete, or before a step worth being sure of. Built on Base
+ * UI's AlertDialog, which traps focus, closes on Escape and returns focus to the trigger.
  */
-export default function ConfirmDialog({ trigger, title, description, confirmLabel, onConfirm }: Props) {
+export default function ConfirmDialog({
+  trigger,
+  title,
+  description,
+  confirmLabel,
+  onConfirm,
+  tone = "danger",
+  cancelLabel = "Cancel",
+}: Props) {
   return (
     <AlertDialog.Root>
       <AlertDialog.Trigger render={trigger} />
@@ -25,8 +37,8 @@ export default function ConfirmDialog({ trigger, title, description, confirmLabe
           <AlertDialog.Title className="text-lg font-semibold text-balance text-foreground">{title}</AlertDialog.Title>
           <AlertDialog.Description className="mt-2 text-sm text-pretty text-muted-foreground">{description}</AlertDialog.Description>
           <div className="mt-6 flex justify-end gap-2">
-            <AlertDialog.Close className={buttonStyles({ variant: "secondary" })}>Cancel</AlertDialog.Close>
-            <AlertDialog.Close className={buttonStyles({ variant: "danger" })} onClick={onConfirm}>
+            <AlertDialog.Close className={buttonStyles({ variant: "secondary" })}>{cancelLabel}</AlertDialog.Close>
+            <AlertDialog.Close className={buttonStyles({ variant: tone })} onClick={onConfirm}>
               {confirmLabel}
             </AlertDialog.Close>
           </div>

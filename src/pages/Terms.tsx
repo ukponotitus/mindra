@@ -21,8 +21,42 @@ export default function TermsPage() {
           month. Mindra tells you when you reach one.
         </li>
         <li>
-          Mindra is free during the beta. If we introduce paid plans, we’ll tell you well before, and we’ll never charge you
-          without your agreement.
+          Mindra is free during the beta. Paid plans are optional: we never charge you unless you choose one and pay for it
+          on the Billing page.
+        </li>
+      </ul>
+
+      <h2>Paid plans and payments</h2>
+      <ul>
+        <li>
+          Mindra has a Free plan and paid plans. The Billing page shows what each plan includes and what it costs, in naira,
+          before you pay.
+        </li>
+        <li>
+          Payments are taken by Paystack, a payment company. You enter your card or bank details on Paystack’s page, not in
+          Mindra, and Paystack’s own terms also apply to the payment.
+        </li>
+        <li>
+          A paid plan is paid in advance, for a month or a year, and renews by itself at the end of each period, charging the
+          same card, until you cancel. If we change a plan’s price, your plan keeps renewing at the price you paid unless we
+          email you at least 30 days before a new price applies to it.
+        </li>
+        <li>
+          You can cancel at any time on the Billing page. Your plan stays until the end of the period you’ve paid for, and
+          then your workspace moves to the Free plan. Nothing you’ve made is removed.
+        </li>
+        <li>
+          If a renewal payment fails, your plan keeps working for a few days after its period ends, and the Billing page shows
+          until when. If it isn’t paid by then, your workspace moves to the Free plan.
+        </li>
+        <li>
+          Moving to another plan, or from monthly to yearly, starts the new plan once it’s paid and ends the old one then.
+          What was left of the old plan’s period isn’t refunded.
+        </li>
+        <li>
+          Payments aren’t refundable, including for part of a period, except where the law requires a refund, or where we
+          charged you by mistake, such as twice for the same period. Email us at {email} within 30 days of a mistaken charge
+          and we’ll refund it.
         </li>
       </ul>
 
@@ -103,7 +137,7 @@ export default function TermsPage() {
 
       <h2>Using Mindra fairly</h2>
       <ul>
-        <li>Don’t try to get into other people’s accounts or workspaces, or around the beta limits.</li>
+        <li>Don’t try to get into other people’s accounts or workspaces, or around your plan’s limits.</li>
         <li>Don’t use Mindra to post spam, or to post to Pages or accounts you don’t have the right to post for.</li>
         <li>Don’t overload, attack or disrupt Mindra, or copy it with automated tools.</li>
         <li>Don’t resell Mindra or let other people use your account.</li>

@@ -1,5 +1,5 @@
 import { useId, useState } from "react";
-import { CalendarClock, Check, Clapperboard, Copy, Download, PenLine, Star, Trash2 } from "lucide-react";
+import { CalendarClock, ChartColumn, Check, Clapperboard, Copy, Download, PenLine, Star, Trash2 } from "lucide-react";
 import { Link } from "react-router";
 import PublishStatus from "../calendar/PublishStatus";
 import ScheduleChip from "../calendar/ScheduleChip";
@@ -10,9 +10,11 @@ import { cn } from "../../lib/cn";
 import { clipFrame, clipPath } from "../../lib/clips";
 import { useDeletePiece, useUpdatePiece } from "../../lib/content";
 import { formatDate, formatDuration } from "../../lib/format";
-import { photoFiles } from "../../lib/photos";
+import { postPhotoFiles } from "../../lib/photos";
+import { isPicturePost } from "../../lib/projects";
 import { postOrigin } from "../../lib/plans";
-import type { ClipSummary, ContentPiece, PostPhoto } from "../../lib/types";
+import { formatCount } from "../../lib/results";
+import type { ClipSummary, ContentPiece, PostNumbers, PostPhoto } from "../../lib/types";
 import PlatformBadge from "./PlatformBadge";
 import ShareButton from "./ShareButton";
 
@@ -61,11 +63,35 @@ export function ClipStrip({ clip, project }: { clip: ClipSummary; project: strin
   );
 }
 
+/** How the post did, in one line ("1.2K views · 85 likes · 12 link clicks"), once Mindra has numbers for it. */
+export function ResultsLine({ numbers, className }: { numbers: PostNumbers | null; className?: string }) {
+  if (!numbers) return null;
+  const parts: string[] = [];
+  const add = (value: number | null, one: string, many: string) => {
+    if (value !== null) parts.push(`${formatCount(value)} ${value === 1 ? one : many}`);
+  };
+  add(numbers.views, "view", "views");
+  add(numbers.likes, "like", "likes");
+  add(numbers.comments, "comment", "comments");
+  add(numbers.shares, "share", "shares");
+  add(numbers.clicks, "link click", "link clicks");
+  if (!parts.length) return null;
+  return (
+    <p className={cn("mt-3 flex items-center gap-1.5 text-xs text-muted-foreground tabular-nums", className)}>
+      <ChartColumn aria-hidden="true" className="size-3.5 shrink-0" />
+      <span className="min-w-0 truncate">
+        <span className="sr-only">Results: </span>
+        {parts.join(" · ")}
+      </span>
+    </p>
+  );
+}
+
 /**
  * A photo post's pictures, in boxes of a fixed shape so the card doesn't jump while they load: one large; two side by
  * side; three or four in a 2×2 grid; more than four in a 2×2 grid with "+N" on the last, linking to all of them.
  */
-export function PostPhotos({ photos, project }: { photos: PostPhoto[]; project: string }) {
+export function PostPhotos({ photos, project }: { photos: PostPhoto[]; project: string | null }) {
   const count = photos.length;
   const shown = photos.slice(0, 4);
   const hidden = count - shown.length;
@@ -95,7 +121,7 @@ export function PostPhotos({ photos, project }: { photos: PostPhoto[]; project: 
       {shown.map((photo, index) => (
         <div key={photo.id} className={cn("relative min-h-0 bg-secondary", count === 3 && index === 0 && "row-span-2")}>
           {image(photo, index)}
-          {hidden > 0 && index === shown.length - 1 && (
+          {hidden > 0 && index === shown.length - 1 && project && (
             <Link
               to={`/projects/${project}?tab=photos`}
               aria-label={`See all ${count} photos`}
@@ -103,6 +129,12 @@ export function PostPhotos({ photos, project }: { photos: PostPhoto[]; project: 
             >
               <span aria-hidden="true">+{hidden}</span>
             </Link>
+          )}
+          {/* A post's own photos have no project page to see them on. */}
+          {hidden > 0 && index === shown.length - 1 && !project && (
+            <span className="absolute inset-0 grid place-items-center bg-black/55 text-2xl font-semibold text-white tabular-nums">
+              <span aria-label={`${count} photos in all`}>+{hidden}</span>
+            </span>
           )}
         </div>
       ))}
@@ -171,16 +203,21 @@ export default function ContentCard({ piece, showProject = false, showClip = tru
               className={cn("mx-auto block bg-black", clipFrame(clip.shape, "aspect-[9/16] h-72"))}
             />
           </div>
-          {showClip && (
+          {showClip && clip.uploaded && (
             <p className="mt-1.5 truncate text-xs text-muted-foreground tabular-nums">
-              Clip{" "}
+              Your video <span className="font-medium text-foreground">{clip.title}</span> · {formatDuration(clip.duration)}
+            </p>
+          )}
+          {showClip && !clip.uploaded && (
+            <p className="mt-1.5 truncate text-xs text-muted-foreground tabular-nums">
+              {clip.studio_project ? "Motion Studio video" : "Clip"}{" "}
               <Link
-                to={clipPath({ id: clip.id, project: piece.project })}
+                to={clipPath({ id: clip.id, project: piece.project, studio_project: clip.studio_project })}
                 className="rounded font-medium text-foreground hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
               >
                 {clip.title}
               </Link>{" "}
-              · {formatDuration(clip.start)}–{formatDuration(clip.end)}
+              · {clip.studio_project ? formatDuration(clip.duration) : `${formatDuration(clip.start)}–${formatDuration(clip.end)}`}
             </p>
           )}
         </div>
@@ -188,7 +225,7 @@ export default function ContentCard({ piece, showProject = false, showClip = tru
 
       {hasPhotos && (
         <div className="mb-3">
-          <PostPhotos photos={photos} project={piece.project} />
+          <PostPhotos photos={photos} project={isPicturePost(piece.project_source_type) ? piece.project : null} />
         </div>
       )}
 
@@ -214,6 +251,7 @@ export default function ContentCard({ piece, showProject = false, showClip = tru
 
       {/* Automatic posting: where it goes, posting now, the post on Facebook or Instagram, or why it failed. */}
       <PublishStatus piece={piece} className="mt-3" />
+      <ResultsLine numbers={piece.results} />
 
       {showProject && (
         <p className="mt-3 truncate text-xs text-muted-foreground">
@@ -249,7 +287,7 @@ export default function ContentCard({ piece, showProject = false, showClip = tru
           <ShareButton
             // New photos or a new order: fetch the files again.
             key={photos.map((photo) => photo.id).join()}
-            loadFiles={() => photoFiles(piece.project)}
+            loadFiles={() => postPhotoFiles(piece.id)}
             text={piece.body}
             title={piece.title || piece.project_name}
             variant="primary"

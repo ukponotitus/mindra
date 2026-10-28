@@ -1,12 +1,12 @@
 const platforms = [
   { name: "Instagram", color: "#E1306C" },
   { name: "TikTok", color: "#25F4EE" },
-  { name: "YouTube Shorts", color: "#FF0033" },
+  { name: "YouTube", color: "#FF0033" },
   { name: "Facebook", color: "#1877F2" },
   { name: "WhatsApp", color: "#25D366" },
   { name: "LinkedIn", color: "#0A66C2" },
   { name: "X", color: "#E5E7EB" },
-  { name: "Email newsletters", color: "#A79BFF" },
+  { name: "Newsletters", color: "#A79BFF" },
   { name: "Blogs", color: "#5EEAD4" },
 ];
 
@@ -14,7 +14,7 @@ export default function PlatformMarquee() {
   return (
     <section className="relative bg-black border-y border-white/5 py-10 overflow-hidden">
       <p className="mb-7 px-6 text-center text-sm font-medium text-white/50">
-        One upload. Ready for every channel your people use.
+        Ready for every channel your audience uses.
       </p>
       <p className="sr-only">Mindra prepares content for {platforms.map((p) => p.name).join(", ")}.</p>
       <div

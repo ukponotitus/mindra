@@ -12,6 +12,7 @@ export default function LandingFooter() {
       title: "Product",
       links: [
         { label: "How it works", href: `${home}#how` },
+        { label: "Who it's for", href: `${home}#who` },
         { label: "Features", href: `${home}#features` },
         { label: "What's live", href: `${home}#roadmap` },
       ],
@@ -49,9 +50,9 @@ export default function LandingFooter() {
           <div>
             <Logo onDark />
             <p className="mt-6 text-3xl leading-tight font-medium text-balance">
-              Record once.
+              Create, repurpose
               <br />
-              <span className="text-white/45">Post all month.</span>
+              <span className="text-white/45">and publish.</span>
             </p>
           </div>
           <nav aria-label="Footer" className="grid grid-cols-2 gap-x-10 gap-y-8 sm:grid-cols-4 sm:gap-x-12 lg:gap-x-16">
@@ -79,7 +80,7 @@ export default function LandingFooter() {
         </div>
         <div className="mt-16 flex flex-col gap-2 border-t border-white/10 pt-6 text-xs text-white/45 sm:flex-row sm:justify-between">
           <span>© {new Date().getFullYear()} Mindra. All rights reserved.</span>
-          <span>Made for people who speak every week.</span>
+          <span>Made for people who create every week.</span>
         </div>
       </div>
     </footer>

@@ -1,5 +1,5 @@
 import { Menu } from "@base-ui/react/menu";
-import { LogOut, PanelLeft, Settings } from "lucide-react";
+import { CreditCard, LogOut, PanelLeft, Settings } from "lucide-react";
 import { Link, useNavigate } from "react-router";
 import { fullName, useAuth } from "../auth/context";
 import { cn } from "../lib/cn";
@@ -55,6 +55,10 @@ export default function TopNav({ title, onToggleNavigation, navigationLabel }: P
                   <p className="truncate text-xs text-muted-foreground">{user.email}</p>
                 </div>
                 <div className="pt-1.5">
+                  <Menu.LinkItem render={<Link to="/billing" />} className={itemClass}>
+                    <CreditCard aria-hidden="true" className="size-4 text-muted-foreground" />
+                    Billing
+                  </Menu.LinkItem>
                   <Menu.LinkItem render={<Link to="/settings" />} className={itemClass}>
                     <Settings aria-hidden="true" className="size-4 text-muted-foreground" />
                     Settings

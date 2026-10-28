@@ -7,25 +7,28 @@ import Reveal from "./Reveal";
 import SectionLabel from "./SectionLabel";
 
 const byHand = [
-  "Scrub through the whole recording to find the good bits",
-  "Cut, reframe and caption every clip by hand",
-  "Rewrite the same message for eight different platforms",
-  "Design quote cards and thumbnails from scratch",
-  "Post everything, one app at a time",
+  "Rewriting the same content for every platform",
+  "Spending hours editing videos",
+  "Writing captions by hand",
+  "Switching between a handful of tools",
+  "Struggling to keep up a posting schedule",
+  "Losing track of what you've already made",
 ];
 
 const withMindra = [
-  "Upload once, or connect your channel",
-  "Mindra finds the moments worth sharing",
-  "Clips, captions and posts arrive in your voice",
-  "Review, tweak and approve in minutes",
-  "Plan the week on a calendar, with a reminder for each post",
+  "Content made from what you already have",
+  "Highlights found for you",
+  "Captions and short clips, ready to post",
+  "Each post shaped for its platform",
+  "Every post in one content library",
+  "Plan, review and schedule in one place",
+  "Published through supported integrations",
 ];
 
 const clips = [
-  { caption: "Worry empties today.", tint: "bg-[#2A2356]" },
+  { caption: "Small steps change everything.", tint: "bg-[#2A2356]" },
   { caption: "Fear is loud. Faith is louder.", tint: "bg-[#231E4A]" },
-  { caption: "Trust God with the timing.", tint: "bg-[#1C2346]" },
+  { caption: "Start before you feel ready.", tint: "bg-[#1C2346]" },
 ];
 
 /** One vertical clip: a speaker, the platform buttons and a caption. */
@@ -65,7 +68,7 @@ function FanCard() {
       {/* Status bar, like a headset's home view */}
       <div className="relative z-10 flex items-center justify-center gap-3 pt-5 text-[11px] font-medium text-white/55 tabular-nums">
         <span className="size-1.5 rounded-full bg-[#FF453A]" />
-        Sunday Service · 52:14
+        Live session · 52:14
         <span className="text-white/25">|</span>
         Sun 12 Oct
       </div>
@@ -87,9 +90,10 @@ function FanCard() {
       </div>
 
       <div className="absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-black via-black/90 to-transparent px-8 pt-24 pb-8">
-        <h3 className="text-[1.7rem] leading-tight font-medium text-balance text-white">One recording. Thirty moments.</h3>
+        <h3 className="text-[1.7rem] leading-tight font-medium text-balance text-white">One recording. A week of clips.</h3>
         <p className="mt-2 max-w-sm text-[15px] leading-relaxed text-pretty text-white/60">
-          Mindra finds the hooks, quotes and stories in every recording, so nothing good is heard only once.
+          Mindra finds the hooks, quotes and stories in a recording and cuts them into captioned clips, so nothing good is
+          seen only once.
         </p>
       </div>
     </div>
@@ -109,10 +113,13 @@ export default function BeforeAfter() {
           <SectionLabel icon={Clock} dark>
             The problem
           </SectionLabel>
-          <h2 className="mt-6 text-4xl leading-[1.05] font-medium text-balance text-white md:text-6xl">Your message deserves more than one airing.</h2>
-          <p className="mx-auto mt-5 max-w-xl text-lg leading-relaxed text-pretty text-white/55">
-            You already record hours every week. Most of it is heard once and then forgotten. Mindra keeps it working all
-            week long.
+          <h2 className="mt-6 text-4xl leading-[1.05] font-medium text-balance text-white md:text-6xl">
+            Creating content shouldn't feel like a full-time job.
+          </h2>
+          <p className="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-pretty text-white/55">
+            You already have valuable ideas in your videos, recordings, photos, presentations and everyday work. But turning
+            them into steady content for several platforms takes time: writing captions, editing clips, adapting formats and
+            keeping up with a posting schedule.
           </p>
         </Reveal>
 
@@ -127,7 +134,7 @@ export default function BeforeAfter() {
                 <span className="grid size-14 place-items-center rounded-2xl bg-[#FF3B30]">
                   <Clock aria-hidden="true" className="size-7 text-white" />
                 </span>
-                <h3 className="mt-5 text-2xl font-medium text-white">Doing it by hand</h3>
+                <h3 className="mt-5 text-2xl font-medium text-white">Without Mindra</h3>
                 <motion.ul initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.4 }} className="mt-4 space-y-2.5">
                   {byHand.map((item, i) => (
                     <motion.li key={item} custom={i} variants={listItem} className="flex items-start gap-3 text-[15px] text-white/50">

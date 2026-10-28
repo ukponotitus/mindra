@@ -1,32 +1,43 @@
 import { useId, useRef, useState } from "react";
 import { AnimatePresence, motion, useInView, useReducedMotion } from "framer-motion";
-import { ArrowRight, AudioLines, CloudUpload, PenLine, Route, Send } from "lucide-react";
+import { ArrowRight, AudioLines, CloudUpload, PenLine, Route, Send, TrendingUp } from "lucide-react";
 import { cn } from "../../lib/cn";
 import Ribbon from "./hero/Ribbon";
 import Reveal from "./Reveal";
 import SectionLabel from "./SectionLabel";
 import { useMediaQuery } from "../../lib/useMediaQuery";
 
+// The last step isn't built yet, so it says so.
 const steps = [
   {
     icon: CloudUpload,
-    title: "Upload or connect",
-    text: "Drop in a video, an audio file or a transcript. Soon, connect your channel and new recordings arrive on their own.",
+    title: "Add your content",
+    text: "Upload a video, an audio recording, photos or a flyer, paste text, or import a content plan. Start with whatever you already have.",
+    soon: false,
   },
   {
     icon: AudioLines,
-    title: "Mindra listens",
-    text: "Every word is transcribed and timestamped. Then Mindra finds the hooks, quotes and moments worth sharing.",
+    title: "Let AI do the heavy lifting",
+    text: "Mindra transcribes recordings, finds the moments worth sharing and turns your material into captions, posts and short videos.",
+    soon: false,
   },
   {
     icon: PenLine,
-    title: "Review in your voice",
-    text: "Clips, captions and posts are written the way you speak. Tweak anything you like, then approve.",
+    title: "Make it sound like you",
+    text: "Review what Mindra wrote, adjust the tone, edit captions and keep every post in your brand voice.",
+    soon: false,
   },
   {
     icon: Send,
-    title: "Plan and share",
-    text: "Plan the week on a calendar, get a reminder when each post is due, and share it to WhatsApp, Instagram and more in one tap.",
+    title: "Plan and publish",
+    text: "Put posts on your content calendar and schedule them to publish through supported platforms. Where that isn't available yet, Mindra reminds you and you share in one tap.",
+    soon: false,
+  },
+  {
+    icon: TrendingUp,
+    title: "Improve your strategy",
+    text: "See how each post performs and get AI recommendations for what to publish next.",
+    soon: true,
   },
 ];
 
@@ -135,7 +146,7 @@ export default function HowItWorks() {
         <Reveal>
           <SectionLabel icon={Route}>How it works</SectionLabel>
           <h2 className="mt-7 text-[2.5rem] leading-[1.04] font-medium text-balance text-[#0B0B0F] sm:text-6xl lg:text-7xl">
-            From one recording
+            From what you have
             <br />
             to{" "}
             <span className="relative inline-block h-[0.78em] w-[2.1em] translate-y-[0.06em] overflow-hidden rounded-[0.16em] bg-[#0B0B10] align-baseline">
@@ -152,10 +163,10 @@ export default function HowItWorks() {
             </span>{" "}
             <span className="text-[#A3A3AB]">everywhere.</span>
           </h2>
-          <p className="mt-6 text-lg text-pretty text-[#3F3F46]">Four steps. Mindra does most of them for you.</p>
+          <p className="mt-6 text-lg text-pretty text-[#3F3F46]">Mindra does most of the work. The last step is on the way.</p>
         </Reveal>
 
-        <div ref={stepsRef} className="mt-16 grid sm:grid-cols-2 lg:mt-24 lg:grid-cols-4">
+        <div ref={stepsRef} className="mt-16 grid sm:grid-cols-2 lg:mt-24 lg:grid-cols-5">
           {steps.map((step, i) => {
             const isActive = i === active;
             return (
@@ -196,8 +207,11 @@ export default function HowItWorks() {
                 <motion.p
                   animate={{ opacity: isActive ? 1 : 0.45 }}
                   transition={{ duration: 0.5 }}
-                  className="mt-4 px-4 text-[15px] leading-relaxed text-[#3F3F46] lg:min-h-[120px] lg:pr-6"
+                  className="mt-4 px-4 text-[15px] leading-relaxed text-[#3F3F46] lg:min-h-[176px] lg:pr-6"
                 >
+                  {step.soon && (
+                    <span className="mb-2 block w-fit rounded-full bg-black/[0.07] px-2 py-0.5 text-[11px] font-semibold text-[#3F3F46]">Coming soon</span>
+                  )}
                   {step.text}
                 </motion.p>
 

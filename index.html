@@ -7,6 +7,23 @@
     <title><!-- figma:title --></title>
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <!-- The home page's address; scripts/prerender.mjs sets each prerendered page's own. -->
+    <link rel="canonical" href="https://mindra.online/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://mindra.online/" />
+    <meta property="og:site_name" content="Mindra" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "Mindra",
+        "url": "https://mindra.online/",
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": "Web",
+        "description": "Create social media posts, captions and short videos from audio, video, text and images. Plan, organise and publish content with AI.",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "NGN" }
+      }
+    </script>
     <!-- figma:head-end -->
   </head>
   <body>

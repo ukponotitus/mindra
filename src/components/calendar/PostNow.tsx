@@ -7,7 +7,7 @@ import ShareButton from "../content/ShareButton";
 import { buttonStyles } from "../ui/button";
 import { useMarkPosted, useStorePiece } from "../../lib/calendar";
 import { cn } from "../../lib/cn";
-import { photoFiles } from "../../lib/photos";
+import { postPhotoFiles } from "../../lib/photos";
 import { platformInfo } from "../../lib/projects";
 import { hasOptions, optionsProblem, startingOptions } from "../../lib/publishOptions";
 import {
@@ -409,7 +409,7 @@ export default function PostNow({ piece, onPosted }: { piece: ContentPiece; onPo
       ) : media === "photos" ? (
         <ShareButton
           key={piece.photos.map((photo) => photo.id).join()}
-          loadFiles={() => photoFiles(piece.project)}
+          loadFiles={() => postPhotoFiles(piece.id)}
           text={piece.body}
           title={piece.title || piece.project_name}
           variant={shareVariant}
