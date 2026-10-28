@@ -640,7 +640,7 @@ export default function ConnectedAccounts() {
       {list.length > 0 && (
         <p className="mt-4 text-xs text-pretty text-muted-foreground">
           Disconnecting deletes Mindra's access to that account. You can also remove Mindra in each service's own settings
-          (for a WordPress site, revoke its application password).
+          {list.some((account) => account.kind === "wordpress") ? " (for a WordPress site, revoke its application password)" : ""}.
         </p>
       )}
 

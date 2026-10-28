@@ -293,7 +293,7 @@ const features: Feature[] = [
   {
     short: "Publishing",
     title: "Plan the month, post on time",
-    text: "Schedule posts on a calendar and publish automatically to YouTube, LinkedIn and WordPress, with more platforms on the way. Everything else gets a reminder and one-tap sharing.",
+    text: "Schedule posts on a calendar and publish automatically to YouTube and LinkedIn, with more platforms on the way. Everything else gets a reminder and one-tap sharing.",
     status: "live",
     icon: CalendarDays,
     Demo: CalendarDemo,

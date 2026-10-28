@@ -20,7 +20,7 @@ const groups = [
       "Captioned clips and vertical videos",
       "Content plans turned into draft posts",
       "Content library and calendar, with one-tap sharing",
-      "Automatic posting to YouTube, LinkedIn and WordPress",
+      "Automatic posting to YouTube and LinkedIn",
       "Post results: YouTube views, likes and comments, and clicks on Mindra links",
     ],
   },

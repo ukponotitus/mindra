@@ -25,11 +25,11 @@ const questions = [
   },
   {
     q: "Which social media platforms does Mindra support?",
-    a: "Mindra writes for Instagram, Facebook, TikTok, YouTube Shorts, YouTube, WhatsApp, X, LinkedIn, newsletters, blogs and quote cards. It publishes automatically to YouTube, LinkedIn and WordPress today; Facebook, Instagram, TikTok and X are built and waiting on each platform's approval. Everywhere else, you share in one tap from your phone or copy the post.",
+    a: "Mindra writes for Instagram, Facebook, TikTok, YouTube Shorts, YouTube, WhatsApp, X, LinkedIn, newsletters, blogs and quote cards. It publishes automatically to YouTube and LinkedIn today; Facebook, Instagram, TikTok and X are built and waiting on each platform's approval. Everywhere else, you share in one tap from your phone or copy the post.",
   },
   {
     q: "Can Mindra publish posts automatically?",
-    a: "Yes, to connected YouTube channels, LinkedIn profiles and WordPress sites, at the time you schedule. Where automatic posting isn't available yet, Mindra reminds you when a post is due so you can share it.",
+    a: "Yes, to connected YouTube channels and LinkedIn profiles, at the time you schedule. Where automatic posting isn't available yet, Mindra reminds you when a post is due so you can share it.",
   },
   {
     q: "Is my content published without my approval?",
