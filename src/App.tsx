@@ -5,6 +5,7 @@ import RequireAuth from "./auth/RequireAuth";
 import DashboardShell from "./components/DashboardShell";
 import { ApiError } from "./lib/api";
 import AIStudio from "./pages/AIStudio";
+import Analytics from "./pages/Analytics";
 import Billing from "./pages/Billing";
 import AuthPage from "./pages/Auth";
 import CalendarPage from "./pages/Calendar";
@@ -26,7 +27,6 @@ import PrivacyPage from "./pages/Privacy";
 import Processing from "./pages/Processing";
 import ProjectDetails from "./pages/ProjectDetails";
 import Projects from "./pages/Projects";
-import Results from "./pages/Results";
 import Settings from "./pages/Settings";
 import ShortLink from "./pages/ShortLink";
 import TermsPage from "./pages/Terms";
@@ -76,7 +76,8 @@ export default function App() {
                 <Route path="/studio/new" element={<StudioCreate />} />
                 <Route path="/studio/:projectId" element={<StudioEditor />} />
                 <Route path="/calendar" element={<CalendarPage />} />
-                <Route path="/results" element={<Results />} />
+                <Route path="/analytics" element={<Analytics />} />
+                <Route path="/results" element={<Navigate to="/analytics" replace />} />
                 <Route path="/plans" element={<Plans />} />
                 <Route path="/plans/:planId" element={<PlanDetail />} />
                 <Route path="/brand-voice" element={<BrandVoice />} />

@@ -81,10 +81,10 @@ function Numbers({ pieceId, result, clicks, hasLinks }: { pieceId: string; resul
     name === "likes" && result.kind === "facebook_page" ? "Reactions" : NUMBER_LABELS[name];
   const service = SERVICES[result.kind];
 
-  let when = "";
-  if (!result.fetched_at) when = "The first numbers come about an hour after it went out.";
-  else if (result.next_fetch_at) when = `Updated ${formatRelative(result.fetched_at)}. Next update ${formatRelative(result.next_fetch_at)}.`;
-  else when = `Updated ${formatRelative(result.fetched_at)}. Mindra followed it for its first month.`;
+  let when = result.source === "found" ? `Mindra found it on your ${service} account. ` : "";
+  if (!result.fetched_at) when += "The first numbers come about an hour after it went out.";
+  else if (result.next_fetch_at) when += `Updated ${formatRelative(result.fetched_at)}. Next update ${formatRelative(result.next_fetch_at)}.`;
+  else when += `Updated ${formatRelative(result.fetched_at)}. Mindra followed it for its first month.`;
 
   return (
     <div>
@@ -109,7 +109,7 @@ function Numbers({ pieceId, result, clicks, hasLinks }: { pieceId: string; resul
       )}
       <div className="mt-3 flex flex-wrap items-center gap-2">
         {/* A post Mindra published has its link in the Schedule section already. */}
-        {result.url && result.source === "pasted" && (
+        {result.url && result.source !== "published" && (
           <a href={result.url} target="_blank" rel="noreferrer" className={smallButton}>
             <ExternalLink aria-hidden="true" className="size-4" />
             See it on {service}
@@ -121,7 +121,7 @@ function Numbers({ pieceId, result, clicks, hasLinks }: { pieceId: string; resul
             {refresh.isPending ? "Updating…" : "Update now"}
           </button>
         )}
-        {result.source === "pasted" && (
+        {result.source !== "published" && (
           <button
             type="button"
             onClick={() => stop.mutate()}
@@ -283,7 +283,7 @@ interface Props {
   onBodyChange?: (body: string) => void;
 }
 
-/** A post's Results: its views, likes, comments and shares on its platform, and the clicks on its Mindra links. */
+/** A post's analytics: its views, likes, comments and shares on its platform, and the clicks on its Mindra links. */
 export default function PostResults({ piece, body, onBodyChange }: Props) {
   const results = usePostResults(piece.id);
   const platform = platformInfo(piece.platform).label;
@@ -295,7 +295,14 @@ export default function PostResults({ piece, body, onBodyChange }: Props) {
   } else if (results.isError) {
     content = <p className="text-sm text-pretty text-red-600">{results.error.message}</p>;
   } else {
-    const { result, links, clicks, readable, paste_service, paste_ready } = results.data;
+    const { result, links, clicks, readable, paste_service, paste_ready, search } = results.data;
+    // Shared by hand: Mindra looks for it on the connected account (YouTube, Instagram, a Facebook Page).
+    const looking = search && !search.found && (
+      <p className="mb-3 text-sm text-pretty text-muted-foreground">
+        Mindra is looking for it on your {platform === "YouTube Shorts" ? "YouTube" : platform} account, to follow its numbers
+        {search.last_tried_at ? ` (last looked ${formatRelative(search.last_tried_at)})` : ""}. It looks again over the next day.
+      </p>
+    );
     let status = null;
     if (result) {
       status = <Numbers pieceId={piece.id} result={result} clicks={clicks} hasLinks={links.length > 0} />;
@@ -312,7 +319,12 @@ export default function PostResults({ piece, body, onBodyChange }: Props) {
         </p>
       );
     } else if (paste_service && paste_ready) {
-      status = <PasteLink pieceId={piece.id} service={paste_service} />;
+      status = (
+        <>
+          {looking}
+          <PasteLink pieceId={piece.id} service={paste_service} />
+        </>
+      );
     } else if (paste_service) {
       status = (
         <p className="text-sm text-pretty text-muted-foreground">
@@ -324,9 +336,14 @@ export default function PostResults({ piece, body, onBodyChange }: Props) {
         </p>
       );
     } else {
-      status = (
+      status = looking || (
         <p className="text-sm text-pretty text-muted-foreground">
-          Mindra follows the results of {platform} posts it posts itself. Next time, set it to post automatically.
+          Mindra looks for {platform} posts you share yourself on your connected Page a few minutes after you mark them as posted, and follows the one
+          it finds. If your Page isn't connected,{" "}
+          <Link to="/settings#accounts" className={textLink}>
+            connect it in Settings
+          </Link>
+          .
         </p>
       );
     }
@@ -349,7 +366,7 @@ export default function PostResults({ piece, body, onBodyChange }: Props) {
   return (
     <section aria-labelledby={`post-results-${piece.id}`} className="rounded-xl border border-border bg-white p-5">
       <h3 id={`post-results-${piece.id}`} className="mb-3 text-sm font-semibold text-foreground">
-        Results
+        Analytics
       </h3>
       {content}
     </section>

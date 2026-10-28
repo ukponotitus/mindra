@@ -15,8 +15,9 @@ export type TrackedLink = {
 /** A post's numbers on its platform. A number is null when the platform doesn't share it with Mindra. */
 export type PostResult = {
   kind: ConnectedAccountKind;
-  /** "published": Mindra posted it; "pasted": it was shared by hand and its link pasted in. */
-  source: "published" | "pasted";
+  /** "published": Mindra posted it; "pasted": shared by hand and its link pasted in; "found": shared by hand and
+   * found by Mindra on the connected account. */
+  source: "published" | "pasted" | "found";
   url: string;
   account_name: string;
   posted_at: string;
@@ -46,52 +47,78 @@ export type PostResults = {
   paste_service: string;
   /** Whether an account is connected there, so pasting can work. */
   paste_ready: boolean;
+  /** Mindra looking for it on the connected account, for a post shared by hand; null when it hasn't. */
+  search: { tries: number; last_tried_at: string | null; found: boolean } | null;
 };
 
-/** One post on the Results page. */
-export type ResultPost = {
+/** Whether Mindra follows a post's numbers, and if not why: "following"; "waiting" for its first reading; "error"
+ * (the last reading failed); "looking" for it on the connected account (shared by hand); "paste" its link (X);
+ * "connect" the account; "clicks_only" (the platform shares no numbers). */
+export type FollowStatus = "following" | "waiting" | "error" | "looking" | "paste" | "connect" | "clicks_only";
+
+export type NumberSet = { views: number | null; likes: number | null; comments: number | null; shares: number | null };
+
+/** One post on the Analytics page: its numbers now, and what it gained in the period. */
+export type ResultPost = NumberSet & {
   id: string;
   platform: Platform;
   title: string;
   excerpt: string;
   project_name: string;
-  posted_at: string;
+  thumbnail_url: string | null;
+  posted_at: string | null;
   published: boolean;
   url: string;
   account_name: string;
   following: boolean;
   fetched_at: string | null;
-  views: number | null;
-  likes: number | null;
-  comments: number | null;
-  shares: number | null;
+  status: FollowStatus;
+  status_text: string;
+  /** Every click on its links so far. */
   clicks: number;
+  period: NumberSet & { engagement: number; clicks: number };
+  /** Likes, comments and shares as a share of views, or null without views. */
+  engagement_rate: number | null;
 };
 
-/** Sums of posts' numbers (null where none of them has that number) and their links' clicks. */
-export type ResultTotals = Record<NumberName, number | null> & { posts: number; clicks: number };
+export type MetricName = NumberName | "engagement" | "clicks" | "posts";
+/** A period's totals (null: no followed post there shares that number). */
+export type MetricSet = Record<MetricName, number | null>;
+export type Breakdown<K extends string | number = string> = { key: K; clicks: number }[];
 
-/** GET /api/results/?days=: totals of every post that went out in the period, each platform's, the top posts, the
- * newest posts (up to 500, for the best days and times), and clicks on every link day by day. */
+/** GET /api/results/?days= (the backend's analytics/summary.py): what happened in the period, like YouTube Studio. */
 export type ResultsSummary = {
   days: number;
   since: string;
-  totals: ResultTotals;
-  platforms: (ResultTotals & { platform: Platform })[];
+  until: string;
+  metrics: MetricSet;
+  /** The same for the period before, to compare. */
+  previous: MetricSet;
+  /** Day by day (UTC days); views, likes, comments and shares spread evenly between readings. */
+  series: ({ day: string } & Record<MetricName, number>)[];
   top_posts: ResultPost[];
+  latest: ResultPost | null;
+  /** Link clicks hour by hour over the last 48 hours. */
+  recent_clicks: { hour: string; clicks: number }[];
+  /** The posts that went out in the period, newest first (up to 500 of `posts_total`). */
   posts: ResultPost[];
-  clicks_by_day: { day: string; clicks: number }[];
-  /** Two-letter country codes ("" when unknown), most clicks first. */
-  countries: { country: string; clicks: number }[];
+  posts_total: number;
+  platforms: (Record<NumberName, number | null> & { platform: Platform; posts: number; engagement: number; clicks: number })[];
+  /** Link clicks in the period by where they came from ("" direct), device, country ("" unknown) and UTC hour. */
+  sources: Breakdown;
+  devices: Breakdown;
+  countries: Breakdown;
+  click_hours: Breakdown<number>;
   links: number;
 };
 
 export const PERIODS = [
-  { days: 7, label: "7 days" },
-  { days: 30, label: "30 days" },
-  { days: 90, label: "90 days" },
-  { days: 365, label: "12 months" },
+  { days: 7, label: "Last 7 days" },
+  { days: 28, label: "Last 28 days" },
+  { days: 90, label: "Last 90 days" },
+  { days: 365, label: "Last 365 days" },
 ] as const;
+export const DEFAULT_PERIOD = 28;
 
 export const NUMBER_LABELS = { views: "Views", likes: "Likes", comments: "Comments", shares: "Shares" } as const;
 export type NumberName = keyof typeof NUMBER_LABELS;

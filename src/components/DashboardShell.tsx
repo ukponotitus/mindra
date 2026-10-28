@@ -22,7 +22,7 @@ const pageTitles: [pattern: string, title: string][] = [
   ["/studio/:projectId", "Video Editor"],
   ["/studio", "Motion Studio"],
   ["/calendar", "Content Calendar"],
-  ["/results", "Results"],
+  ["/analytics", "Analytics"],
   ["/plans/:planId", "Content Plan"],
   ["/plans", "Content Plans"],
   ["/brand-voice", "Brand Voice"],

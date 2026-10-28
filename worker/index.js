@@ -4,7 +4,8 @@
 // where the link goes. Nothing else about the visitor is passed on.
 
 // What the API needs to tell a person's click from a link preview or a browser's prefetch.
-const PASSED_HEADERS = ["User-Agent", "Sec-Purpose", "Purpose", "X-Purpose", "X-Moz"];
+// The Referer says which site sent the click; the API keeps its site only, as a count.
+const PASSED_HEADERS = ["User-Agent", "Referer", "Sec-Purpose", "Purpose", "X-Purpose", "X-Moz"];
 
 export default {
   async fetch(request, env) {

@@ -39,7 +39,7 @@ const navItems: { label: string; to: string; icon: LucideIcon; soon?: boolean }[
   { label: "Motion Studio", to: "/studio", icon: Film },
   { label: "AI Studio", to: "/ai-studio", icon: PenLine },
   { label: "Calendar", to: "/calendar", icon: CalendarDays },
-  { label: "Results", to: "/results", icon: ChartColumn },
+  { label: "Analytics", to: "/analytics", icon: ChartColumn },
   { label: "Content Plans", to: "/plans", icon: ClipboardList },
   { label: "Brand Voice", to: "/brand-voice", icon: AudioLines },
 ];
