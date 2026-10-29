@@ -15,11 +15,13 @@ import {
   Plus,
   RectangleVertical,
   Settings,
+  Workflow,
   type LucideIcon,
 } from "lucide-react";
 import { Menu } from "@base-ui/react/menu";
 import { Link, NavLink, useLocation, useNavigate } from "react-router";
 import { fullName, useAuth } from "../auth/context";
+import { useAutomationsEnabled, useAutomationSummary } from "../lib/automations";
 import { cn } from "../lib/cn";
 import { initials } from "../lib/format";
 import BrandMark from "./BrandMark";
@@ -30,7 +32,7 @@ interface Props {
   onNavigate?: () => void;
 }
 
-const navItems: { label: string; to: string; icon: LucideIcon; soon?: boolean }[] = [
+const navItems: { label: string; to: string; icon: LucideIcon; soon?: boolean; automations?: boolean }[] = [
   { label: "Dashboard", to: "/dashboard", icon: LayoutDashboard },
   { label: "Projects", to: "/projects", icon: FolderOpen },
   { label: "Content Library", to: "/library", icon: Library },
@@ -41,6 +43,8 @@ const navItems: { label: string; to: string; icon: LucideIcon; soon?: boolean }[
   { label: "Calendar", to: "/calendar", icon: CalendarDays },
   { label: "Analytics", to: "/analytics", icon: ChartColumn },
   { label: "Content Plans", to: "/plans", icon: ClipboardList },
+  // Only for workspaces that have Automations while they're being built.
+  { label: "Automations", to: "/automations", icon: Workflow, automations: true },
   { label: "Brand Voice", to: "/brand-voice", icon: AudioLines },
 ];
 
@@ -62,6 +66,9 @@ export default function Sidebar({ onNavigate }: Props) {
   const workspace = user?.workspaces[0];
   // On Billing or Settings, the account menu's button shows it, as a link would.
   const inAccount = accountItems.some((item) => pathname.startsWith(item.to));
+  const automations = useAutomationsEnabled();
+  // How many scripts and videos wait for approval, shown on Automations.
+  const waiting = useAutomationSummary(automations).data?.waiting ?? 0;
 
   const logOut = async () => {
     onNavigate?.();
@@ -86,7 +93,7 @@ export default function Sidebar({ onNavigate }: Props) {
       </div>
 
       <nav aria-label="Main" className="flex-1 space-y-0.5 overflow-y-auto px-3 py-2">
-        {navItems.map(({ label, to, icon: Icon, soon }) => (
+        {navItems.filter((item) => !item.automations || automations).map(({ label, to, icon: Icon, soon, automations: counted }) => (
           <NavLink
             key={to}
             to={to}
@@ -101,6 +108,12 @@ export default function Sidebar({ onNavigate }: Props) {
             <Icon aria-hidden="true" className="size-4" />
             {label}
             {soon && <span className="ml-auto rounded-full bg-secondary px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">Soon</span>}
+            {counted && waiting > 0 && (
+              <span className="ml-auto rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-900 tabular-nums">
+                {waiting}
+                <span className="sr-only"> waiting for approval</span>
+              </span>
+            )}
           </NavLink>
         ))}
       </nav>

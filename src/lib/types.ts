@@ -7,6 +7,8 @@ export type WorkspaceMembership = {
   id: number;
   name: string;
   role: "owner" | "admin" | "member";
+  /** Whether the workspace has Automations while they're being built. */
+  automations?: boolean;
 };
 
 export type User = {

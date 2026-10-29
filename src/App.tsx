@@ -6,6 +6,12 @@ import DashboardShell from "./components/DashboardShell";
 import { ApiError } from "./lib/api";
 import AIStudio from "./pages/AIStudio";
 import Analytics from "./pages/Analytics";
+import AutomationApprovals from "./pages/AutomationApprovals";
+import AutomationDetail from "./pages/AutomationDetail";
+import AutomationNew from "./pages/AutomationNew";
+import AutomationRun from "./pages/AutomationRun";
+import Automations from "./pages/Automations";
+import AutomationSetup from "./pages/AutomationSetup";
 import Billing from "./pages/Billing";
 import AuthPage from "./pages/Auth";
 import CalendarPage from "./pages/Calendar";
@@ -79,6 +85,12 @@ export default function App() {
                 <Route path="/analytics" element={<Analytics />} />
                 <Route path="/results" element={<Navigate to="/analytics" replace />} />
                 <Route path="/plans" element={<Plans />} />
+                <Route path="/automations" element={<Automations />} />
+                <Route path="/automations/new" element={<AutomationNew />} />
+                <Route path="/automations/approvals" element={<AutomationApprovals />} />
+                <Route path="/automations/runs/:runId" element={<AutomationRun />} />
+                <Route path="/automations/:automationId" element={<AutomationDetail />} />
+                <Route path="/automations/:automationId/setup" element={<AutomationSetup />} />
                 <Route path="/plans/:planId" element={<PlanDetail />} />
                 <Route path="/brand-voice" element={<BrandVoice />} />
                 <Route path="/billing" element={<Billing />} />

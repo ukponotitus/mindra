@@ -5,7 +5,7 @@
     "image": "https://mindra.online/og-image.png"
   },
   "robots": {
-    "index": false
+    "index": true
   },
   "accessibility": {
     "addBypassLinks": false,
