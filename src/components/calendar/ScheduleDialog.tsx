@@ -26,7 +26,7 @@ import {
 import { cn } from "../../lib/cn";
 import { platformInfo } from "../../lib/projects";
 import { hasOptions, optionsProblem, sameOptions, startingOptions } from "../../lib/publishOptions";
-import { ACCOUNT_KINDS, accountName, accountPlace, defaultAccount, kindPhrase, sameAccount, useAutoPost, type AutoPost } from "../../lib/social";
+import { ACCOUNT_KINDS, accountChoice, accountName, accountPlace, defaultAccount, kindPhrase, sameAccount, useAutoPost, type AutoPost } from "../../lib/social";
 import type { ConnectedAccount, ContentPiece, PublishOptions } from "../../lib/types";
 import { backdropClass, popupClass, switchClass, thumbClass } from "./dialogStyles";
 import PostNow from "./PostNow";
@@ -102,7 +102,8 @@ function AutoPostChoice({
   piece: ContentPiece;
   accounts: ConnectedAccount[];
   on: boolean;
-  account: ConnectedAccount;
+  /** None yet when there are several: the person picks one. */
+  account: ConnectedAccount | undefined;
   onToggle: (on: boolean) => void;
   onPick: (id: string) => void;
   options: PublishOptions;
@@ -112,7 +113,7 @@ function AutoPostChoice({
 }) {
   const ids = { toggle: useId(), note: useId(), account: useId() };
   const several = accounts.length > 1;
-  const kind = ACCOUNT_KINDS[account.kind].plural;
+  const kind = ACCOUNT_KINDS[accounts[0].kind].plural;
   return (
     <div className="rounded-lg border border-border p-3">
       <div className="flex items-start justify-between gap-4">
@@ -132,23 +133,33 @@ function AutoPostChoice({
         </Switch.Root>
       </div>
       <p id={ids.note} className="mt-1 text-sm text-pretty text-muted-foreground">
-        {several && !on ? `Post it to one of your connected ${kind} at that time.` : `Post it to ${accountPlace(account)} at that time.`}
+        {account && (on || !several) ? `Post it to ${accountPlace(account)} at that time.` : `Post it to one of your connected ${kind} at that time.`}
       </p>
       {on && several && (
         <div className="mt-3">
           <label htmlFor={ids.account} className="mb-1.5 block text-sm font-medium text-foreground">
             Account
           </label>
-          <select id={ids.account} value={String(account.id)} onChange={(event) => onPick(event.target.value)} className={fieldClass}>
+          <select
+            id={ids.account}
+            value={account ? String(account.id) : ""}
+            onChange={(event) => onPick(event.target.value)}
+            className={fieldClass}
+          >
+            {!account && (
+              <option value="" disabled>
+                Choose which account
+              </option>
+            )}
             {accounts.map((option) => (
               <option key={option.id} value={String(option.id)}>
-                {accountName(option)}
+                {accountChoice(option)}
               </option>
             ))}
           </select>
         </div>
       )}
-      {on && hasOptions(account.kind) && (
+      {on && account && hasOptions(account.kind) && (
         <div className="mt-3 border-t border-border pt-3">
           <PublishOptionsFields piece={piece} account={account} value={options} onChange={onOptions} disclose={disclose} onDisclose={onDisclose} />
         </div>
@@ -184,6 +195,8 @@ function ScheduleForm({ piece, day, onDone }: { piece: ContentPiece; day?: strin
     chosenOptions ?? (account ? startingOptions(account.kind, sameAccount(account.id, piece.publish_to) ? piece.publish_options : undefined) : {});
   const publishOptions = publishTo != null && account ? options : undefined;
   const optionsError = publishOptions && account ? optionsProblem(account.kind, publishOptions, disclose) : "";
+  // Two or more accounts and none picked: it isn't guessed.
+  const accountError = autoOn && !account ? `Choose which ${ACCOUNT_KINDS[activeAccounts[0].kind].label} to post to.` : "";
   const sameTarget =
     publishTo === undefined ||
     (publishTo === null ? piece.publish_to == null : sameAccount(publishTo, piece.publish_to) && sameOptions(publishOptions, piece.publish_options));
@@ -191,7 +204,7 @@ function ScheduleForm({ piece, day, onDone }: { piece: ContentPiece; day?: strin
 
   const when = combine(date, time);
   const timeProblem = scheduleProblem(when);
-  const problem = timeProblem || optionsError;
+  const problem = timeProblem || accountError || optionsError;
   const shownProblem = tried ? problem : "";
   // Only a problem with the time (or the API's answer) marks the date and time fields.
   const timeInvalid = Boolean((tried && timeProblem) || apiErrorFor(schedule.error)) || undefined;
@@ -289,7 +302,7 @@ function ScheduleForm({ piece, day, onDone }: { piece: ContentPiece; day?: strin
           Times are in {timeZoneName(when ?? today)}.
           {when && !problem && <span className="tabular-nums"> This goes in the Planner for {formatScheduled(when)}.</span>}
         </p>
-        {offerAuto && account && (
+        {offerAuto && activeAccounts.length > 0 && (
           <AutoPostChoice
             piece={piece}
             accounts={activeAccounts}

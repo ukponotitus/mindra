@@ -116,11 +116,21 @@ export function useThreads(enabled = true) {
   return useQuery({ queryKey: threadsKey, queryFn: () => apiRequest<Thread[]>("/api/assistant/threads/"), enabled });
 }
 
+// A reply is finished on the server even if the page that asked was closed; after this long it isn't coming.
+const WRITING_FOR_MS = 15 * 60 * 1000;
+
+/** A reply still being written: after a reload, or asked in another tab. */
+export function stillWriting(message: AssistantMessage | undefined) {
+  return message?.role === "assistant" && message.status === "writing" && Date.now() - new Date(message.created_at).getTime() < WRITING_FOR_MS;
+}
+
 export function useThread(id: string | null) {
   return useQuery({
     queryKey: threadKey(id ?? ""),
     queryFn: () => apiRequest<ThreadDetail>(`/api/assistant/threads/${id}/`),
     enabled: Boolean(id),
+    // Its words fill in while it's written elsewhere.
+    refetchInterval: (query) => (stillWriting(query.state.data?.messages.at(-1)) ? 2000 : false),
     retry: (count, error) => !(error instanceof ApiError && error.status === 404) && count < 2,
   });
 }
@@ -186,19 +196,29 @@ export type Reply = {
   proposals: Proposal[];
 };
 
+/** Stop the reply being written in a conversation; the server keeps what it wrote. */
+export function stopReply(threadId: string) {
+  return apiRequest<void>(`/api/assistant/threads/${threadId}/stop/`, { method: "POST" }).catch(() => undefined);
+}
+
+/** Instead of a new message: answer the last one again, or with its words changed. */
+export type Redo = "again" | "edit";
+
 /** Sending a message and showing its reply as it streams in. When it's finished, the thread holds both messages. */
 export function useSendMessage() {
   const queryClient = useQueryClient();
   const [reply, setReply] = useState<Reply | null>(null);
   const [error, setError] = useState<unknown>(null);
   const controller = useRef<AbortController | null>(null);
+  const sendingIn = useRef<string | null>(null);
 
   const send = useCallback(
     /** Resolves to whether the message was taken (false when it was refused before any reply started). */
-    async (threadId: string, text: string, page: PageContext): Promise<boolean> => {
+    async (threadId: string, text: string, page: PageContext, redo?: Redo): Promise<boolean> => {
       if (controller.current) return false;
       const abort = new AbortController();
       controller.current = abort;
+      sendingIn.current = threadId;
       setError(null);
       setReply({ question: null, text: "", doing: "", proposals: [] });
       const finish = (messages: AssistantMessage[]) => {
@@ -209,11 +229,20 @@ export function useSendMessage() {
       try {
         await streamEvents<StreamEvent>(
           `/api/assistant/threads/${threadId}/messages/`,
-          { text, page },
+          { text, page, ...(redo ? { redo } : {}) },
           (event) => {
             if (event.type === "start") {
               question = event.question;
               setReply((current) => (current ? { ...current, question: event.question } : current));
+              if (redo) {
+                // The message and what came after it are replaced by the reply streaming in.
+                const asked = event.question.id;
+                queryClient.setQueryData<ThreadDetail>(threadKey(threadId), (thread) => {
+                  if (!thread) return thread;
+                  const at = thread.messages.findIndex((message) => message.id === asked);
+                  return at < 0 ? thread : { ...thread, messages: thread.messages.slice(0, at) };
+                });
+              }
             } else if (event.type === "text") {
               setReply((current) => (current ? { ...current, text: current.text + event.text, doing: "" } : current));
             } else if (event.type === "status") {
@@ -232,6 +261,7 @@ export function useSendMessage() {
         if (!abort.signal.aborted) setError(caught);
       } finally {
         controller.current = null;
+        sendingIn.current = null;
         setReply(null);
         // A reply cut short is saved by the server as it stood; fetch the thread to show it.
         if (!ended) queryClient.invalidateQueries({ queryKey: threadKey(threadId) });
@@ -243,7 +273,11 @@ export function useSendMessage() {
     [queryClient],
   );
 
-  const stop = useCallback(() => controller.current?.abort(new DOMException("Stopped", "AbortError")), []);
+  // Leaving the page doesn't stop a reply (the server finishes it), so Stop tells the server too.
+  const stop = useCallback(() => {
+    if (sendingIn.current) void stopReply(sendingIn.current);
+    controller.current?.abort(new DOMException("Stopped", "AbortError"));
+  }, []);
 
   const clearError = useCallback(() => setError(null), []);
   return { send, stop, reply, error, sending: reply !== null, clearError };

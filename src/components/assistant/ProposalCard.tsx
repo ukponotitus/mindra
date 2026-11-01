@@ -107,16 +107,37 @@ function PlannedPosts({ posts, label }: { posts: PlannedPost[]; label: string })
 
 function NewCalendar({ payload }: { payload: Record<string, unknown> }) {
   const posts = (payload.items as PlannedPost[]) ?? [];
+  // A longer calendar comes as how many posts on each platform, drafted by Mindra after Apply.
+  const drafted = posts.length ? null : ((payload.posts as Record<string, number> | undefined) ?? null);
+  const total = drafted ? Object.values(drafted).reduce((sum, count) => sum + count, 0) : posts.length;
   const range = `${formatDayShort(new Date(`${String(payload.starts_on)}T12:00`))} to ${formatDayShort(new Date(`${String(payload.ends_on)}T12:00`))}`;
   return (
     <div className="space-y-2.5">
       <p className="text-xs text-muted-foreground">
-        <span className="font-medium text-foreground">{String(payload.name ?? "")}</span> · {range} · {posts.length} {posts.length === 1 ? "post" : "posts"}
+        <span className="font-medium text-foreground">{String(payload.name ?? "")}</span> · {range} · {total} {total === 1 ? "post" : "posts"}
         {payload.campaign_name ? ` · for ${String(payload.campaign_name)}` : ""}
       </p>
       {typeof payload.strategy === "string" && payload.strategy && <p className="text-sm text-pretty whitespace-pre-wrap text-secondary-foreground">{payload.strategy}</p>}
-      <PlannedPosts posts={posts} label="Posts in this calendar" />
-      <p className="text-xs text-pretty text-muted-foreground">Apply saves it as a draft. You can change it, then approve it on its page.</p>
+      {drafted ? (
+        <>
+          <ul className="grid gap-1 text-sm text-foreground sm:grid-cols-2">
+            {Object.entries(drafted).map(([platform, count]) => (
+              <li key={platform} className="flex justify-between gap-3 rounded-lg bg-secondary/60 px-2.5 py-1.5">
+                <span>{platformLabel(platform)}</span>
+                <span className="text-muted-foreground tabular-nums">{count} posts</span>
+              </li>
+            ))}
+          </ul>
+          <p className="text-xs text-pretty text-muted-foreground">
+            Apply saves it, and Mindra drafts all {total} posts from this plan, a few days at a time. Then change anything and approve it on its page.
+          </p>
+        </>
+      ) : (
+        <>
+          <PlannedPosts posts={posts} label="Posts in this calendar" />
+          <p className="text-xs text-pretty text-muted-foreground">Apply saves it as a draft. You can change it, then approve it on its page.</p>
+        </>
+      )}
     </div>
   );
 }

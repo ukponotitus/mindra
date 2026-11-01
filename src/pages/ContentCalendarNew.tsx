@@ -19,6 +19,8 @@ const inputClass =
 const crumbLink = "rounded hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary";
 const PLATFORMS: Platform[] = ["instagram", "facebook", "tiktok", "whatsapp", "youtube_shorts", "youtube", "linkedin", "x"];
 const MOST_A_WEEK = 21;
+// The most posts one calendar plans (the backend's calendars/drafting.MOST_ITEMS).
+const MOST_POSTS = 500;
 // Quick lengths from the start date (the last day is included).
 const LENGTHS = [
   { id: "week", label: "A week", end: (start: Date) => addDays(start, 6) },
@@ -269,9 +271,12 @@ export default function ContentCalendarNew() {
             })}
           </ul>
           {days > 0 && total > 0 && (
-            <p className="mt-2 text-sm text-muted-foreground tabular-nums" aria-live="polite">
+            <p className={cn("mt-2 text-sm tabular-nums", total > MOST_POSTS ? "text-red-600" : "text-muted-foreground")} aria-live="polite">
               {total} {total === 1 ? "post" : "posts"} over {days} {days === 1 ? "day" : "days"}
               {total >= days ? `, ${Number.isInteger(total / days) ? "" : "about "}${Math.round(total / days)} a day` : ""}.
+              {total > MOST_POSTS
+                ? ` Mindra plans up to ${MOST_POSTS} at a time: post less often, or plan fewer weeks.`
+                : total > 40 && " Mindra drafts them a few days at a time, about a minute for every 40."}
             </p>
           )}
         </fieldset>
@@ -313,7 +318,7 @@ export default function ContentCalendarNew() {
         </p>
       )}
       <div className="flex items-center gap-3">
-        <button type="submit" disabled={create.isPending} className={buttonStyles()}>
+        <button type="submit" disabled={create.isPending || total > MOST_POSTS} className={buttonStyles()}>
           {create.isPending && <LoaderCircle aria-hidden="true" className="size-4 animate-spin motion-reduce:animate-none" />}
           Draft the calendar
         </button>

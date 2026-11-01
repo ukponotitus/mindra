@@ -173,6 +173,7 @@ export default function ContentCalendarPage() {
   const start = parseDayKey(data.starts_on) ?? new Date();
   const shown = anchor ?? start;
   const isDraft = version?.status === "draft";
+  const wantedTotal = Object.values(data.wanted).reduce((sum, count) => sum + (count ?? 0), 0);
 
   const act = async (work: () => Promise<unknown>) => {
     setError("");
@@ -262,8 +263,10 @@ export default function ContentCalendarPage() {
 
       {version?.status === "generating" && (
         <p role="status" className="flex items-center gap-2 rounded-xl border border-border bg-card p-5 text-sm text-muted-foreground">
-          <LoaderCircle aria-hidden="true" className="size-4 animate-spin motion-reduce:animate-none" />
-          Drafting the calendar from your brand profile. This takes up to a minute.
+          <LoaderCircle aria-hidden="true" className="size-4 shrink-0 animate-spin motion-reduce:animate-none" />
+          {version.items > 0
+            ? `Drafting the calendar a few days at a time: ${version.items} of ${wantedTotal} posts so far.`
+            : `Drafting the calendar from your brand profile. This takes ${wantedTotal > 40 ? "about a minute for every 40 posts" : "up to a minute"}.`}
         </p>
       )}
       {version?.status === "failed" && (
@@ -281,6 +284,8 @@ export default function ContentCalendarPage() {
             This is a draft. Change anything, ask for another version, or approve it: approved items go in the Planner as planned, ready
             for their brief.
           </p>
+          {/* Drafting stopped partway: the days it planned are here, the rest are missing. */}
+          {version.error && <p className="w-full rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">{version.error}</p>}
           <button type="button" onClick={() => act(() => decide.mutateAsync({ id: version.id, decision: "reject" }))} disabled={decide.isPending} className={buttonStyles({ variant: "ghost", size: "sm" })}>
             <X aria-hidden="true" className="size-4" />
             Reject

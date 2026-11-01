@@ -420,37 +420,88 @@ function WordPressDialog({
 }
 
 /** A button for each service that's set up on the server. */
-function ConnectButtons({
-  services,
+// What each service connects, and how to add a second account of it (a personal and a business TikTok, say): the
+// sign-ins use the account the browser is logged in to, except Google's, which asks.
+const SERVICE_COPY: Record<SocialServiceId, { connects: string; another: string }> = {
+  meta: {
+    connects: "Facebook Pages, and the Instagram professional accounts linked to them.",
+    another:
+      "Facebook lists every Page and Instagram account you manage, so tick the ones to add. For Pages under another Facebook profile, log in to Facebook as that profile first.",
+  },
+  youtube: { connects: "YouTube channels.", another: "Google asks which account to use, so you can choose another channel's account." },
+  linkedin: {
+    connects: "Your LinkedIn profile.",
+    another: "LinkedIn connects the profile you're logged in to on linkedin.com. To add another, log out of LinkedIn there first, then press Connect another.",
+  },
+  x: { connects: "X accounts.", another: "X connects the account you're logged in to on x.com. To add another, switch to it on x.com first, then press Connect another." },
+  tiktok: {
+    connects: "TikTok accounts.",
+    another: "TikTok connects the account you're logged in to on tiktok.com. To add another, switch to it on tiktok.com first, then press Connect another.",
+  },
+  wordpress: { connects: "WordPress sites, to post blog articles.", another: "" },
+};
+
+/** One service: what it connects, its accounts, and Connect (or Connect another). */
+function ServiceCard({
+  service,
+  accounts,
   connecting,
+  canConnect,
   onConnect,
-  onWordPress,
-  variant,
+  onReconnect,
 }: {
-  services: SocialService[];
+  service: Pick<SocialService, "id" | "name" | "available">;
+  accounts: ConnectedAccount[];
   connecting: string | null;
-  onConnect: (service: SignInService) => void;
-  onWordPress: () => void;
-  variant: "primary" | "secondary";
+  canConnect: boolean;
+  onConnect: () => void;
+  onReconnect: (account: ConnectedAccount) => void;
 }) {
+  const titleId = useId();
+  const busy = connecting === `connect-${service.id}`;
+  const count = accounts.length;
+  const copy = SERVICE_COPY[service.id];
   return (
-    <div className="flex flex-wrap gap-2">
-      {services.map((service) => {
-        const busy = connecting === `connect-${service.id}`;
-        return (
+    <section aria-labelledby={titleId} className={cn("rounded-xl border bg-card p-4", count ? "border-primary/30" : "border-border")}>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0 flex-1 basis-48">
+          <h3 id={titleId} className="text-sm font-semibold text-foreground">
+            {service.name}
+          </h3>
+          <p className="mt-0.5 text-sm text-pretty text-muted-foreground">{copy.connects}</p>
+          <p className={cn("mt-1 text-xs font-medium", count ? "text-emerald-700" : "text-muted-foreground")}>
+            {count ? `${count} connected` : service.available ? "Not connected" : "Not available yet"}
+          </p>
+        </div>
+        {service.available && (
           <button
-            key={service.id}
             type="button"
-            onClick={() => (service.id === "wordpress" ? onWordPress() : onConnect(service.id))}
-            disabled={connecting !== null}
-            className={buttonStyles({ variant, size: "sm", className: "h-9" })}
+            onClick={onConnect}
+            disabled={!canConnect || connecting !== null}
+            aria-label={count ? `Connect another ${service.name} account` : `Connect ${service.name}`}
+            className={buttonStyles({ variant: "secondary", size: "sm", className: "h-9 shrink-0" })}
           >
             {busy ? <LoaderCircle aria-hidden="true" className="size-4 animate-spin" /> : <Plus aria-hidden="true" className="size-4" />}
-            {busy ? `Opening ${service.name}…` : service.name}
+            {busy ? `Opening ${service.name}…` : count ? "Connect another" : "Connect"}
           </button>
-        );
-      })}
-    </div>
+        )}
+      </div>
+      {count > 0 && (
+        <>
+          <ul className="mt-3 divide-y divide-border border-t border-border pt-3">
+            {accounts.map((account) => (
+              <AccountRow
+                key={account.id}
+                account={account}
+                onReconnect={() => onReconnect(account)}
+                reconnecting={connecting === `account-${account.id}`}
+              />
+            ))}
+          </ul>
+          {service.available && copy.another && <p className="mt-3 text-xs text-pretty text-muted-foreground">{copy.another}</p>}
+        </>
+      )}
+    </section>
   );
 }
 
@@ -526,18 +577,11 @@ export default function ConnectedAccounts() {
     if (service === "wordpress") setWordPress({ open: true, site: account.profile_url });
     else startConnect(service, `account-${account.id}`);
   };
-  const buttons = (variant: "primary" | "secondary") =>
-    available.length > 0 ? (
-      <ConnectButtons
-        services={available}
-        connecting={connecting}
-        onConnect={(service) => startConnect(service, `connect-${service}`)}
-        onWordPress={() => setWordPress({ open: true, site: "" })}
-        variant={variant}
-      />
-    ) : services.isPending ? null : (
-      <p className="text-sm text-pretty text-muted-foreground">Automatic posting isn't set up yet. Until it is, Mindra reminds you at each post's time.</p>
-    );
+  // A card for every service Mindra offers, and for any that's since been switched off but still has accounts.
+  const cards: { service: Pick<SocialService, "id" | "name" | "available">; accounts: ConnectedAccount[] }[] = (services.data ?? [])
+    .filter((service) => service.available || list.some((account) => ACCOUNT_KINDS[account.kind].service === service.id))
+    .map((service) => ({ service, accounts: list.filter((account) => ACCOUNT_KINDS[account.kind].service === service.id) }));
+  const connectTo = (service: SocialServiceId) => (service === "wordpress" ? setWordPress({ open: true, site: "" }) : startConnect(service, `connect-${service}`));
 
   return (
     <div>
@@ -576,7 +620,7 @@ export default function ConnectedAccounts() {
         </div>
       )}
 
-      {accounts.isPending ? (
+      {accounts.isPending || services.isPending ? (
         <div aria-busy="true" className="space-y-3">
           <p role="status" className="sr-only">
             Loading connected accounts
@@ -600,35 +644,22 @@ export default function ConnectedAccounts() {
             Try again
           </button>
         </div>
-      ) : list.length === 0 ? (
-        !waiting && (
-          <div className="rounded-lg border border-dashed border-border px-4 py-6 text-center">
-            <p className="text-sm font-medium text-foreground">No accounts connected yet</p>
-            <p className="mx-auto mt-1 mb-4 max-w-sm text-sm text-pretty text-muted-foreground">
-              Choose where Mindra can post for you. You sign in on each service and choose what to share.
-            </p>
-            <div className="flex justify-center">{buttons("secondary")}</div>
-          </div>
-        )
+      ) : cards.length === 0 ? (
+        <p className="text-sm text-pretty text-muted-foreground">Automatic posting isn't set up yet. Until it is, Mindra reminds you at each post's time.</p>
       ) : (
-        <>
-          <ul className="divide-y divide-border">
-            {list.map((account) => (
-              <AccountRow
-                key={account.id}
-                account={account}
-                onReconnect={() => reconnect(account)}
-                reconnecting={connecting === `account-${account.id}`}
-              />
-            ))}
-          </ul>
-          {!waiting && (
-            <div className="mt-4 border-t border-border pt-4">
-              <p className="mb-2 text-sm font-medium text-foreground">Connect another account</p>
-              {buttons("secondary")}
-            </div>
-          )}
-        </>
+        <div className="space-y-3">
+          {cards.map(({ service, accounts: connected }) => (
+            <ServiceCard
+              key={service.id}
+              service={service}
+              accounts={connected}
+              connecting={connecting}
+              canConnect={!waiting}
+              onConnect={() => connectTo(service.id)}
+              onReconnect={reconnect}
+            />
+          ))}
+        </div>
       )}
 
       {connectError && (

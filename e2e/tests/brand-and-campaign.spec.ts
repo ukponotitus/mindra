@@ -22,27 +22,33 @@ test("set up the brand profile, partly filled in from a bio", async ({ page }) =
   await expect(main.getByText("Suggestions: untick any you don't want")).toBeVisible();
   await main.getByRole("button", { name: "Use these" }).click();
   await expect(main.getByLabel("What you do")).toHaveValue("Glow by Ada makes skincare for the Lagos sun.");
-  await expect(main.locator("input[value='SPF 50 sunscreen']")).toBeVisible();
-  await expect(main.locator("input[value='₦8,500']")).toBeVisible();
 
-  // The rest by hand.
+  // The rest by hand, a tab at a time.
   await main.getByRole("button", { name: /^Small business/ }).click();
-  await expect(main.getByRole("heading", { name: "What you sell" })).toBeVisible();
   await main.getByLabel("Name", { exact: true }).fill("Glow by Ada");
   await main.getByLabel("Who it's for").fill("Women aged 20 to 40 in Lagos");
+  const tabs = main.getByRole("tablist", { name: "Brand profile" });
+  await tabs.getByRole("tab", { name: /What you sell/ }).click();
+  await expect(main.locator("input[value='SPF 50 sunscreen']")).toBeVisible();
+  await expect(main.locator("input[value='₦8,500']")).toBeVisible();
+  await main.getByRole("button", { name: "Next: Pillars" }).click();
   await main.getByRole("button", { name: "+ Education" }).click();
   await main.getByRole("button", { name: "+ Product" }).click();
+  await tabs.getByRole("tab", { name: /Voice/ }).click();
   await main.getByLabel("Tone").selectOption("Warm");
+  await tabs.getByRole("tab", { name: /Links/ }).click();
   await main.getByLabel("WhatsApp").fill("https://wa.me/2348000000000");
   await main.getByRole("button", { name: "Save profile" }).click();
   await expect(main.getByText("Saved", { exact: true })).toBeVisible();
 
-  // Saved: still there after a reload, with every set-up step done.
+  // Saved: still there after a reload (on the tab the address names), with every part filled in.
   await page.reload();
+  await expect(main.getByLabel("WhatsApp")).toHaveValue("https://wa.me/2348000000000");
+  await tabs.getByRole("tab", { name: /Who you are/ }).click();
   await expect(main.getByLabel("Name", { exact: true })).toHaveValue("Glow by Ada");
+  await tabs.getByRole("tab", { name: /Pillars/ }).click();
   await expect(main.getByRole("list", { name: "Your pillars" })).toContainText("Education");
-  const steps = main.getByRole("list", { name: "Set-up" });
-  for (const step of ["Who you are", "What you sell", "Pillars", "Voice"]) await expect(steps).toContainText(`${step}: done`);
+  for (const step of ["Who you are", "What you sell", "Pillars", "Links", "Voice"]) await expect(tabs.getByRole("tab", { name: new RegExp(`^${step}.*filled in`) })).toBeVisible();
 
   // Home stops asking.
   await page.getByRole("link", { name: "Home" }).click();

@@ -1,5 +1,7 @@
 import { useEffect, useId, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
-import { Check, LoaderCircle, Plus, Sparkles, Trash2, Upload, X } from "lucide-react";
+import { Tabs } from "@base-ui/react/tabs";
+import { Check, ChevronRight, LoaderCircle, Plus, Sparkles, Trash2, Upload, X } from "lucide-react";
+import { useLocation, useNavigate } from "react-router";
 import { buttonStyles } from "../components/ui/button";
 import { ApiError } from "../lib/api";
 import {
@@ -27,6 +29,19 @@ const inputClass =
 const cardClass = "rounded-xl border border-border bg-card p-5 sm:p-6";
 
 type Form = Omit<BrandProfile, "id" | "filled" | "updated_at">;
+
+// The profile in tabs, one part at a time (the address's # names the open one). All of them save together.
+type TabId = "who" | "offers" | "pillars" | "links" | "look" | "voice";
+const TAB_IDS: TabId[] = ["who", "offers", "pillars", "links", "look", "voice"];
+// Which tab each field the API can refuse is on, to open it when a save is refused.
+const TAB_FIELDS: Record<TabId, string[]> = {
+  who: ["organisation_type", "name", "about", "location", "audience"],
+  offers: ["offerings"],
+  pillars: ["pillars"],
+  links: ["website", "whatsapp", "socials"],
+  look: ["logo", "photos", "colours"],
+  voice: ["tone", "style_notes", "words_to_use", "words_to_avoid", "sample_posts"],
+};
 
 function Section({ id, title, hint, children }: { id: string; title: string; hint?: string; children: ReactNode }) {
   return (
@@ -253,6 +268,10 @@ function toForm(profile: BrandProfile): Form {
 /** Who the workspace posts as: what it is, what it offers, its pillars, links, look and voice. Every writer uses it. */
 export default function BrandProfilePage() {
   const ids = useId();
+  const navigate = useNavigate();
+  const { hash, search } = useLocation();
+  const tab: TabId = TAB_IDS.find((id) => `#${id}` === hash) ?? "who";
+  const choose = (value: TabId) => navigate({ search, hash: value === "who" ? "" : `#${value}` }, { replace: true });
   const { data: saved, isPending, isError, error } = useBrandProfile();
   const save = useSaveBrandProfile();
   const [form, setForm] = useState<Form | null>(null);
@@ -333,248 +352,278 @@ export default function BrandProfilePage() {
     const { logo, photos, ...rest } = form;
     save.mutate(
       { ...rest, logo: logo?.id ?? null, photos: photos.map((photo) => photo.id), offerings: form.offerings.filter((item) => item.name.trim()) },
-      { onSuccess: (profile) => setForm(toForm(profile)) },
+      {
+        onSuccess: (profile) => setForm(toForm(profile)),
+        // Refused: open the tab with the first field to fix.
+        onError: (refused) => {
+          const fields = refused instanceof ApiError ? Object.keys(refused.fieldErrors) : [];
+          const first = TAB_IDS.find((id) => TAB_FIELDS[id].some((field) => fields.includes(field)));
+          if (first) choose(first);
+        },
+      },
     );
   };
 
-  const steps = [
-    { label: "Who you are", done: saved.filled.basics },
-    { label: type.offeringsTitle, done: saved.filled.offerings },
-    { label: "Pillars", done: saved.filled.pillars },
-    { label: "Voice", done: saved.filled.voice },
+  const tabs: { id: TabId; label: string; done: boolean }[] = [
+    { id: "who", label: "Who you are", done: saved.filled.basics },
+    { id: "offers", label: type.offeringsTitle, done: saved.filled.offerings },
+    { id: "pillars", label: "Pillars", done: saved.filled.pillars },
+    { id: "links", label: "Links", done: Boolean(saved.website || saved.whatsapp || Object.values(saved.socials).some(Boolean)) },
+    { id: "look", label: "Look", done: Boolean(saved.logo || saved.colours.length) },
+    { id: "voice", label: "Voice", done: saved.filled.voice },
   ];
+  const next = tabs[tabs.findIndex((item) => item.id === tab) + 1];
 
   return (
     <form onSubmit={submit} noValidate className="max-w-3xl space-y-6 pb-24">
       {header}
-      <ol aria-label="Set-up" className="flex flex-wrap gap-2">
-        {steps.map((step) => (
-          <li
-            key={step.label}
-            className={cn(
-              "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium",
-              step.done ? "bg-emerald-50 text-emerald-700" : "bg-secondary text-muted-foreground",
-            )}
-          >
-            {step.done && <Check aria-hidden="true" className="size-3.5" />}
-            {step.label}
-            <span className="sr-only">{step.done ? ": done" : ": to do"}</span>
-          </li>
-        ))}
-      </ol>
-
       <FillPanel onApply={applySuggestions} open={!saved.filled.basics} />
 
-      <Section id={`${ids}-who`} title="Who you are">
-        <fieldset>
-          <legend className="mb-2 text-sm font-medium text-foreground">What kind of organisation are you?</legend>
-          <div className="grid gap-2 sm:grid-cols-3">
-            {ORGANISATION_TYPES.map((option) => (
-              <button
-                key={option.id}
-                type="button"
-                aria-pressed={form.organisation_type === option.id}
-                onClick={() => set("organisation_type", option.id as OrganisationType)}
-                className={cn(
-                  "rounded-lg border px-3 py-2 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
-                  form.organisation_type === option.id ? "border-primary bg-primary/5" : "border-border hover:bg-background",
-                )}
-              >
-                <span className="block text-sm font-medium text-foreground">{option.label}</span>
-                <span className="block text-xs text-pretty text-muted-foreground">{option.description}</span>
-              </button>
-            ))}
-          </div>
-        </fieldset>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field id={`${ids}-name`} label="Name" error={fieldError("name")}>
-            <input id={`${ids}-name`} value={form.name} maxLength={120} onChange={(event) => set("name", event.target.value)} className={inputClass} />
-          </Field>
-          <Field id={`${ids}-location`} label="Where you are" hint="A city or area, as you'd say it." error={fieldError("location")}>
-            <input id={`${ids}-location`} value={form.location} maxLength={200} placeholder="e.g. Lekki, Lagos" onChange={(event) => set("location", event.target.value)} className={inputClass} />
-          </Field>
-        </div>
-        <Field id={`${ids}-about`} label="What you do" hint="One or two plain sentences." error={fieldError("about")}>
-          <textarea id={`${ids}-about`} value={form.about} rows={3} maxLength={1000} onChange={(event) => set("about", event.target.value)} className={cn(inputClass, "resize-y")} />
-        </Field>
-        <Field id={`${ids}-audience`} label="Who it's for" error={fieldError("audience")}>
-          <input id={`${ids}-audience`} value={form.audience} maxLength={255} placeholder="e.g. Women aged 20 to 40 in Lagos" onChange={(event) => set("audience", event.target.value)} className={inputClass} />
-        </Field>
-      </Section>
+      <Tabs.Root value={tab} onValueChange={(value) => choose(value as TabId)} className="space-y-4">
+        <Tabs.List aria-label="Brand profile" className="flex max-w-full gap-1 overflow-x-auto rounded-xl bg-muted p-1">
+          {tabs.map((item) => (
+            <Tabs.Tab
+              key={item.id}
+              value={item.id}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium whitespace-nowrap text-muted-foreground transition-colors outline-none hover:text-foreground focus-visible:outline-2 focus-visible:outline-primary data-[active]:bg-card data-[active]:text-foreground data-[active]:shadow-sm"
+            >
+              {item.done && <Check aria-hidden="true" className="size-3.5 text-emerald-700" />}
+              {item.label}
+              <span className="sr-only">{item.done ? " (filled in)" : " (to fill in)"}</span>
+            </Tabs.Tab>
+          ))}
+        </Tabs.List>
 
-      <Section id={`${ids}-offers`} title={type.offeringsTitle} hint={`${type.offeringsHint} Mindra copies prices exactly and never invents one.`}>
-        {form.offerings.length === 0 && <p className="text-sm text-muted-foreground">Nothing added yet.</p>}
-        <ul className="space-y-3">
-          {form.offerings.map((item, index) => (
-            <li key={item.id ?? `new-${index}`} className="rounded-lg border border-border p-3">
-              <div className="grid gap-3 sm:grid-cols-[8rem_minmax(0,1fr)_8rem_auto] sm:items-end">
-                <Field id={`${ids}-kind-${index}`} label={<>Kind<span className="sr-only"> of item {index + 1}</span></>}>
-                  <select id={`${ids}-kind-${index}`} value={item.kind} onChange={(event) => setOffering(index, { kind: event.target.value as Offering["kind"] })} className={cn(inputClass, "h-10 py-0")}>
-                    {OFFERING_KINDS.map((kind) => (
-                      <option key={kind.id} value={kind.id}>
-                        {kind.label}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-                <Field id={`${ids}-offer-${index}`} label={<>Name<span className="sr-only"> of item {index + 1}</span></>}>
-                  <input id={`${ids}-offer-${index}`} value={item.name} maxLength={120} onChange={(event) => setOffering(index, { name: event.target.value })} className={cn(inputClass, "h-10")} />
-                </Field>
-                <Field id={`${ids}-price-${index}`} label={<>Price<span className="sr-only"> of item {index + 1}</span></>}>
-                  <input id={`${ids}-price-${index}`} value={item.price} maxLength={60} placeholder="₦8,500" onChange={(event) => setOffering(index, { price: event.target.value })} className={cn(inputClass, "h-10 tabular-nums")} />
-                </Field>
-                <button type="button" aria-label={`Remove ${item.name || "this one"}`} onClick={() => set("offerings", form.offerings.filter((_item, at) => at !== index))} className={buttonStyles({ variant: "ghost", size: "icon", className: "size-10 hover:bg-red-50 hover:text-red-600" })}>
-                  <Trash2 aria-hidden="true" className="size-4" />
+        <Tabs.Panel value="who" className="outline-none">
+        <Section id={`${ids}-who`} title="Who you are">
+          <fieldset>
+            <legend className="mb-2 text-sm font-medium text-foreground">What kind of organisation are you?</legend>
+            <div className="grid gap-2 sm:grid-cols-3">
+              {ORGANISATION_TYPES.map((option) => (
+                <button
+                  key={option.id}
+                  type="button"
+                  aria-pressed={form.organisation_type === option.id}
+                  onClick={() => set("organisation_type", option.id as OrganisationType)}
+                  className={cn(
+                    "rounded-lg border px-3 py-2 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
+                    form.organisation_type === option.id ? "border-primary bg-primary/5" : "border-border hover:bg-background",
+                  )}
+                >
+                  <span className="block text-sm font-medium text-foreground">{option.label}</span>
+                  <span className="block text-xs text-pretty text-muted-foreground">{option.description}</span>
                 </button>
-              </div>
-              <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                <Field id={`${ids}-desc-${index}`} label={<>Details (optional)<span className="sr-only"> of item {index + 1}</span></>}>
-                  <input id={`${ids}-desc-${index}`} value={item.description} maxLength={600} onChange={(event) => setOffering(index, { description: event.target.value })} className={cn(inputClass, "h-10")} />
-                </Field>
-                <Field id={`${ids}-link-${index}`} label={<>Link (optional)<span className="sr-only"> of item {index + 1}</span></>}>
-                  <input id={`${ids}-link-${index}`} type="url" value={item.link} maxLength={500} placeholder="https://" onChange={(event) => setOffering(index, { link: event.target.value })} className={cn(inputClass, "h-10")} />
-                </Field>
-              </div>
-            </li>
-          ))}
-        </ul>
-        {fieldError("offerings") && <p className="text-sm text-red-600">Check the offers: each needs a name, and links start with https://.</p>}
-        <button type="button" onClick={() => set("offerings", [...form.offerings, { kind: type.offeringKind, name: "", price: "", description: "", link: "" }])} className={buttonStyles({ variant: "secondary", size: "sm", className: "h-9" })}>
-          <Plus aria-hidden="true" className="size-4" />
-          Add
-        </button>
-      </Section>
+              ))}
+            </div>
+          </fieldset>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field id={`${ids}-name`} label="Name" error={fieldError("name")}>
+              <input id={`${ids}-name`} value={form.name} maxLength={120} onChange={(event) => set("name", event.target.value)} className={inputClass} />
+            </Field>
+            <Field id={`${ids}-location`} label="Where you are" hint="A city or area, as you'd say it." error={fieldError("location")}>
+              <input id={`${ids}-location`} value={form.location} maxLength={200} placeholder="e.g. Lekki, Lagos" onChange={(event) => set("location", event.target.value)} className={inputClass} />
+            </Field>
+          </div>
+          <Field id={`${ids}-about`} label="What you do" hint="One or two plain sentences." error={fieldError("about")}>
+            <textarea id={`${ids}-about`} value={form.about} rows={3} maxLength={1000} onChange={(event) => set("about", event.target.value)} className={cn(inputClass, "resize-y")} />
+          </Field>
+          <Field id={`${ids}-audience`} label="Who it's for" error={fieldError("audience")}>
+            <input id={`${ids}-audience`} value={form.audience} maxLength={255} placeholder="e.g. Women aged 20 to 40 in Lagos" onChange={(event) => set("audience", event.target.value)} className={inputClass} />
+          </Field>
+        </Section>
+        </Tabs.Panel>
 
-      <Section id={`${ids}-pillars`} title="Content pillars" hint="The themes your posts keep coming back to. The planner balances them.">
-        <ul aria-label="Your pillars" className="flex flex-wrap gap-2">
-          {form.pillars.map((item) => (
-            <li key={item} className="inline-flex items-center gap-1 rounded-full bg-primary/10 py-1 pr-1 pl-3 text-sm font-medium text-primary">
-              {item}
-              <button type="button" aria-label={`Remove ${item}`} onClick={() => set("pillars", form.pillars.filter((value) => value !== item))} className="grid size-6 place-items-center rounded-full hover:bg-primary/15 focus-visible:outline-2 focus-visible:outline-primary">
-                <X aria-hidden="true" className="size-3.5" />
-              </button>
-            </li>
-          ))}
-          {form.pillars.length === 0 && <li className="text-sm text-muted-foreground">None yet.</li>}
-        </ul>
-        <div className="flex flex-wrap gap-2">
-          <label htmlFor={`${ids}-pillar`} className="sr-only">
-            Add a pillar
-          </label>
-          <input
-            id={`${ids}-pillar`}
-            value={pillar}
-            maxLength={60}
-            placeholder="Add a pillar"
-            disabled={form.pillars.length >= MOST_PILLARS}
-            onChange={(event) => setPillar(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                event.preventDefault();
-                addPillar(pillar);
-              }
-            }}
-            className={cn(inputClass, "h-9 w-48")}
-          />
-          <button type="button" disabled={!pillar.trim() || form.pillars.length >= MOST_PILLARS} onClick={() => addPillar(pillar)} className={buttonStyles({ variant: "secondary", size: "sm", className: "h-9" })}>
+        <Tabs.Panel value="offers" className="outline-none">
+        <Section id={`${ids}-offers`} title={type.offeringsTitle} hint={`${type.offeringsHint} Mindra copies prices exactly and never invents one.`}>
+          {form.offerings.length === 0 && <p className="text-sm text-muted-foreground">Nothing added yet.</p>}
+          <ul className="space-y-3">
+            {form.offerings.map((item, index) => (
+              <li key={item.id ?? `new-${index}`} className="rounded-lg border border-border p-3">
+                <div className="grid gap-3 sm:grid-cols-[8rem_minmax(0,1fr)_8rem_auto] sm:items-end">
+                  <Field id={`${ids}-kind-${index}`} label={<>Kind<span className="sr-only"> of item {index + 1}</span></>}>
+                    <select id={`${ids}-kind-${index}`} value={item.kind} onChange={(event) => setOffering(index, { kind: event.target.value as Offering["kind"] })} className={cn(inputClass, "h-10 py-0")}>
+                      {OFFERING_KINDS.map((kind) => (
+                        <option key={kind.id} value={kind.id}>
+                          {kind.label}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+                  <Field id={`${ids}-offer-${index}`} label={<>Name<span className="sr-only"> of item {index + 1}</span></>}>
+                    <input id={`${ids}-offer-${index}`} value={item.name} maxLength={120} onChange={(event) => setOffering(index, { name: event.target.value })} className={cn(inputClass, "h-10")} />
+                  </Field>
+                  <Field id={`${ids}-price-${index}`} label={<>Price<span className="sr-only"> of item {index + 1}</span></>}>
+                    <input id={`${ids}-price-${index}`} value={item.price} maxLength={60} placeholder="₦8,500" onChange={(event) => setOffering(index, { price: event.target.value })} className={cn(inputClass, "h-10 tabular-nums")} />
+                  </Field>
+                  <button type="button" aria-label={`Remove ${item.name || "this one"}`} onClick={() => set("offerings", form.offerings.filter((_item, at) => at !== index))} className={buttonStyles({ variant: "ghost", size: "icon", className: "size-10 hover:bg-red-50 hover:text-red-600" })}>
+                    <Trash2 aria-hidden="true" className="size-4" />
+                  </button>
+                </div>
+                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                  <Field id={`${ids}-desc-${index}`} label={<>Details (optional)<span className="sr-only"> of item {index + 1}</span></>}>
+                    <input id={`${ids}-desc-${index}`} value={item.description} maxLength={600} onChange={(event) => setOffering(index, { description: event.target.value })} className={cn(inputClass, "h-10")} />
+                  </Field>
+                  <Field id={`${ids}-link-${index}`} label={<>Link (optional)<span className="sr-only"> of item {index + 1}</span></>}>
+                    <input id={`${ids}-link-${index}`} type="url" value={item.link} maxLength={500} placeholder="https://" onChange={(event) => setOffering(index, { link: event.target.value })} className={cn(inputClass, "h-10")} />
+                  </Field>
+                </div>
+              </li>
+            ))}
+          </ul>
+          {fieldError("offerings") && <p className="text-sm text-red-600">Check the offers: each needs a name, and links start with https://.</p>}
+          <button type="button" onClick={() => set("offerings", [...form.offerings, { kind: type.offeringKind, name: "", price: "", description: "", link: "" }])} className={buttonStyles({ variant: "secondary", size: "sm", className: "h-9" })}>
+            <Plus aria-hidden="true" className="size-4" />
             Add
           </button>
-        </div>
-        <div className="flex flex-wrap items-center gap-2 text-sm">
-          <span className="text-muted-foreground">Suggested:</span>
-          {type.pillars
-            .filter((item) => !form.pillars.includes(item))
-            .map((item) => (
-              <button key={item} type="button" disabled={form.pillars.length >= MOST_PILLARS} onClick={() => addPillar(item)} className="rounded-full border border-dashed border-border px-3 py-1 text-sm text-foreground hover:bg-background focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-50">
-                + {item}
-              </button>
-            ))}
-        </div>
-      </Section>
+        </Section>
+        </Tabs.Panel>
 
-      <Section id={`${ids}-links`} title="Links" hint="Where people can find you. Campaigns and posts use them.">
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field id={`${ids}-website`} label="Website" error={fieldError("website")}>
-            <input id={`${ids}-website`} type="url" inputMode="url" value={form.website} maxLength={500} placeholder="yourbrand.com" onChange={(event) => set("website", event.target.value)} className={inputClass} />
-          </Field>
-          <Field id={`${ids}-whatsapp`} label="WhatsApp" hint="A number or a wa.me link." error={fieldError("whatsapp")}>
-            <input id={`${ids}-whatsapp`} value={form.whatsapp} maxLength={200} placeholder="https://wa.me/234…" onChange={(event) => set("whatsapp", event.target.value)} className={inputClass} />
-          </Field>
-          {SOCIALS.map((social) => (
-            <Field key={social.id} id={`${ids}-${social.id}`} label={social.label}>
-              <input id={`${ids}-${social.id}`} value={form.socials[social.id] ?? ""} maxLength={200} placeholder={social.placeholder} onChange={(event) => set("socials", { ...form.socials, [social.id]: event.target.value })} className={inputClass} />
-            </Field>
-          ))}
-        </div>
-      </Section>
-
-      <Section id={`${ids}-look`} title="Your look" hint="Used for graphics and videos.">
-        <div>
-          <p className="mb-2 text-sm font-medium text-foreground">Logo</p>
-          {form.logo?.thumbnail_url && <img src={form.logo.thumbnail_url} alt="Your logo" className="mb-3 size-16 rounded-lg border border-border object-contain" />}
-          <ImageChooser chosen={form.logo ? [form.logo] : []} onChange={(assets) => set("logo", assets[0] ?? null)} most={1} label="Choose your logo" />
-        </div>
-        <div>
-          <p className="mb-2 text-sm font-medium text-foreground">Colours</p>
-          <ul aria-label="Your colours" className="flex flex-wrap gap-2">
-            {form.colours.map((value) => (
-              <li key={value} className="inline-flex items-center gap-2 rounded-full border border-border py-1 pr-1 pl-1.5 text-sm tabular-nums">
-                <span aria-hidden="true" className="size-5 rounded-full border border-black/10" style={{ background: value }} />
-                {value}
-                <button type="button" aria-label={`Remove ${value}`} onClick={() => set("colours", form.colours.filter((item) => item !== value))} className="grid size-6 place-items-center rounded-full hover:bg-secondary focus-visible:outline-2 focus-visible:outline-primary">
+        <Tabs.Panel value="pillars" className="outline-none">
+        <Section id={`${ids}-pillars`} title="Content pillars" hint="The themes your posts keep coming back to. The planner balances them.">
+          <ul aria-label="Your pillars" className="flex flex-wrap gap-2">
+            {form.pillars.map((item) => (
+              <li key={item} className="inline-flex items-center gap-1 rounded-full bg-primary/10 py-1 pr-1 pl-3 text-sm font-medium text-primary">
+                {item}
+                <button type="button" aria-label={`Remove ${item}`} onClick={() => set("pillars", form.pillars.filter((value) => value !== item))} className="grid size-6 place-items-center rounded-full hover:bg-primary/15 focus-visible:outline-2 focus-visible:outline-primary">
                   <X aria-hidden="true" className="size-3.5" />
                 </button>
               </li>
             ))}
+            {form.pillars.length === 0 && <li className="text-sm text-muted-foreground">None yet.</li>}
           </ul>
-          <div className="mt-2 flex items-center gap-2">
-            <label htmlFor={`${ids}-colour`} className="sr-only">
-              Pick a colour
+          <div className="flex flex-wrap gap-2">
+            <label htmlFor={`${ids}-pillar`} className="sr-only">
+              Add a pillar
             </label>
-            <input id={`${ids}-colour`} type="color" value={colour} onChange={(event) => setColour(event.target.value.toUpperCase())} className="h-9 w-12 cursor-pointer rounded-lg border border-border bg-card p-1" />
-            <button
-              type="button"
-              disabled={form.colours.length >= MOST_COLOURS || form.colours.includes(colour)}
-              onClick={() => set("colours", [...form.colours, colour])}
-              className={buttonStyles({ variant: "secondary", size: "sm", className: "h-9" })}
-            >
-              Add colour
+            <input
+              id={`${ids}-pillar`}
+              value={pillar}
+              maxLength={60}
+              placeholder="Add a pillar"
+              disabled={form.pillars.length >= MOST_PILLARS}
+              onChange={(event) => setPillar(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  addPillar(pillar);
+                }
+              }}
+              className={cn(inputClass, "h-9 w-48")}
+            />
+            <button type="button" disabled={!pillar.trim() || form.pillars.length >= MOST_PILLARS} onClick={() => addPillar(pillar)} className={buttonStyles({ variant: "secondary", size: "sm", className: "h-9" })}>
+              Add
             </button>
           </div>
-        </div>
-        <div>
-          <p className="mb-1 text-sm font-medium text-foreground">Photos</p>
-          <p className="mb-2 text-xs text-muted-foreground">Your products, place or people. AI pictures and videos can start from them.</p>
-          <ImageChooser chosen={form.photos} onChange={(assets) => set("photos", assets)} most={10} label="Choose your photos" />
-        </div>
-      </Section>
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+            <span className="text-muted-foreground">Suggested:</span>
+            {type.pillars
+              .filter((item) => !form.pillars.includes(item))
+              .map((item) => (
+                <button key={item} type="button" disabled={form.pillars.length >= MOST_PILLARS} onClick={() => addPillar(item)} className="rounded-full border border-dashed border-border px-3 py-1 text-sm text-foreground hover:bg-background focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-50">
+                  + {item}
+                </button>
+              ))}
+          </div>
+        </Section>
+        </Tabs.Panel>
 
-      <Section id={`${ids}-voice`} title="Voice" hint="How you sound. Every post Mindra writes follows it.">
-        <Field id={`${ids}-tone`} label="Tone" error={fieldError("tone")}>
-          <select id={`${ids}-tone`} value={form.tone} onChange={(event) => set("tone", event.target.value)} className={cn(inputClass, "h-11 py-0")}>
-            <option value="">Choose a tone</option>
-            {TONES.map((tone) => (
-              <option key={tone} value={tone}>
-                {tone}
-              </option>
+        <Tabs.Panel value="links" className="outline-none">
+        <Section id={`${ids}-links`} title="Links" hint="Where people can find you. Campaigns and posts use them.">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field id={`${ids}-website`} label="Website" error={fieldError("website")}>
+              <input id={`${ids}-website`} type="url" inputMode="url" value={form.website} maxLength={500} placeholder="yourbrand.com" onChange={(event) => set("website", event.target.value)} className={inputClass} />
+            </Field>
+            <Field id={`${ids}-whatsapp`} label="WhatsApp" hint="A number or a wa.me link." error={fieldError("whatsapp")}>
+              <input id={`${ids}-whatsapp`} value={form.whatsapp} maxLength={200} placeholder="https://wa.me/234…" onChange={(event) => set("whatsapp", event.target.value)} className={inputClass} />
+            </Field>
+            {SOCIALS.map((social) => (
+              <Field key={social.id} id={`${ids}-${social.id}`} label={social.label}>
+                <input id={`${ids}-${social.id}`} value={form.socials[social.id] ?? ""} maxLength={200} placeholder={social.placeholder} onChange={(event) => set("socials", { ...form.socials, [social.id]: event.target.value })} className={inputClass} />
+              </Field>
             ))}
-          </select>
-        </Field>
-        <Field id={`${ids}-style`} label="Style notes" hint="Anything about how you write: short sentences, pidgin is fine, always end with a question." error={fieldError("style_notes")}>
-          <textarea id={`${ids}-style`} value={form.style_notes} rows={3} maxLength={2000} onChange={(event) => set("style_notes", event.target.value)} className={cn(inputClass, "resize-y")} />
-        </Field>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field id={`${ids}-use`} label="Words and phrases to use" hint="Separate them with commas." error={fieldError("words_to_use")}>
-            <textarea id={`${ids}-use`} value={form.words_to_use} rows={2} maxLength={2000} onChange={(event) => set("words_to_use", event.target.value)} className={cn(inputClass, "resize-y")} />
+          </div>
+        </Section>
+        </Tabs.Panel>
+
+        <Tabs.Panel value="look" className="outline-none">
+        <Section id={`${ids}-look`} title="Your look" hint="Used for graphics and videos.">
+          <div>
+            <p className="mb-2 text-sm font-medium text-foreground">Logo</p>
+            {form.logo?.thumbnail_url && <img src={form.logo.thumbnail_url} alt="Your logo" className="mb-3 size-16 rounded-lg border border-border object-contain" />}
+            <ImageChooser chosen={form.logo ? [form.logo] : []} onChange={(assets) => set("logo", assets[0] ?? null)} most={1} label="Choose your logo" />
+          </div>
+          <div>
+            <p className="mb-2 text-sm font-medium text-foreground">Colours</p>
+            <ul aria-label="Your colours" className="flex flex-wrap gap-2">
+              {form.colours.map((value) => (
+                <li key={value} className="inline-flex items-center gap-2 rounded-full border border-border py-1 pr-1 pl-1.5 text-sm tabular-nums">
+                  <span aria-hidden="true" className="size-5 rounded-full border border-black/10" style={{ background: value }} />
+                  {value}
+                  <button type="button" aria-label={`Remove ${value}`} onClick={() => set("colours", form.colours.filter((item) => item !== value))} className="grid size-6 place-items-center rounded-full hover:bg-secondary focus-visible:outline-2 focus-visible:outline-primary">
+                    <X aria-hidden="true" className="size-3.5" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <div className="mt-2 flex items-center gap-2">
+              <label htmlFor={`${ids}-colour`} className="sr-only">
+                Pick a colour
+              </label>
+              <input id={`${ids}-colour`} type="color" value={colour} onChange={(event) => setColour(event.target.value.toUpperCase())} className="h-9 w-12 cursor-pointer rounded-lg border border-border bg-card p-1" />
+              <button
+                type="button"
+                disabled={form.colours.length >= MOST_COLOURS || form.colours.includes(colour)}
+                onClick={() => set("colours", [...form.colours, colour])}
+                className={buttonStyles({ variant: "secondary", size: "sm", className: "h-9" })}
+              >
+                Add colour
+              </button>
+            </div>
+          </div>
+          <div>
+            <p className="mb-1 text-sm font-medium text-foreground">Photos</p>
+            <p className="mb-2 text-xs text-muted-foreground">Your products, place or people. AI pictures and videos can start from them.</p>
+            <ImageChooser chosen={form.photos} onChange={(assets) => set("photos", assets)} most={10} label="Choose your photos" />
+          </div>
+        </Section>
+        </Tabs.Panel>
+
+        <Tabs.Panel value="voice" className="outline-none">
+        <Section id={`${ids}-voice`} title="Voice" hint="How you sound. Every post Mindra writes follows it.">
+          <Field id={`${ids}-tone`} label="Tone" error={fieldError("tone")}>
+            <select id={`${ids}-tone`} value={form.tone} onChange={(event) => set("tone", event.target.value)} className={cn(inputClass, "h-11 py-0")}>
+              <option value="">Choose a tone</option>
+              {TONES.map((tone) => (
+                <option key={tone} value={tone}>
+                  {tone}
+                </option>
+              ))}
+            </select>
           </Field>
-          <Field id={`${ids}-avoid`} label="Words and phrases to avoid" error={fieldError("words_to_avoid")}>
-            <textarea id={`${ids}-avoid`} value={form.words_to_avoid} rows={2} maxLength={2000} onChange={(event) => set("words_to_avoid", event.target.value)} className={cn(inputClass, "resize-y")} />
+          <Field id={`${ids}-style`} label="Style notes" hint="Anything about how you write: short sentences, pidgin is fine, always end with a question." error={fieldError("style_notes")}>
+            <textarea id={`${ids}-style`} value={form.style_notes} rows={3} maxLength={2000} onChange={(event) => set("style_notes", event.target.value)} className={cn(inputClass, "resize-y")} />
           </Field>
-        </div>
-        <Field id={`${ids}-samples`} label="Posts you've written before" hint="Paste a few. Mindra matches their voice, not their content." error={fieldError("sample_posts")}>
-          <textarea id={`${ids}-samples`} value={form.sample_posts} rows={5} maxLength={6000} onChange={(event) => set("sample_posts", event.target.value)} className={cn(inputClass, "resize-y")} />
-        </Field>
-      </Section>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field id={`${ids}-use`} label="Words and phrases to use" hint="Separate them with commas." error={fieldError("words_to_use")}>
+              <textarea id={`${ids}-use`} value={form.words_to_use} rows={2} maxLength={2000} onChange={(event) => set("words_to_use", event.target.value)} className={cn(inputClass, "resize-y")} />
+            </Field>
+            <Field id={`${ids}-avoid`} label="Words and phrases to avoid" error={fieldError("words_to_avoid")}>
+              <textarea id={`${ids}-avoid`} value={form.words_to_avoid} rows={2} maxLength={2000} onChange={(event) => set("words_to_avoid", event.target.value)} className={cn(inputClass, "resize-y")} />
+            </Field>
+          </div>
+          <Field id={`${ids}-samples`} label="Posts you've written before" hint="Paste a few. Mindra matches their voice, not their content." error={fieldError("sample_posts")}>
+            <textarea id={`${ids}-samples`} value={form.sample_posts} rows={5} maxLength={6000} onChange={(event) => set("sample_posts", event.target.value)} className={cn(inputClass, "resize-y")} />
+          </Field>
+        </Section>
+        </Tabs.Panel>
+
+        {next && (
+          <button type="button" onClick={() => choose(next.id)} className={buttonStyles({ variant: "ghost", size: "sm" })}>
+            Next: {next.label}
+            <ChevronRight aria-hidden="true" className="size-4" />
+          </button>
+        )}
+      </Tabs.Root>
 
       <div className="sticky bottom-0 z-10 -mx-4 flex flex-wrap items-center gap-3 border-t border-border bg-card/95 px-4 py-3 backdrop-blur sm:mx-0 sm:rounded-xl sm:border">
         <button type="submit" disabled={!dirty || save.isPending} className={buttonStyles()}>
@@ -582,7 +631,7 @@ export default function BrandProfilePage() {
           {save.isPending ? "Saving…" : "Save profile"}
         </button>
         <p role="status" className="text-sm text-muted-foreground">
-          {save.isError && !Object.keys(fieldErrors).length ? <span className="text-red-600">{save.error.message}</span> : save.isError ? <span className="text-red-600">Check the fields marked above.</span> : dirty ? "Unsaved changes" : save.isSuccess ? "Saved" : "Everything is saved"}
+          {save.isError && !Object.keys(fieldErrors).length ? <span className="text-red-600">{save.error.message}</span> : save.isError ? <span className="text-red-600">Check the fields marked in red.</span> : dirty ? "Unsaved changes" : save.isSuccess ? "Saved" : "Everything is saved"}
         </p>
       </div>
     </form>

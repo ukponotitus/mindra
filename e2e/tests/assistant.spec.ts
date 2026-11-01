@@ -21,6 +21,18 @@ test("ask the assistant from any page, and apply what it suggests for a post", a
   await panel.getByRole("button", { name: "What should I post this week?" }).click();
   await expect(panel.getByText(/stand-in assistant/)).toBeVisible();
 
+  // The last message can be answered again, or changed and answered; either replaces the answer.
+  await panel.getByRole("button", { name: "Try again" }).click();
+  await expect(panel.getByRole("button", { name: "Try again" })).toBeVisible();
+  await expect(panel.getByText(/stand-in assistant/)).toHaveCount(1);
+  await panel.getByRole("button", { name: "Edit" }).click();
+  await expect(panel.getByLabel("Message the assistant")).toHaveValue("What should I post this week?");
+  await panel.getByLabel("Message the assistant").fill("What should I post next week?");
+  await panel.getByRole("button", { name: "Send" }).click();
+  await expect(panel.getByText("What should I post next week?")).toBeVisible();
+  await expect(panel.getByText("What should I post this week?")).toHaveCount(0);
+  await expect(panel.getByText(/stand-in assistant/)).toHaveCount(1);
+
   // A post to ask about.
   await page.getByRole("link", { name: "New Project" }).click();
   await main.getByRole("button", { name: "Paste Transcript" }).click();
@@ -35,6 +47,7 @@ test("ask the assistant from any page, and apply what it suggests for a post", a
   await posts.first().getByRole("link", { name: "Edit" }).click();
   await page.waitForURL(/\/library\/[0-9a-f-]{36}/);
   const postText = main.locator("#post-text");
+  await expect(postText).not.toHaveValue("");
   const before = await postText.inputValue();
 
   // Asked about the post, it proposes; nothing changes until Apply.
@@ -51,7 +64,7 @@ test("ask the assistant from any page, and apply what it suggests for a post", a
   await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Assistant", exact: true }).click();
   await expect(page).toHaveURL(/\/assistant/);
   const conversation = page.getByRole("region", { name: "Assistant" });
-  await expect(conversation.getByText("What should I post this week?").first()).toBeVisible();
+  await expect(conversation.getByText("What should I post next week?").first()).toBeVisible();
   await expect(conversation.getByText("The post's text was changed.")).toBeVisible();
   await expect(page.getByRole("navigation", { name: "Conversations" }).getByRole("button", { name: /^What should I post this week/ })).toBeVisible();
 });

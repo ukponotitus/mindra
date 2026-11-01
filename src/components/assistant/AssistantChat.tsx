@@ -1,9 +1,11 @@
 import { useEffect, useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent, type ReactNode } from "react";
-import { ArrowUp, LoaderCircle, Square } from "lucide-react";
+import { ArrowUp, LoaderCircle, Pencil, RotateCcw, Square } from "lucide-react";
 import { useLocation } from "react-router";
 import {
   pageContext,
   starters,
+  stillWriting,
+  stopReply,
   useAssistantStatus,
   useCreateThread,
   useDecideProposal,
@@ -11,6 +13,7 @@ import {
   useThread,
   type AssistantMessage,
   type Proposal,
+  type Redo,
 } from "../../lib/assistant";
 import { cn } from "../../lib/cn";
 import SeePlans from "../SeePlans";
@@ -25,12 +28,28 @@ interface Props {
   onThreadCreated: (id: string) => void;
 }
 
-function Question({ text, label }: { text: string; label?: string }) {
+function Question({ text, label, children }: { text: string; label?: string; children?: ReactNode }) {
   return (
     <div className="flex flex-col items-end gap-1">
       <p className="max-w-[85%] rounded-2xl rounded-br-md bg-primary px-3.5 py-2 text-sm whitespace-pre-wrap text-primary-foreground">{text}</p>
-      {label && <p className="text-xs text-muted-foreground">From: {label}</p>}
+      {(label || children) && (
+        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+          {label && <span>From: {label}</span>}
+          {children}
+        </div>
+      )}
     </div>
+  );
+}
+
+const smallAction = "inline-flex items-center gap-1 rounded text-xs font-medium text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary";
+
+function Working({ text }: { text: string }) {
+  return (
+    <p className="flex items-center gap-2 text-sm text-muted-foreground">
+      <LoaderCircle aria-hidden="true" className="size-4 animate-spin motion-reduce:animate-none" />
+      {text}
+    </p>
   );
 }
 
@@ -59,6 +78,8 @@ export default function AssistantChat({ threadId, onThreadCreated }: Props) {
   const { send, stop, reply, error, sending, clearError } = useSendMessage();
   const [draft, setDraft] = useState("");
   const [pending, setPending] = useState("");
+  // The box holds the last message's words to send again changed.
+  const [editing, setEditing] = useState(false);
   const scroller = useRef<HTMLDivElement>(null);
   const box = useRef<HTMLTextAreaElement>(null);
   const nearBottom = useRef(true);
@@ -69,12 +90,17 @@ export default function AssistantChat({ threadId, onThreadCreated }: Props) {
   // A new conversation has no thread to load (its query is switched off), so only a real fetch counts as loading.
   const loading = Boolean(threadId) && thread.isLoading;
   const empty = messages.length === 0 && !sending && !loading;
+  const last = messages.at(-1);
+  const lastQuestion = [...messages].reverse().find((message) => message.role === "user");
+  // A reply still being written after a reload, or in another tab: it fills in, and can be stopped.
+  const writing = stillWriting(last);
+  const canRedo = Boolean(lastQuestion) && !sending && !writing && available && !used;
 
   // Stay at the newest words while they stream in, unless the person scrolled up to read.
   useLayoutEffect(() => {
     const element = scroller.current;
     if (element && nearBottom.current) element.scrollTop = element.scrollHeight;
-  }, [messages.length, reply?.text, reply?.proposals.length, reply?.doing, pending]);
+  }, [messages.length, last?.text, reply?.text, reply?.proposals.length, reply?.doing, pending]);
 
   useEffect(() => {
     if (!sending) box.current?.focus({ preventScroll: true });
@@ -87,11 +113,12 @@ export default function AssistantChat({ threadId, onThreadCreated }: Props) {
     shownThread.current = threadId;
   }, [threadId, sending, createThread.isPending, clearError]);
 
-  const submit = async (text: string) => {
+  const submit = async (text: string, redo?: Redo) => {
     const words = text.trim();
-    if (!words || sending || !available) return;
+    if ((!words && redo !== "again") || sending || writing || !available) return;
     setDraft("");
-    setPending(words);
+    setEditing(false);
+    setPending(redo === "again" ? (lastQuestion?.text ?? "") : words);
     nearBottom.current = true;
     let id = threadId;
     try {
@@ -100,9 +127,12 @@ export default function AssistantChat({ threadId, onThreadCreated }: Props) {
         onThreadCreated(id);
       }
       // Refused before it started (the month's allowance, say): give the words back to edit or send again.
-      if (!(await send(id, words, page))) setDraft((current) => current || words);
+      if (!(await send(id, words, page, redo)) && redo !== "again") {
+        setDraft((current) => current || words);
+        setEditing(redo === "edit");
+      }
     } catch {
-      setDraft((current) => current || words);
+      if (redo !== "again") setDraft((current) => current || words);
     } finally {
       setPending("");
     }
@@ -110,14 +140,30 @@ export default function AssistantChat({ threadId, onThreadCreated }: Props) {
 
   const onSubmit = (event: FormEvent) => {
     event.preventDefault();
-    void submit(draft);
+    void submit(draft, editing ? "edit" : undefined);
   };
 
   const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
       event.preventDefault();
-      void submit(draft);
+      void submit(draft, editing ? "edit" : undefined);
     }
+    if (event.key === "Escape" && editing) cancelEdit();
+  };
+
+  const startEdit = () => {
+    if (!lastQuestion) return;
+    setEditing(true);
+    setDraft(lastQuestion.text);
+    box.current?.focus();
+  };
+  const cancelEdit = () => {
+    setEditing(false);
+    setDraft("");
+  };
+  const stopWriting = () => {
+    if (sending) stop();
+    else if (threadId) void stopReply(threadId).then(() => thread.refetch());
   };
 
   const cards = (proposals: Proposal[]) =>
@@ -172,16 +218,38 @@ export default function AssistantChat({ threadId, onThreadCreated }: Props) {
 
         {messages.map((message) =>
           message.role === "user" ? (
-            <Question key={message.id} text={message.text} label={message.page_label} />
+            <Question key={message.id} text={message.text} label={message.page_label}>
+              {canRedo && message.id === lastQuestion?.id && (
+                <button type="button" onClick={startEdit} className={smallAction}>
+                  <Pencil aria-hidden="true" className="size-3.5" />
+                  Edit
+                </button>
+              )}
+            </Question>
           ) : (
             <Answer
               key={message.id}
               text={message.text}
-              failed={message.status === "failed" ? message.error || "The assistant couldn't answer." : message.status === "stopped" ? "Stopped." : undefined}
+              failed={
+                message.status === "failed"
+                  ? message.error || "The assistant couldn't answer."
+                  : message.status === "stopped"
+                    ? "Stopped."
+                    : message.status === "writing" && !stillWriting(message)
+                      ? "This answer didn't finish."
+                      : undefined
+              }
             >
               {cards(message.proposals)}
+              {message === last && writing && <Working text="Still answering…" />}
             </Answer>
           ),
+        )}
+        {canRedo && (
+          <button type="button" onClick={() => void submit("", "again")} className={smallAction}>
+            <RotateCcw aria-hidden="true" className="size-3.5" />
+            Try again
+          </button>
         )}
 
         {sending && (
@@ -189,12 +257,7 @@ export default function AssistantChat({ threadId, onThreadCreated }: Props) {
             <Question text={reply?.question?.text ?? pending} label={page.label} />
             <Answer text={reply?.text ?? ""}>
               {cards(reply?.proposals ?? [])}
-              {(!reply?.text || reply?.doing) && (
-                <p className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <LoaderCircle aria-hidden="true" className="size-4 animate-spin motion-reduce:animate-none" />
-                  {reply?.doing ? `${reply.doing}…` : "Thinking…"}
-                </p>
-              )}
+              {(!reply?.text || reply?.doing) && <Working text={reply?.doing ? `${reply.doing}…` : "Thinking…"} />}
             </Answer>
           </>
         )}
@@ -211,7 +274,16 @@ export default function AssistantChat({ threadId, onThreadCreated }: Props) {
           <p className="rounded-lg bg-secondary px-3 py-2.5 text-sm text-muted-foreground">{status.data?.reason}</p>
         ) : (
           <>
-            {page.label && <p className="mb-2 text-xs text-muted-foreground">Asking about: {page.label}</p>}
+            {editing ? (
+              <p className="mb-2 flex items-center gap-2 text-xs text-muted-foreground">
+                Editing your last message: sending it replaces the answer.
+                <button type="button" onClick={cancelEdit} className={smallAction}>
+                  Cancel
+                </button>
+              </p>
+            ) : (
+              page.label && <p className="mb-2 text-xs text-muted-foreground">Asking about: {page.label}</p>
+            )}
             <div className="flex items-end gap-2 rounded-xl border border-border bg-card p-1.5 focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/15">
               <label htmlFor="assistant-message" className="sr-only">
                 Message the assistant
@@ -228,8 +300,8 @@ export default function AssistantChat({ threadId, onThreadCreated }: Props) {
                 placeholder={used ? "This month's assistant messages are used up" : "Ask anything about your content"}
                 className="max-h-40 min-h-10 flex-1 resize-none bg-transparent px-2 py-1.5 text-sm text-foreground outline-none placeholder:text-muted-foreground"
               />
-              {sending ? (
-                <button type="button" onClick={stop} aria-label="Stop" className={buttonStyles({ variant: "secondary", size: "icon" })}>
+              {sending || writing ? (
+                <button type="button" onClick={stopWriting} aria-label="Stop" className={buttonStyles({ variant: "secondary", size: "icon" })}>
                   <Square aria-hidden="true" className="size-3.5 fill-current" />
                 </button>
               ) : (

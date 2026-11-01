@@ -14,6 +14,13 @@ test("sign up, log out and log back in", async ({ page }) => {
   await page.waitForURL(/\/login/);
 
   await logIn(page, person);
+
+  // Home asks how Mindra is working, and the feedback is sent to the team.
+  const feedback = page.getByRole("region", { name: "How is Mindra working for you?" });
+  await feedback.getByText("Well", { exact: true }).click();
+  await feedback.getByLabel("Your feedback").fill("Writing posts was quick.");
+  await feedback.getByRole("button", { name: "Send feedback" }).click();
+  await expect(feedback.getByText("Thank you, it's sent.")).toBeVisible();
 });
 
 test("the sidebar groups related pages, and each page opens", async ({ page }) => {

@@ -3,6 +3,8 @@ import { Link } from "react-router";
 import { displayName, useAuth } from "../auth/context";
 import ComingUp from "../components/calendar/ComingUp";
 import EmptyState from "../components/EmptyState";
+import AccessBanner from "../components/home/AccessBanner";
+import FeedbackCard from "../components/home/FeedbackCard";
 import StatusBadge from "../components/StatusBadge";
 import { buttonStyles } from "../components/ui/button";
 import { useBrandProfile } from "../lib/brand";
@@ -147,6 +149,7 @@ export default function Dashboard() {
         <p className="mt-1 text-sm text-pretty text-muted-foreground">{subtitle}</p>
       </div>
 
+      <AccessBanner />
       <BrandSetup />
       <WaitingForYou />
 
@@ -271,6 +274,8 @@ export default function Dashboard() {
           </section>
         </div>
       </div>
+
+      <FeedbackCard />
     </div>
   );
 }

@@ -12,16 +12,24 @@
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://mindra.online/" />
     <meta property="og:site_name" content="Mindra" />
+    <!-- What Mindra is, for search engines: the site's name (shown above it in results), who's behind it, and the app. -->
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
-        "@type": "SoftwareApplication",
-        "name": "Mindra",
-        "url": "https://mindra.online/",
-        "applicationCategory": "BusinessApplication",
-        "operatingSystem": "Web",
-        "description": "Create social media posts, captions and short videos from audio, video, text and images. Plan, organise and publish content with AI.",
-        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "NGN" }
+        "@graph": [
+          { "@type": "WebSite", "@id": "https://mindra.online/#website", "name": "Mindra", "url": "https://mindra.online/", "publisher": { "@id": "https://mindra.online/#organization" } },
+          { "@type": "Organization", "@id": "https://mindra.online/#organization", "name": "Mindra", "url": "https://mindra.online/", "logo": "https://mindra.online/brand/mindra-logo.png" },
+          {
+            "@type": "SoftwareApplication",
+            "name": "Mindra",
+            "url": "https://mindra.online/",
+            "applicationCategory": "BusinessApplication",
+            "operatingSystem": "Web",
+            "description": "Create social media posts, captions and short videos from audio, video, text and images. Plan, organise and publish content with AI.",
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "NGN" },
+            "publisher": { "@id": "https://mindra.online/#organization" }
+          }
+        ]
       }
     </script>
     <!-- figma:head-end -->

@@ -139,9 +139,16 @@ export function autoPostFor(
   return { state: "no-account", kind };
 }
 
-/** The account to offer first: the one the post is already set to, or the first. */
+/** The account to offer first: the one the post is already set to, or the only one. With several and none chosen yet,
+ * none: the person picks, so a post never goes quietly to the wrong one of two accounts (personal or business). */
 export function defaultAccount(accounts: ConnectedAccount[], current: ConnectedAccountId | null): ConnectedAccount | undefined {
-  return accounts.find((account) => sameAccount(account.id, current)) ?? accounts[0];
+  return accounts.find((account) => sameAccount(account.id, current)) ?? (accounts.length === 1 ? accounts[0] : undefined);
+}
+
+/** An account in a list to choose from: its handle and its name, so two accounts on one service can't be mixed up. */
+export function accountChoice(account: Pick<ConnectedAccount, "kind" | "name" | "username">): string {
+  const handle = accountName(account);
+  return account.name && handle !== account.name ? `${handle} (${account.name})` : handle;
 }
 
 /** What to call where a post goes, by kind: "your Facebook Page", "your YouTube channel". */

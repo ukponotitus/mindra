@@ -76,6 +76,10 @@ export default function PrivacyPage() {
           you applied or discarded from its suggestions.
         </li>
         <li>
+          <strong>Feedback:</strong> what you send with the feedback form on Home, how you said Mindra is working for you,
+          and the page you sent it from. The team reads it to improve Mindra.
+        </li>
+        <li>
           <strong>Accounts you connect:</strong> each account’s name, id and picture, and the access tokens the service gives
           Mindra to post for you. See <a href="#connected-accounts">Connected accounts</a> below.
         </li>
@@ -132,9 +136,8 @@ export default function PrivacyPage() {
       </p>
       <ul>
         <li>
-          <strong>Writing and reading</strong> run on Google’s Gemini API. For now Mindra uses Gemini’s free tier, under
-          which Google may use what it receives to improve its products, and people at Google may read it after it’s
-          separated from your account. On Google’s paid service, it isn’t used that way.
+          <strong>Writing and reading</strong> run on Anthropic’s Claude API. Under Anthropic’s commercial terms, what
+          Mindra sends it isn’t used to train its models.
         </li>
         <li>
           <strong>AI pictures</strong> are made with Google’s Gemini API on its paid service, from the description you
@@ -199,8 +202,8 @@ export default function PrivacyPage() {
         rows={[
           ["Render", "Hosts our servers and database, in Frankfurt, Germany", "Everything stored in Mindra", "United States"],
           ["Cloudflare", "Serves the website and short links; stores files (R2)", "Files; visitors’ IP address and browser details", "United States"],
-          ["Google", "AI writing and reading, AI pictures, the website’s font, YouTube", "Transcripts, photos, flyers, plans, brand profile; picture descriptions; visitors’ IP address; YouTube posts", "United States"],
-          ["Anthropic", "The assistant", "Your questions, brand profile, campaigns, Planner, results and what it reads to answer", "United States"],
+          ["Google", "AI pictures, the website’s font, YouTube", "Picture descriptions and the photos you choose for them; visitors’ IP address; YouTube posts", "United States"],
+          ["Anthropic", "AI writing and reading, and the assistant", "Transcripts, photos, flyers, plans, brand profile; your questions to the assistant, campaigns, Planner, results and what it reads to answer", "United States"],
           ["Deepgram", "Transcription", "The audio of your recordings", "United States"],
           ["ElevenLabs", "Voice-overs in Automations, if you use them", "The script", "United States"],
           ["Jamendo", "Music search and previews", "Your searches; listeners’ IP address", "Luxembourg"],
@@ -215,8 +218,7 @@ export default function PrivacyPage() {
       <h2>Sending data outside Nigeria</h2>
       <p>
         Most of the companies above are based outside Nigeria, mainly in Germany and the United States. We send each only
-        what its part needs, under its terms for protecting the data it receives. The exception is Gemini’s free tier,
-        described under <a href="#ai">AI</a> above.
+        what its part needs, under its terms for protecting the data it receives.
       </p>
 
       <h2>People in recordings and photos</h2>
@@ -243,6 +245,7 @@ export default function PrivacyPage() {
           ["A post’s results", "The post is deleted or the account it was read through is disconnected; 30 days after Mindra can no longer use that account’s access"],
           ["Counts for a Mindra short link", "The workspace is deleted. The link keeps working after its post is deleted, since it may still be shared"],
           ["Conversations with the assistant", "You delete them, or your account"],
+          ["Feedback you send", "You delete your account"],
           ["Payment records", "The workspace is deleted. Paystack keeps its own records, under its privacy policy"],
           ["Database backups", "Up to 7 days after the data is deleted"],
           ["Server logs", "A short time, set by our hosting providers"],

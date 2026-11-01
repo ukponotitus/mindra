@@ -12,6 +12,7 @@ import { platformInfo } from "../../lib/projects";
 import { hasOptions, optionsProblem, startingOptions } from "../../lib/publishOptions";
 import {
   accountName,
+  accountChoice,
   defaultAccount,
   kindPhrase,
   postMedia,
@@ -261,9 +262,14 @@ function PostToAccount({
             disabled={busy}
             className="h-10 w-full min-w-0 rounded-lg border border-border bg-card px-3 text-sm text-foreground transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-hidden disabled:opacity-50"
           >
+            {!account && (
+              <option value="" disabled>
+                Choose which account
+              </option>
+            )}
             {accounts.map((option) => (
               <option key={option.id} value={String(option.id)}>
-                {accountName(option)}
+                {accountChoice(option)}
               </option>
             ))}
           </select>
