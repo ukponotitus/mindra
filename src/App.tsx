@@ -36,6 +36,7 @@ import ContentLibrary from "./pages/ContentLibrary";
 import CreateProject from "./pages/CreateProject";
 import Dashboard from "./pages/Dashboard";
 import DataDeletionPage from "./pages/DataDeletion";
+import Unsubscribe from "./pages/Unsubscribe";
 import LandingPage from "./pages/Landing";
 import PrivacyPage from "./pages/Privacy";
 import Processing from "./pages/Processing";
@@ -85,6 +86,7 @@ export default function App() {
             <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="/terms" element={<TermsPage />} />
             <Route path="/data-deletion" element={<DataDeletionPage />} />
+            <Route path="/unsubscribe" element={<Unsubscribe />} />
             <Route path="/l/:code" element={<ShortLink />} />
 
             <Route element={<RequireAuth />}>

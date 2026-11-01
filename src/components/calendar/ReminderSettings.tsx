@@ -47,7 +47,7 @@ export default function ReminderSettings() {
   const [device, setDevice] = useState<DeviceState>("checking");
   const [busy, setBusy] = useState(false);
   const [deviceError, setDeviceError] = useState("");
-  const ids = { push: useId(), pushNote: useId(), email: useId(), emailNote: useId() };
+  const ids = { push: useId(), pushNote: useId(), email: useId(), emailNote: useId(), followUps: useId(), followUpsNote: useId() };
   const publicKey = settings.data?.push_public_key ?? null;
 
   // What this device is set to, once the server has said whether it has push set up.
@@ -111,7 +111,7 @@ export default function ReminderSettings() {
     );
   }
 
-  const { email_reminders: emailOn, email_available: emailAvailable } = settings.data;
+  const { email_reminders: emailOn, follow_ups: followUpsOn, email_available: emailAvailable } = settings.data;
   const canToggle = device === "on" || device === "off" || device === "dismissed";
   const testResult = test.data;
   let testMessage = "";
@@ -170,7 +170,7 @@ export default function ReminderSettings() {
             id={ids.email}
             nativeButton
             render={<button type="button" />}
-            checked={updateSettings.isPending ? Boolean(updateSettings.variables?.email_reminders) : emailOn}
+            checked={updateSettings.isPending && updateSettings.variables?.email_reminders !== undefined ? updateSettings.variables.email_reminders : emailOn}
             onCheckedChange={(checked) => updateSettings.mutate({ email_reminders: checked })}
             disabled={updateSettings.isPending}
             aria-describedby={ids.emailNote}
@@ -189,6 +189,30 @@ export default function ReminderSettings() {
             {updateSettings.error.message}
           </p>
         )}
+      </div>
+
+      <div className="py-4">
+        <div className="flex items-start justify-between gap-4">
+          <label htmlFor={ids.followUps} className="text-sm font-medium text-foreground">
+            Tips and follow-up emails
+          </label>
+          <Switch.Root
+            id={ids.followUps}
+            nativeButton
+            render={<button type="button" />}
+            checked={updateSettings.isPending && updateSettings.variables?.follow_ups !== undefined ? updateSettings.variables.follow_ups : followUpsOn}
+            onCheckedChange={(checked) => updateSettings.mutate({ follow_ups: checked })}
+            disabled={updateSettings.isPending}
+            aria-describedby={ids.followUpsNote}
+            className={switchClass}
+          >
+            <Switch.Thumb className={thumbClass} />
+          </Switch.Root>
+        </div>
+        <p id={ids.followUpsNote} className="mt-1 text-sm text-pretty text-muted-foreground">
+          Now and then, when you haven&apos;t used Mindra for a while: what&apos;s waiting for you, or an idea to get started. At most one
+          every few days.
+        </p>
       </div>
 
       <div className="pt-4">

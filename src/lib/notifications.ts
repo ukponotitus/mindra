@@ -27,7 +27,7 @@ export function useNotificationSettings() {
 export function useUpdateNotificationSettings() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (changes: { email_reminders: boolean }) =>
+    mutationFn: (changes: Partial<Pick<NotificationSettings, "email_reminders" | "follow_ups">>) =>
       apiRequest<NotificationSettings>("/api/notifications/", { method: "PATCH", body: changes }),
     onSuccess: (settings) => queryClient.setQueryData(["notifications"], settings),
   });

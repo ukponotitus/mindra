@@ -405,6 +405,8 @@ export type NotificationSettings = {
   /** The server's VAPID public key for Web Push, or null when push isn't set up on the server. */
   push_public_key: string | null;
   email_reminders: boolean;
+  /** Tips and follow-up emails when they haven't used Mindra for a while. */
+  follow_ups: boolean;
   /** True when the server can really send email. */
   email_available: boolean;
 };

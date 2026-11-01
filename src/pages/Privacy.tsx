@@ -106,7 +106,8 @@ export default function PrivacyPage() {
         </li>
         <li>
           <strong>Usage records:</strong> how much each workspace uses (AI writing, assistant messages, recording hours),
-          so we can apply plan limits and keep costs in check. These records hold amounts, not your content.
+          so we can apply plan limits and keep costs in check, and when you last used Mindra. These records hold amounts
+          and dates, not your content.
         </li>
         <li>
           <strong>Technical logs:</strong> like most websites, our servers keep short-lived logs, such as IP addresses and the
@@ -125,6 +126,7 @@ export default function PrivacyPage() {
           ["Count clicks on Mindra short links", "Our and your legitimate interest in knowing which posts work, without keeping who clicked"],
           ["Connect your social accounts and send phone notifications", "Your consent, which you withdraw by disconnecting or turning them off"],
           ["Email you about your account and important changes", "Our agreement with you"],
+          ["Send follow-up emails when you haven't used Mindra for a while (at most one every few days), and see how Mindra is used", "Our legitimate interest in helping you get value from Mindra; stop them from any of them, or in Settings, under Reminders"],
         ]}
       />
 
@@ -246,6 +248,7 @@ export default function PrivacyPage() {
           ["Counts for a Mindra short link", "The workspace is deleted. The link keeps working after its post is deleted, since it may still be shared"],
           ["Conversations with the assistant", "You delete them, or your account"],
           ["Feedback you send", "You delete your account"],
+          ["When you last used Mindra, and the follow-up emails sent to you", "You delete your account"],
           ["Payment records", "The workspace is deleted. Paystack keeps its own records, under its privacy policy"],
           ["Database backups", "Up to 7 days after the data is deleted"],
           ["Server logs", "A short time, set by our hosting providers"],
