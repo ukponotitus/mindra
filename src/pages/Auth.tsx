@@ -4,6 +4,7 @@ import { ArrowLeft, Check } from "lucide-react";
 import { Link, Navigate, useLocation, useNavigate, useSearchParams } from "react-router";
 import { useAuth } from "../auth/context";
 import BrandMark from "../components/BrandMark";
+import PasswordInput from "../components/ui/PasswordInput";
 import { buttonStyles } from "../components/ui/button";
 import { ApiError, apiRequest, type FieldErrors } from "../lib/api";
 import { firstDays, offerLastDay, usePricingPlans } from "../lib/billing";
@@ -322,9 +323,8 @@ export default function AuthPage({ mode }: Props) {
                       )
                     }
                   >
-                    <input
+                    <PasswordInput
                       {...describe("auth-password", "password", Boolean(passwordHint))}
-                      type="password"
                       autoComplete={mode === "login" ? "current-password" : "new-password"}
                       required
                       placeholder="••••••••"
@@ -358,9 +358,8 @@ export default function AuthPage({ mode }: Props) {
 
                 {mode === "reset" && (
                   <Field id="auth-confirm-password" label="Confirm new password" error={fieldError("confirm_password")}>
-                    <input
+                    <PasswordInput
                       {...describe("auth-confirm-password", "confirm_password")}
-                      type="password"
                       autoComplete="new-password"
                       required
                       placeholder="••••••••"

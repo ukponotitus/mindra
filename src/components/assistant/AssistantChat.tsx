@@ -236,7 +236,7 @@ export default function AssistantChat({ threadId, onThreadCreated }: Props) {
                   : message.status === "stopped"
                     ? "Stopped."
                     : message.status === "writing" && !stillWriting(message)
-                      ? "This answer didn't finish."
+                      ? "This answer stopped. Try again."
                       : undefined
               }
             >

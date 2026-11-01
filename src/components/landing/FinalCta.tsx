@@ -1,11 +1,13 @@
 import { ArrowRight } from "lucide-react";
 import { Link } from "react-router";
+import { useOfferLastDay } from "../../lib/billing";
 import Eclipse from "./Eclipse";
 import Reveal from "./Reveal";
 import { useCtaLinks } from "./useCtaLinks";
 
 export default function FinalCta() {
   const { signedIn, startTo, loginTo } = useCtaLinks();
+  const lastDay = useOfferLastDay();
 
   return (
     // A sky going from day to dusk; the footer below carries on from its darkest colour.
@@ -14,7 +16,7 @@ export default function FinalCta() {
         <h2 className="mx-auto max-w-4xl text-[2.6rem] leading-[1.02] font-medium text-balance text-[#0B0B0F] sm:text-6xl lg:text-7xl">
           What you already have could fill your feed <span className="text-[#8A8798]">for a month.</span>
         </h2>
-        <p className="mt-6 text-lg text-pretty text-[#52525B]">Free during the beta. No credit card, no editing skills needed.</p>
+        <p className="mt-6 text-lg text-pretty text-[#52525B]">{lastDay ? `Everything free until ${lastDay}.` : "Free to start."} No credit card, no editing skills needed.</p>
         <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <Link
             to={startTo}

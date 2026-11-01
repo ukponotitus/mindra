@@ -7,6 +7,7 @@ import { backdropClass, popupClass } from "../calendar/dialogStyles";
 import ConfirmDialog from "../ui/ConfirmDialog";
 import SeePlans from "../SeePlans";
 import { buttonStyles } from "../ui/button";
+import PasswordInput from "../ui/PasswordInput";
 import { ApiError } from "../../lib/api";
 import { formatDayShort } from "../../lib/calendar";
 import { cn } from "../../lib/cn";
@@ -387,9 +388,8 @@ function WordPressDialog({
               <label htmlFor={ids.password} className="mb-1.5 block text-sm font-medium text-foreground">
                 Application password
               </label>
-              <input
+              <PasswordInput
                 id={ids.password}
-                type="password"
                 autoComplete="off"
                 value={password}
                 disabled={connect.isPending}

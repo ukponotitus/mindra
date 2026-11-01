@@ -249,6 +249,30 @@ export function offerLastDay(betaEndsOn: string | null): string | null {
   return new Date(year, month - 1, date - 1).toLocaleDateString("en-GB", { day: "numeric", month: "long" });
 }
 
+/** The launch offer's last day ("15 November") while it's on, from the API; null after it, or until the API answers. */
+export function useOfferLastDay(): string | null {
+  const plans = usePricingPlans().data;
+  return plans?.in_beta ? offerLastDay(plans.beta_ends_on) : null;
+}
+
+function hoursText(value: number) {
+  if (value < 1) return `${Math.round(value * 60)} minutes`;
+  return `${value} hour${value === 1 ? "" : "s"}`;
+}
+
+/** "15 AI-written posts, 30 minutes of recordings and 2 clips a month, with Mindra's mark on clips". */
+export function freeAllowances(plan: PricingPlan | undefined): string {
+  if (!plan) return "smaller monthly allowances";
+  const parts = [
+    plan.posts_per_month != null && `${plan.posts_per_month} AI-written posts`,
+    plan.hours_per_month != null && `${hoursText(plan.hours_per_month)} of recordings`,
+    plan.clips_per_month != null && `${plan.clips_per_month} clips`,
+  ].filter(Boolean) as string[];
+  if (!parts.length) return "smaller monthly allowances";
+  const list = parts.length > 1 ? `${parts.slice(0, -1).join(", ")} and ${parts.at(-1)}` : parts[0];
+  return `${list} a month${plan.watermark ? ", with Mindra's mark on clips" : ""}`;
+}
+
 /** "your first week" or "your first 10 days": how long a new account has Full access after the launch offer. */
 export function firstDays(days: number) {
   return days === 7 ? "first week" : `first ${days} days`;

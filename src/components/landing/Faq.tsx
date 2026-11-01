@@ -1,15 +1,25 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { MessageCircleQuestion, Plus } from "lucide-react";
+import { firstDays, freeAllowances, usePricingPlans, useOfferLastDay } from "../../lib/billing";
 import { cn } from "../../lib/cn";
 import Reveal from "./Reveal";
 import SectionLabel from "./SectionLabel";
 
-// Answers describe what Mindra does today; anything still to come says so.
+// Answers describe what Mindra does today; anything still to come says so. The offer's dates and the Free plan come
+// from the API (billing/plans.py), so they're never out of date.
 const questions = [
   {
     q: "What exactly does Mindra do?",
-    a: "Mindra turns what you already have (videos, audio, text, photos, event flyers and content plans) into posts, captions and short videos for 11 platforms, written in your brand voice. You review everything, plan it on a calendar, and Mindra reminds you when each post is due or publishes it for you where that's available.",
+    a: "Mindra works like a social media team in one place. It learns your brand, plans with you (a content calendar, then a brief for each post), writes the posts and makes clips and short videos from what you already have (videos, audio, text, photos, event flyers and content plans), for 11 platforms in your brand voice. You approve each step, and Mindra publishes for you where that's available or reminds you when a post is due.",
+  },
+  {
+    q: "Can Mindra plan my content for me?",
+    a: "Yes. Ask the assistant (\"two posts a day for next week\") or fill in a content calendar, and Mindra drafts what goes out, when and where, from your brand profile. You approve the calendar, then a brief for each post (its hook, script and visuals), then each post itself. Only approved posts go out.",
+  },
+  {
+    q: "Is there an AI assistant?",
+    a: "Yes. It sits beside every page and knows your brand profile, your calendar and your results. Ask it to plan a month, rewrite a post or explain what worked. It suggests changes as cards you apply, and never posts or changes anything by itself. Each plan includes a number of assistant messages a month.",
   },
   {
     q: "Can I use Mindra without uploading a video?",
@@ -56,14 +66,6 @@ const questions = [
     a: "Yes, the basics. Mindra counts the clicks on its links in any post, on any platform, and shows the views, likes and comments of your YouTube posts, with the days and times that work best. Facebook, Instagram and X posts get theirs once Mindra can post there, and reach and watch time come as each platform gives access.",
   },
   {
-    q: "Is Mindra free during the beta?",
-    a: "Yes. Everything that's live is free while Mindra is in beta, with no credit card needed. While the beta is private, sign-up may ask for an invite code.",
-  },
-  {
-    q: "What happens when the beta ends?",
-    a: "The beta ends on 1 December 2026. After that, workspaces that haven't chosen a paid plan move to the Free plan, and paid plans start at ₦5,000 a month. Nothing you've made is removed, and you'll hear from us before anything changes.",
-  },
-  {
     q: "Who owns the content I upload?",
     a: "You do. Your recordings, transcripts and posts are private to your workspace, and you can delete them at any time.",
   },
@@ -77,8 +79,39 @@ const questions = [
   },
 ];
 
+/** Is it free, and what happens after the launch offer, in the API's own dates and allowances. */
+function offerQuestions(lastDay: string | null, plans: ReturnType<typeof usePricingPlans>["data"]) {
+  const free = freeAllowances(plans?.plans.find((plan) => plan.id === "free"));
+  const prices = (plans?.plans ?? []).map((plan) => plan.monthly_price).filter((price) => price > 0);
+  const from = prices.length ? `₦${Math.min(...prices).toLocaleString("en-NG")} a month` : "a small monthly price";
+  const newDays = plans?.new_account_days ?? 0;
+  if (lastDay) {
+    return [
+      {
+        q: "Is Mindra free?",
+        a: `Yes. Everything is open to everyone, free, until ${lastDay}, with no credit card needed.`,
+      },
+      {
+        q: `What happens after ${lastDay}?`,
+        a: `Workspaces that haven't chosen a paid plan move to the Free plan: ${free}. Paid plans start at ${from}.${newDays ? ` Anyone who joins after that has everything open for their ${firstDays(newDays)}.` : ""} Nothing you've made is removed.`,
+      },
+    ];
+  }
+  return [
+    {
+      q: "Is Mindra free?",
+      a: `There's a Free plan (${free}), and paid plans start at ${from}.${newDays ? ` New accounts have everything open for their ${firstDays(newDays)}.` : ""} No credit card is needed to start.`,
+    },
+  ];
+}
+
 export default function Faq() {
   const [open, setOpen] = useState<number | null>(0);
+  const lastDay = useOfferLastDay();
+  const plans = usePricingPlans().data;
+  // The offer's questions go before "Who owns the content I upload?".
+  const owns = questions.findIndex((item) => item.q.startsWith("Who owns"));
+  const shown = [...questions.slice(0, owns), ...offerQuestions(lastDay, plans), ...questions.slice(owns)];
 
   return (
     <section id="faq" className="scroll-mt-16 bg-card px-6 py-24 lg:py-32">
@@ -91,14 +124,14 @@ export default function Faq() {
             <span className="text-[#A3A3AB]">answered.</span>
           </h2>
           <p className="mt-5 max-w-sm text-[15px] leading-relaxed text-[#52525B]">
-            The short version: it's free during the beta, your content stays yours, and nothing is posted without your
-            approval.
+            The short version: {lastDay ? `it's free in full until ${lastDay}` : "you can start free"}, your content stays yours, and nothing is
+            posted without your approval.
           </p>
         </Reveal>
 
         <Reveal delay={120}>
           <div className="border-t border-black/10">
-            {questions.map((item, i) => {
+            {shown.map((item, i) => {
               const isOpen = open === i;
               return (
                 <div key={item.q} className="border-b border-black/10">

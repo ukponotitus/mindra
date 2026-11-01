@@ -7,6 +7,7 @@ import {
   Check,
   ClipboardList,
   Clapperboard,
+  MessagesSquare,
   Heart,
   Layers,
   Library,
@@ -308,10 +309,10 @@ const upcoming: { title: string; text: string; status: Status; icon: ComponentTy
     icon: TrendingUp,
   },
   {
-    title: "AI recommendations and automation",
-    text: "Suggestions for what to post next, based on what performed well, and smarter content workflows.",
-    status: "soon",
-    icon: Sparkles,
+    title: "An assistant that knows your brand",
+    text: "Ask it to plan a month, rewrite a post or explain what worked. It suggests changes for you to apply, and never posts by itself.",
+    status: "live",
+    icon: MessagesSquare,
   },
 ];
 

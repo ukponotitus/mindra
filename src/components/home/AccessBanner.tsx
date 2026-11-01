@@ -1,6 +1,6 @@
 import { CalendarClock } from "lucide-react";
 import { Link } from "react-router";
-import { useBilling, type PricingPlan } from "../../lib/billing";
+import { freeAllowances, useBilling } from "../../lib/billing";
 import { addDays, parseDayKey } from "../../lib/calendar";
 
 // Home's note on full access, first on the page in the brand colour: until when, how many days are left and what happens
@@ -8,24 +8,6 @@ import { addDays, parseDayKey } from "../../lib/calendar";
 // nothing on a given or paid plan.
 
 const longDay = (date: Date) => date.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
-
-function hours(value: number) {
-  if (value < 1) return `${Math.round(value * 60)} minutes`;
-  return `${value} hour${value === 1 ? "" : "s"}`;
-}
-
-/** "10 AI-written posts, 1 hour of recordings and 3 clips a month, with Mindra's mark on clips". */
-function allowances(plan: PricingPlan | undefined) {
-  if (!plan) return "smaller monthly allowances";
-  const parts = [
-    plan.posts_per_month != null && `${plan.posts_per_month} AI-written posts`,
-    plan.hours_per_month != null && `${hours(plan.hours_per_month)} of recordings`,
-    plan.clips_per_month != null && `${plan.clips_per_month} clips`,
-  ].filter(Boolean) as string[];
-  if (!parts.length) return "smaller monthly allowances";
-  const list = parts.length > 1 ? `${parts.slice(0, -1).join(", ")} and ${parts.at(-1)}` : parts[0];
-  return `${list} a month${plan.watermark ? ", with Mindra's mark on clips" : ""}`;
-}
 
 export default function AccessBanner() {
   const billing = useBilling().data;
@@ -60,7 +42,7 @@ export default function AccessBanner() {
         </h3>
         <p className="mt-1 text-sm text-pretty text-primary-foreground/90">
           {trial ? "Every feature is open while you get started." : "Every feature is open to everyone while Mindra is new."} From{" "}
-          {longDay(addDays(lastDay, 1))} your workspace moves to the Free plan: {allowances(free)}. Everything you've made stays
+          {longDay(addDays(lastDay, 1))} your workspace moves to the Free plan: {freeAllowances(free)}. Everything you've made stays
           yours. To keep everything open, choose a plan before then.
         </p>
       </div>

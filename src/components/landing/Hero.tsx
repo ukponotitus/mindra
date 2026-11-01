@@ -11,6 +11,7 @@ import {
 } from "framer-motion";
 import { Captions, ChevronRight, PenLine, type LucideIcon } from "lucide-react";
 import { Link } from "react-router";
+import { useOfferLastDay } from "../../lib/billing";
 import Phone from "./hero/Phone";
 import PostsScreen from "./hero/PostsScreen";
 import RecordScreen from "./hero/RecordScreen";
@@ -166,6 +167,7 @@ function Stage({ progress, pointerX, pointerY }: StageProps) {
 
 export default function Hero() {
   const { signedIn, startTo } = useCtaLinks();
+  const lastDay = useOfferLastDay();
   const section = useRef<HTMLElement>(null);
   const onScreen = useInView(section);
   const { scrollYProgress } = useScroll({ target: section, offset: ["start start", "end start"] });
@@ -195,7 +197,7 @@ export default function Hero() {
           href="#roadmap"
           className="group inline-flex items-center gap-1 rounded-full border border-white/15 bg-card/[0.06] py-1.5 pr-3 pl-4 text-[13px] font-medium text-white/80 transition-colors hover:bg-card/10"
         >
-          Now in private beta
+          {lastDay ? `Free in full until ${lastDay}` : "Now open to everyone"}
           <ChevronRight aria-hidden="true" className="size-3.5 text-white/50 transition-transform group-hover:translate-x-0.5" />
         </motion.a>
 
@@ -223,7 +225,7 @@ export default function Hero() {
           </a>
         </motion.div>
         <motion.p {...enter(5)} className="mt-5 text-xs text-white/40">
-          Free during the beta · No credit card required
+          {lastDay ? `Everything free until ${lastDay}` : "Free to start"} · No credit card required
         </motion.p>
       </div>
 

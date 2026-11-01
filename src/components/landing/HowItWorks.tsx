@@ -7,7 +7,7 @@ import Reveal from "./Reveal";
 import SectionLabel from "./SectionLabel";
 import { useMediaQuery } from "../../lib/useMediaQuery";
 
-// The last step isn't built yet, so it says so.
+// Each step is live.
 const steps = [
   {
     icon: CloudUpload,
@@ -36,8 +36,8 @@ const steps = [
   {
     icon: TrendingUp,
     title: "Improve your strategy",
-    text: "See how each post performs and get AI recommendations for what to publish next.",
-    soon: true,
+    text: "See how each post performs, and plan next month from what worked, with the assistant's help.",
+    soon: false,
   },
 ];
 
@@ -163,7 +163,7 @@ export default function HowItWorks() {
             </span>{" "}
             <span className="text-[#A3A3AB]">everywhere.</span>
           </h2>
-          <p className="mt-6 text-lg text-pretty text-[#3F3F46]">Mindra does most of the work. The last step is on the way.</p>
+          <p className="mt-6 text-lg text-pretty text-[#3F3F46]">Mindra does most of the work; you approve each step.</p>
         </Reveal>
 
         <div ref={stepsRef} className="mt-16 grid sm:grid-cols-2 lg:mt-24 lg:grid-cols-5">

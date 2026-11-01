@@ -32,6 +32,8 @@ export type AssistantMessage = {
   page_label: string;
   proposals: Proposal[];
   created_at: string;
+  /** Saved every few seconds while a reply is written. */
+  updated_at: string;
 };
 
 export type Thread = { id: string; title: string; created_at: string; updated_at: string };
@@ -116,12 +118,14 @@ export function useThreads(enabled = true) {
   return useQuery({ queryKey: threadsKey, queryFn: () => apiRequest<Thread[]>("/api/assistant/threads/"), enabled });
 }
 
-// A reply is finished on the server even if the page that asked was closed; after this long it isn't coming.
-const WRITING_FOR_MS = 15 * 60 * 1000;
+// A reply is finished on the server even if the page that asked was closed, saving as it goes; one not saved for this
+// long died with its server (a restart or a deploy), and the API shows it as stopped (assistant/views.ALIVE_FOR).
+const ALIVE_FOR_MS = 90 * 1000;
 
 /** A reply still being written: after a reload, or asked in another tab. */
 export function stillWriting(message: AssistantMessage | undefined) {
-  return message?.role === "assistant" && message.status === "writing" && Date.now() - new Date(message.created_at).getTime() < WRITING_FOR_MS;
+  if (message?.role !== "assistant" || message.status !== "writing") return false;
+  return Date.now() - new Date(message.updated_at ?? message.created_at).getTime() < ALIVE_FOR_MS;
 }
 
 export function useThread(id: string | null) {

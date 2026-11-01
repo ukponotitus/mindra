@@ -5,6 +5,7 @@ import { useAuth } from "../../auth/context";
 import { ApiError, apiRequest } from "../../lib/api";
 import ConfirmDialog from "../ui/ConfirmDialog";
 import { buttonStyles } from "../ui/button";
+import PasswordInput from "../ui/PasswordInput";
 
 // A copy of what Mindra holds about the person (the API's /api/auth/export/), and deleting their account with every
 // workspace that's only theirs (/api/auth/delete-account/, after their password).
@@ -83,9 +84,8 @@ export default function YourData() {
           Your password
         </label>
         <div className="flex flex-col gap-2 sm:flex-row">
-          <input
+          <PasswordInput
             id="delete-password"
-            type="password"
             autoComplete="current-password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
