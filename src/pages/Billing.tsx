@@ -64,6 +64,8 @@ function planNote(billing: BillingOverview) {
       return billing.beta_ends_on
         ? `Mindra's launch offer: everything is open, free, until ${dayText(billing.beta_ends_on, 1)}. After that your workspace moves to the Free plan, unless you choose a paid plan, from ${naira(5000)} a month. Nothing you've made is removed.`
         : "Mindra's launch offer: everything is open, free.";
+    case "trial":
+      return `Full access for your account's first week, until ${until}. After that your workspace moves to the Free plan, unless you choose a paid plan, from ${naira(5000)} a month. Nothing you've made is removed.`;
     case "given":
       return until
         ? `Mindra gave your workspace this plan until ${until}. After that it's on the ${afterwards(billing)} plan.`

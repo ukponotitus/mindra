@@ -32,7 +32,13 @@ export type PricingPlan = {
   recommended: boolean;
 };
 
-export type PlanList = { plans: PricingPlan[]; in_beta: boolean; beta_ends_on: string | null };
+export type PlanList = {
+  plans: PricingPlan[];
+  in_beta: boolean;
+  beta_ends_on: string | null;
+  /** How long a new account has Full access once the launch offer is over (0: none). */
+  new_account_days: number;
+};
 
 export type BillingInterval = "monthly" | "yearly";
 
@@ -70,9 +76,10 @@ export type BillingPayment = {
 export type BillingOverview = PlanList & {
   workspace: number;
   plan: PricingPlan;
-  /** "beta" or "free": the default plan; "given" by Mindra; "paid" for. */
-  source: "beta" | "free" | "given" | "paid";
-  /** When a given or paid plan ends (then it's back to the default plan), or null. */
+  /** "beta" or "free": the default plan; "trial": a new account's first week after the launch offer; "given" by
+   * Mindra; "paid" for. */
+  source: "beta" | "trial" | "free" | "given" | "paid";
+  /** When a given or paid plan, or a new account's first week, ends (then it's back to the default plan), or null. */
   ends_at: string | null;
   usage: {
     hours_used: number;
@@ -229,13 +236,18 @@ export const BUILT_IN_PLANS: PricingPlan[] = [
   },
 ];
 
-const BUILT_IN_LIST: PlanList = { plans: BUILT_IN_PLANS, in_beta: true, beta_ends_on: null };
+const BUILT_IN_LIST: PlanList = { plans: BUILT_IN_PLANS, in_beta: true, beta_ends_on: null, new_account_days: 7 };
 
 /** The launch offer's last day ("15 November"), from `beta_ends_on`, the first day after it; null when it has no end. */
 export function offerLastDay(betaEndsOn: string | null): string | null {
   if (!betaEndsOn) return null;
   const [year, month, date] = betaEndsOn.split("-").map(Number);
   return new Date(year, month - 1, date - 1).toLocaleDateString("en-GB", { day: "numeric", month: "long" });
+}
+
+/** "your first week" or "your first 10 days": how long a new account has Full access after the launch offer. */
+export function firstDays(days: number) {
+  return days === 7 ? "first week" : `first ${days} days`;
 }
 
 /** The pricing cards' plans, for the landing page (no sign-in needed). */
