@@ -13,7 +13,7 @@ import { StatusChip, campaignDays } from "./Campaigns";
 const crumbLink = "rounded hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary";
 const naira = new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN", maximumFractionDigits: 0 });
 
-/** One campaign: its brief and targets. Its posts (from the Content calendar) and results arrive in later phases. */
+/** One campaign: its brief, its targets and results, and a way to plan its posts in a content calendar. */
 export default function CampaignDetail() {
   const { campaignId } = useParams();
   const navigate = useNavigate();
@@ -102,6 +102,11 @@ export default function CampaignDetail() {
             />
           </div>
         </div>
+        {remove.isError && (
+          <p role="alert" className="mt-3 text-sm text-pretty text-red-600">
+            Couldn&apos;t delete the campaign: {remove.error.message}
+          </p>
+        )}
       </div>
 
       <section className="rounded-xl border border-border bg-card p-5 sm:p-6">

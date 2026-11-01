@@ -55,3 +55,35 @@ test("ask the assistant from any page, and apply what it suggests for a post", a
   await expect(conversation.getByText("The post's text was changed.")).toBeVisible();
   await expect(page.getByRole("navigation", { name: "Conversations" }).getByRole("button", { name: /^What should I post this week/ })).toBeVisible();
 });
+
+// Asked for a content calendar, it proposes every post as one card; Apply saves it as a draft calendar to approve.
+// The calendar's own form counts posts a day too.
+const planner = newPerson("assistant-calendar");
+
+test("plan a content calendar with the assistant, and count posts a day in the form", async ({ page }) => {
+  await signUp(page, planner);
+  const main = page.locator("main");
+
+  await page.getByRole("button", { name: "Open the assistant" }).click();
+  const panel = page.getByRole("complementary", { name: "Assistant" });
+  await panel.getByLabel("Message the assistant").fill("I need a content calendar for this week");
+  await panel.getByLabel("Message the assistant").press("Enter");
+  await expect(panel.getByText("Three days on Instagram")).toBeVisible();
+  const posts = panel.getByRole("region", { name: "Posts in this calendar" });
+  await expect(posts.getByText("Why we started")).toBeVisible();
+  await expect(posts.getByText("Call to action: Follow for more").first()).toBeVisible();
+  await panel.getByRole("button", { name: "Apply" }).click();
+  await expect(panel.getByText(/saved as a draft calendar with 3 posts/)).toBeVisible();
+  await panel.getByRole("link", { name: "Open the calendar" }).click();
+  await page.waitForURL(/\/content-calendar\/[0-9a-f-]{36}/);
+  await expect(main.getByRole("tab", { name: /Version 1 · Draft/ })).toBeVisible();
+  await expect(main.getByText("Why we started")).toBeVisible();
+
+  // Two posts a day for a week, without working out posts a week.
+  await page.goto("/content-calendar/new");
+  await main.getByRole("button", { name: "A week", exact: true }).click();
+  await main.getByText("Posts a day").click();
+  await main.getByRole("button", { name: "More posts a day on Instagram" }).click();
+  await expect(main.getByText("14 posts over 7 days, 2 a day.")).toBeVisible();
+  await expect(main.getByLabel("Name")).toHaveValue(/ to /);
+});

@@ -14,7 +14,7 @@ test("draft a content calendar, change an item, approve it and see it planned", 
   await nav.getByRole("link", { name: "Content calendar", exact: true }).click();
   await main.getByRole("link", { name: "Plan next month" }).click();
   await main.getByLabel("Name").fill("Launch weeks");
-  await main.getByRole("button", { name: "More posts a week on tiktok" }).click();
+  await main.getByRole("button", { name: "More posts a week on TikTok" }).click();
   await main.getByLabel("What should it plan?").fill("Mostly tips");
   await main.getByRole("button", { name: "Draft the calendar" }).click();
   await page.waitForURL(/\/content-calendar\/[0-9a-f-]{36}/);

@@ -6,7 +6,7 @@ import { apiRequest, ApiError, streamEvents } from "./api";
 // The assistant (the backend's assistant/): conversations in threads, replies that stream in, and proposals the
 // person applies or discards. It reads Mindra and proposes; it never changes anything until Apply is pressed.
 
-export type ProposalKind = "post_text" | "brand_profile" | "campaign";
+export type ProposalKind = "post_text" | "brand_profile" | "campaign" | "calendar" | "new_calendar";
 export type ProposalStatus = "proposed" | "applied" | "discarded" | "failed";
 
 export type Proposal = {
@@ -170,6 +170,8 @@ export function useDecideProposal(threadId: string | null) {
         post_text: [["content"], ["plans"]],
         brand_profile: [["brand"], ["brand-voice"]],
         campaign: [["campaigns"]],
+        calendar: [["calendars"]],
+        new_calendar: [["calendars"]],
       };
       for (const queryKey of changed[proposal.kind]) queryClient.invalidateQueries({ queryKey });
     },

@@ -4,10 +4,11 @@ import { Link, useNavigate, useSearchParams } from "react-router";
 import PlatformBadge from "../components/content/PlatformBadge";
 import { buttonStyles } from "../components/ui/button";
 import { ApiError } from "../lib/api";
-import { addDays, dayKey } from "../lib/calendar";
+import { addDays, addMonths, dayKey, formatDayShort, parseDayKey } from "../lib/calendar";
 import { useCreateCalendar, type NewCalendar } from "../lib/calendars";
 import { useCampaigns } from "../lib/campaigns";
 import { cn } from "../lib/cn";
+import { platformInfo } from "../lib/projects";
 import type { Platform } from "../lib/types";
 
 // Starting a content calendar: its dates, how often to post where, a campaign if it's for one, and what to plan in the
@@ -18,6 +19,13 @@ const inputClass =
 const crumbLink = "rounded hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary";
 const PLATFORMS: Platform[] = ["instagram", "facebook", "tiktok", "whatsapp", "youtube_shorts", "youtube", "linkedin", "x"];
 const MOST_A_WEEK = 21;
+// Quick lengths from the start date (the last day is included).
+const LENGTHS = [
+  { id: "week", label: "A week", end: (start: Date) => addDays(start, 6) },
+  { id: "two-weeks", label: "Two weeks", end: (start: Date) => addDays(start, 13) },
+  { id: "month", label: "A month", end: (start: Date) => addDays(addMonths(start, 1), -1) },
+];
+type Unit = "day" | "week";
 
 function Field({ id, label, hint, error, children }: { id: string; label: string; hint?: string; error?: string; children: ReactNode }) {
   return (
@@ -29,6 +37,25 @@ function Field({ id, label, hint, error, children }: { id: string; label: string
       {error ? <p className="mt-1.5 text-sm text-pretty text-red-600">{error}</p> : hint && <p className="mt-1.5 text-xs text-pretty text-muted-foreground">{hint}</p>}
     </div>
   );
+}
+
+/** "November 2026" for a whole month, otherwise "2 Nov to 8 Nov". */
+function nameFor(starts: string, ends: string) {
+  const first = parseDayKey(starts);
+  const last = parseDayKey(ends);
+  if (!first || !last) return "";
+  if (first.getDate() === 1 && dayKey(addDays(last, 1)) === dayKey(addMonths(first, 1))) {
+    return first.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+  }
+  return `${formatDayShort(first)} to ${formatDayShort(last)}`;
+}
+
+/** Days from the start to the end, both included (0 when the dates don't make sense). */
+function daysBetween(starts: string, ends: string) {
+  const first = parseDayKey(starts);
+  const last = parseDayKey(ends);
+  if (!first || !last || last < first) return 0;
+  return Math.round((last.getTime() - first.getTime()) / 86_400_000) + 1;
 }
 
 function nextMonth() {
@@ -46,9 +73,10 @@ export default function ContentCalendarNew() {
   const month = nextMonth();
   // From Home's "Plan next month": the whole of next month, planned from what worked.
   const nextMonthPlan = params.get("next") === "1";
+  const firstDay = nextMonthPlan ? dayKey(month.first) : dayKey(addDays(new Date(), 1));
   const [form, setForm] = useState<NewCalendar>({
-    name: month.first.toLocaleDateString(undefined, { month: "long", year: "numeric" }),
-    starts_on: nextMonthPlan ? dayKey(month.first) : dayKey(addDays(new Date(), 1)),
+    name: nameFor(firstDay, dayKey(month.last)),
+    starts_on: firstDay,
     ends_on: dayKey(month.last),
     cadence: { instagram: 3 },
     instructions: "",
@@ -56,20 +84,36 @@ export default function ContentCalendarNew() {
     from_results: nextMonthPlan,
   });
   const [errors, setErrors] = useState<Record<string, string[]>>({});
+  // Until the name is typed in, it follows the dates.
+  const [named, setNamed] = useState(false);
+  // How often is chosen a day or a week; the API always takes posts a week.
+  const [unit, setUnit] = useState<Unit>("week");
   const set = <K extends keyof NewCalendar>(key: K, value: NewCalendar[K]) => setForm((current) => ({ ...current, [key]: value }));
-  const count = (platform: Platform) => form.cadence[platform] ?? 0;
-  const setCount = (platform: Platform, value: number) => set("cadence", { ...form.cadence, [platform]: Math.max(0, Math.min(MOST_A_WEEK, value)) });
+  const setDates = (starts: string, ends: string) => setForm((current) => ({ ...current, starts_on: starts, ends_on: ends, name: named ? current.name : nameFor(starts, ends) || current.name }));
+  const perUnit = unit === "day" ? 7 : 1;
+  const count = (platform: Platform) => (form.cadence[platform] ?? 0) / perUnit;
+  const setCount = (platform: Platform, value: number) => set("cadence", { ...form.cadence, [platform]: Math.max(0, Math.min(MOST_A_WEEK, value * perUnit)) });
+  const changeUnit = (next: Unit) => {
+    setUnit(next);
+    // Posts a week become whole posts a day (at least one where there were any).
+    if (next === "day") {
+      set("cadence", Object.fromEntries(Object.entries(form.cadence).map(([platform, value]) => [platform, value ? Math.max(7, Math.round(value / 7) * 7) : 0])));
+    }
+  };
+  const days = daysBetween(form.starts_on, form.ends_on);
+  const total = Object.values(form.cadence).reduce((sum, value) => sum + (value ? Math.max(1, Math.ceil((value * days) / 7)) : 0), 0);
 
   const chosenCampaign = campaigns.data?.find((campaign) => campaign.id === form.campaign);
   const useCampaignDates = () => {
     if (!chosenCampaign) return;
     const today = dayKey(new Date());
+    setNamed(true);
     setForm((current) => ({
       ...current,
       name: chosenCampaign.name,
       starts_on: chosenCampaign.starts_on < today ? today : chosenCampaign.starts_on,
       ends_on: chosenCampaign.ends_on,
-      cadence: Object.fromEntries(chosenCampaign.platforms.map((platform) => [platform, current.cadence[platform] || 3])),
+      cadence: Object.fromEntries(chosenCampaign.platforms.map((platform) => [platform, current.cadence[platform] || (unit === "day" ? 7 : 3)])),
     }));
   };
 
@@ -107,7 +151,17 @@ export default function ContentCalendarNew() {
 
       <section className="space-y-5 rounded-xl border border-border bg-card p-5 sm:p-6">
         <Field id="calendar-name" label="Name" error={fieldError("name")}>
-          <input id="calendar-name" value={form.name} onChange={(event) => set("name", event.target.value)} className={inputClass} maxLength={120} required />
+          <input
+            id="calendar-name"
+            value={form.name}
+            onChange={(event) => {
+              setNamed(true);
+              set("name", event.target.value);
+            }}
+            className={inputClass}
+            maxLength={120}
+            required
+          />
         </Field>
 
         {(campaigns.data?.length ?? 0) > 0 && (
@@ -132,15 +186,51 @@ export default function ContentCalendarNew() {
 
         <div className="grid gap-5 sm:grid-cols-2">
           <Field id="calendar-start" label="Starts on" error={fieldError("starts_on")}>
-            <input id="calendar-start" type="date" value={form.starts_on} onChange={(event) => set("starts_on", event.target.value)} className={inputClass} required />
+            <input id="calendar-start" type="date" value={form.starts_on} onChange={(event) => setDates(event.target.value, form.ends_on)} className={inputClass} required />
           </Field>
           <Field id="calendar-end" label="Ends on" hint="Up to 3 months." error={fieldError("ends_on")}>
-            <input id="calendar-end" type="date" value={form.ends_on} onChange={(event) => set("ends_on", event.target.value)} className={inputClass} required />
+            <input id="calendar-end" type="date" value={form.ends_on} onChange={(event) => setDates(form.starts_on, event.target.value)} className={inputClass} required />
           </Field>
+        </div>
+        <div className="-mt-2 flex flex-wrap items-center gap-2">
+          <span className="text-xs text-muted-foreground">How long:</span>
+          {LENGTHS.map((length) => {
+            const start = parseDayKey(form.starts_on);
+            const end = start ? dayKey(length.end(start)) : "";
+            return (
+              <button
+                key={length.id}
+                type="button"
+                disabled={!start}
+                aria-pressed={end === form.ends_on}
+                onClick={() => setDates(form.starts_on, end)}
+                className={cn(
+                  "rounded-full border px-3 py-1 text-xs font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-60",
+                  end === form.ends_on ? "border-primary bg-primary/5 text-primary" : "border-border text-foreground hover:bg-secondary",
+                )}
+              >
+                {length.label}
+              </button>
+            );
+          })}
         </div>
 
         <fieldset>
-          <legend className="mb-1.5 text-sm font-medium text-foreground">Posts a week</legend>
+          <legend className="mb-1.5 text-sm font-medium text-foreground">How often on each platform</legend>
+          <div role="radiogroup" aria-label="Count posts" className="mb-3 inline-flex rounded-lg border border-border p-0.5">
+            {(["day", "week"] as Unit[]).map((option) => (
+              <label
+                key={option}
+                className={cn(
+                  "cursor-pointer rounded-md px-3 py-1.5 text-sm font-medium transition-colors has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-primary",
+                  unit === option ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <input type="radio" name="calendar-unit" value={option} checked={unit === option} onChange={() => changeUnit(option)} className="sr-only" />
+                Posts a {option}
+              </label>
+            ))}
+          </div>
           {fieldError("cadence") && <p className="mb-2 text-sm text-red-600">{fieldError("cadence")}</p>}
           <ul className="grid gap-2 sm:grid-cols-2">
             {PLATFORMS.map((platform) => {
@@ -156,7 +246,7 @@ export default function ContentCalendarNew() {
                       type="button"
                       onClick={() => setCount(platform, value - 1)}
                       disabled={!value}
-                      aria-label={`Fewer posts a week on ${platform}`}
+                      aria-label={`Fewer posts a ${unit} on ${platformInfo(platform).label}`}
                       className={buttonStyles({ variant: "ghost", size: "icon", className: "size-8" })}
                     >
                       <Minus aria-hidden="true" className="size-4" />
@@ -167,7 +257,8 @@ export default function ContentCalendarNew() {
                     <button
                       type="button"
                       onClick={() => setCount(platform, value + 1)}
-                      aria-label={`More posts a week on ${platform}`}
+                      disabled={value * perUnit + perUnit > MOST_A_WEEK}
+                      aria-label={`More posts a ${unit} on ${platformInfo(platform).label}`}
                       className={buttonStyles({ variant: "ghost", size: "icon", className: "size-8" })}
                     >
                       <Plus aria-hidden="true" className="size-4" />
@@ -177,6 +268,12 @@ export default function ContentCalendarNew() {
               );
             })}
           </ul>
+          {days > 0 && total > 0 && (
+            <p className="mt-2 text-sm text-muted-foreground tabular-nums" aria-live="polite">
+              {total} {total === 1 ? "post" : "posts"} over {days} {days === 1 ? "day" : "days"}
+              {total >= days ? `, ${Number.isInteger(total / days) ? "" : "about "}${Math.round(total / days)} a day` : ""}.
+            </p>
+          )}
         </fieldset>
 
         <label className="flex items-start gap-2.5 text-sm text-foreground">
