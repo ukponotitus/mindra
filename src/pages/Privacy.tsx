@@ -81,9 +81,8 @@ export default function PrivacyPage() {
       <p>
         We don’t sell your data or share it with advertisers, and Mindra itself doesn’t use your recordings or posts to train
         AI models. Mindra’s AI writing runs on Anthropic’s Claude API or Google’s Gemini API. Under Anthropic’s commercial
-        terms, what Mindra sends to Claude isn’t used to train its models. For now, Gemini runs on Google’s free tier, whose terms
-        let Google use what it’s sent to improve its products. We’ll move to Google’s paid service, where that doesn’t
-        happen, before Mindra charges for plans.
+        terms, what Mindra sends to Claude isn’t used to train its models. Google’s terms depend on the service: on Gemini’s
+        free tier, Google may use what it’s sent to improve its products; on its paid service, it doesn’t.
       </p>
 
       <h2 id="facebook-instagram">Connected Facebook and Instagram accounts</h2>
