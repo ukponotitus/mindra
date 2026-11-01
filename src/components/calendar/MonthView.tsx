@@ -1,7 +1,9 @@
 import { dayKey, formatDayLong } from "../../lib/calendar";
 import { cn } from "../../lib/cn";
+import type { CalendarItem } from "../../lib/calendars";
 import type { ContentPiece } from "../../lib/types";
 import CalendarPost from "./CalendarPost";
+import PlannedItem from "./PlannedItem";
 import type { DragAndDrop } from "./dragAndDrop";
 
 interface Props {
@@ -9,6 +11,8 @@ interface Props {
   days: Date[];
   month: Date;
   posts: Map<string, ContentPiece[]>;
+  /** Approved content calendar items without a post yet. */
+  planned?: Map<string, CalendarItem[]>;
   today: string;
   dnd: DragAndDrop;
   postHref: (id: string) => string;
@@ -20,7 +24,7 @@ interface Props {
 /** Posts a day box shows before "+N more". */
 const SHOWN_PER_DAY = 3;
 
-export default function MonthView({ days, month, posts, today, dnd, postHref, onShowDay, label }: Props) {
+export default function MonthView({ days, month, posts, planned, today, dnd, postHref, onShowDay, label }: Props) {
   return (
     <div>
       <div aria-hidden="true" className="grid grid-cols-7 border-b border-border">
@@ -34,8 +38,12 @@ export default function MonthView({ days, month, posts, today, dnd, postHref, on
         {days.map((day, index) => {
           const key = dayKey(day);
           const list = posts.get(key) ?? [];
-          const shown = list.slice(0, list.length > SHOWN_PER_DAY ? SHOWN_PER_DAY - 1 : SHOWN_PER_DAY);
-          const hidden = list.length - shown.length;
+          const plannedList = planned?.get(key) ?? [];
+          const total = list.length + plannedList.length;
+          const room = total > SHOWN_PER_DAY ? SHOWN_PER_DAY - 1 : SHOWN_PER_DAY;
+          const shown = list.slice(0, room);
+          const shownPlanned = plannedList.slice(0, Math.max(0, room - shown.length));
+          const hidden = total - shown.length - shownPlanned.length;
           const inMonth = day.getMonth() === month.getMonth();
           const isToday = key === today;
           return (
@@ -64,13 +72,19 @@ export default function MonthView({ days, month, posts, today, dnd, postHref, on
                   {formatDayLong(day)}
                   {isToday && ", today"}
                   {list.length > 0 && `, ${list.length} post${list.length === 1 ? "" : "s"}`}
+                  {plannedList.length > 0 && `, ${plannedList.length} planned`}
                 </span>
               </p>
-              {shown.length > 0 && (
+              {shown.length + shownPlanned.length > 0 && (
                 <ul className="space-y-0.5">
                   {shown.map((piece) => (
                     <li key={piece.id}>
                       <CalendarPost piece={piece} to={postHref(piece.id)} dnd={dnd} layout="month" />
+                    </li>
+                  ))}
+                  {shownPlanned.map((item) => (
+                    <li key={item.id}>
+                      <PlannedItem item={item} layout="month" />
                     </li>
                   ))}
                 </ul>
@@ -79,7 +93,7 @@ export default function MonthView({ days, month, posts, today, dnd, postHref, on
                 <button
                   type="button"
                   onClick={() => onShowDay(key)}
-                  aria-label={`Show all ${list.length} posts on ${formatDayLong(day)}`}
+                  aria-label={`Show all ${total} on ${formatDayLong(day)}`}
                   className="mt-0.5 rounded px-1 text-[11px] font-medium text-primary tabular-nums hover:underline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"
                 >
                   +{hidden}

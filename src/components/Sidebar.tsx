@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import {
   AudioLines,
   CalendarDays,
+  CalendarRange,
   ChartColumn,
   ChevronDown,
   ChevronsUpDown,
@@ -86,6 +87,7 @@ const nav: (NavLeaf | NavGroup)[] = [
     icon: ClipboardList,
     items: [
       { label: "Campaigns", to: "/campaigns", icon: Megaphone },
+      { label: "Content calendar", to: "/content-calendar", icon: CalendarRange },
       { label: "Content Plans", to: "/plans", icon: ClipboardList },
     ],
   },
@@ -94,6 +96,7 @@ const nav: (NavLeaf | NavGroup)[] = [
     label: "Create",
     icon: PenLine,
     items: [
+      { label: "Content studio", to: "/content-studio", icon: PenLine },
       { label: "Projects", to: "/projects", icon: FolderOpen },
       { label: "Clips", to: "/clips", icon: Clapperboard },
       { label: "Vertical Videos", to: "/vertical", icon: RectangleVertical },

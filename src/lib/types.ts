@@ -28,7 +28,7 @@ export type AuthResponse = {
  * "photos": a photo post's pictures, uploaded one by one; nothing is processed, so it's ready at once.
  * "flyer": a flyer post, uploaded the same way; Mindra reads the text on its flyers ("analyzing") as they're added.
  */
-export type SourceType = "video" | "audio" | "transcript" | "photos" | "flyer" | "plan";
+export type SourceType = "video" | "audio" | "transcript" | "photos" | "flyer" | "plan" | "calendar";
 
 export type ProjectStatus = "queued" | "extracting_audio" | "transcribing" | "analyzing" | "completed" | "failed";
 

@@ -1,5 +1,5 @@
 import { keepPreviousData, queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AudioLines, ClipboardList, FileText, Images, Megaphone, Video, type LucideIcon } from "lucide-react";
+import { AudioLines, CalendarRange, ClipboardList, FileText, Images, Megaphone, Video, type LucideIcon } from "lucide-react";
 import { apiRequest } from "./api";
 import { formatDuration } from "./format";
 import type { Paginated, Platform, Project, ProjectStatus, ProjectSummary, SourceType, Transcript, UploadOptions } from "./types";
@@ -28,6 +28,7 @@ export const SOURCE_LABELS: Record<SourceType, string> = {
   photos: "Photos",
   flyer: "Flyer",
   plan: "Content plan",
+  calendar: "Content calendar",
 };
 
 export const SOURCE_ICONS: Record<SourceType, LucideIcon> = {
@@ -37,6 +38,7 @@ export const SOURCE_ICONS: Record<SourceType, LucideIcon> = {
   photos: Images,
   flyer: Megaphone,
   plan: ClipboardList,
+  calendar: CalendarRange,
 };
 
 /** Photo and flyer posts: projects made of pictures (kept as photos), with no recording. */

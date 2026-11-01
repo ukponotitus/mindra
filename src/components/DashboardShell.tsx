@@ -38,6 +38,11 @@ const pageTitles: [pattern: string, title: string][] = [
   ["/campaigns/:campaignId", "Campaign"],
   ["/campaigns", "Campaigns"],
   ["/assistant", "Assistant"],
+  ["/content-studio", "Content Studio"],
+  ["/content-calendar/new", "New Calendar"],
+  ["/content-calendar/:calendarId/plan", "Content Plan"],
+  ["/content-calendar/:calendarId", "Content Calendar"],
+  ["/content-calendar", "Content Calendar"],
   ["/billing", "Billing"],
   ["/settings", "Settings"],
 ];

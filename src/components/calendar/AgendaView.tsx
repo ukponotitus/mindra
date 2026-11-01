@@ -2,12 +2,15 @@ import { dayKey, formatDayLong } from "../../lib/calendar";
 import { cn } from "../../lib/cn";
 import type { ContentPiece } from "../../lib/types";
 import CalendarPost from "./CalendarPost";
+import PlannedItem from "./PlannedItem";
+import type { CalendarItem } from "../../lib/calendars";
 import type { DragAndDrop } from "./dragAndDrop";
 
 interface Props {
   /** The days of the month being shown; only those with posts are listed. */
   days: Date[];
   posts: Map<string, ContentPiece[]>;
+  planned?: Map<string, CalendarItem[]>;
   today: string;
   dnd: DragAndDrop;
   postHref: (id: string) => string;
@@ -16,8 +19,8 @@ interface Props {
 }
 
 /** The month as a list of the days that have posts. The default on phones. */
-export default function AgendaView({ days, posts, today, dnd, postHref, periodName }: Props) {
-  const listed = days.filter((day) => posts.has(dayKey(day)));
+export default function AgendaView({ days, posts, planned, today, dnd, postHref, periodName }: Props) {
+  const listed = days.filter((day) => posts.has(dayKey(day)) || planned?.has(dayKey(day)));
 
   if (listed.length === 0) {
     return (
@@ -58,6 +61,11 @@ export default function AgendaView({ days, posts, today, dnd, postHref, periodNa
               {list.map((piece) => (
                 <li key={piece.id}>
                   <CalendarPost piece={piece} to={postHref(piece.id)} dnd={dnd} layout="agenda" />
+                </li>
+              ))}
+              {(planned?.get(key) ?? []).map((item) => (
+                <li key={item.id}>
+                  <PlannedItem item={item} layout="agenda" />
                 </li>
               ))}
             </ul>

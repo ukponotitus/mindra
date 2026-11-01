@@ -6,6 +6,11 @@ import DashboardShell from "./components/DashboardShell";
 import { ApiError } from "./lib/api";
 import Analytics from "./pages/Analytics";
 import Assistant from "./pages/Assistant";
+import CalendarPlan from "./pages/CalendarPlan";
+import ContentCalendarPage from "./pages/ContentCalendar";
+import ContentCalendarNew from "./pages/ContentCalendarNew";
+import ContentCalendars from "./pages/ContentCalendars";
+import ContentStudio from "./pages/ContentStudio";
 import AutomationApprovals from "./pages/AutomationApprovals";
 import AutomationDetail from "./pages/AutomationDetail";
 import AutomationNew from "./pages/AutomationNew";
@@ -110,6 +115,11 @@ export default function App() {
                 <Route path="/automations/:automationId/setup" element={<AutomationSetup />} />
                 <Route path="/plans/:planId" element={<PlanDetail />} />
                 <Route path="/assistant" element={<Assistant />} />
+                <Route path="/content-studio" element={<ContentStudio />} />
+                <Route path="/content-calendar" element={<ContentCalendars />} />
+                <Route path="/content-calendar/new" element={<ContentCalendarNew />} />
+                <Route path="/content-calendar/:calendarId" element={<ContentCalendarPage />} />
+                <Route path="/content-calendar/:calendarId/plan" element={<CalendarPlan />} />
                 <Route path="/brand" element={<BrandProfile />} />
                 <Route path="/brand-voice" element={<Navigate to="/brand" replace />} />
                 <Route path="/campaigns" element={<Campaigns />} />

@@ -2,11 +2,14 @@ import { dayKey, formatDayLong } from "../../lib/calendar";
 import { cn } from "../../lib/cn";
 import type { ContentPiece } from "../../lib/types";
 import CalendarPost from "./CalendarPost";
+import PlannedItem from "./PlannedItem";
+import type { CalendarItem } from "../../lib/calendars";
 import type { DragAndDrop } from "./dragAndDrop";
 
 interface Props {
   days: Date[];
   posts: Map<string, ContentPiece[]>;
+  planned?: Map<string, CalendarItem[]>;
   today: string;
   dnd: DragAndDrop;
   postHref: (id: string) => string;
@@ -14,12 +17,13 @@ interface Props {
 }
 
 /** Seven columns on computers, seven rows on phones, with every post of each day. */
-export default function WeekView({ days, posts, today, dnd, postHref, label }: Props) {
+export default function WeekView({ days, posts, planned, today, dnd, postHref, label }: Props) {
   return (
     <ol aria-label={label} className="grid divide-y divide-border md:grid-cols-7 md:divide-x md:divide-y-0">
       {days.map((day) => {
         const key = dayKey(day);
         const list = posts.get(key) ?? [];
+        const plannedList = planned?.get(key) ?? [];
         const isToday = key === today;
         return (
           <li
@@ -47,14 +51,20 @@ export default function WeekView({ days, posts, today, dnd, postHref, label }: P
               <span className="sr-only">
                 {formatDayLong(day)}
                 {isToday && ", today"}
-                {`, ${list.length === 0 ? "nothing planned" : `${list.length} post${list.length === 1 ? "" : "s"}`}`}
+                {`, ${list.length === 0 ? "no posts" : `${list.length} post${list.length === 1 ? "" : "s"}`}`}
+                {plannedList.length > 0 && `, ${plannedList.length} planned`}
               </span>
             </p>
-            {list.length > 0 ? (
+            {list.length + plannedList.length > 0 ? (
               <ul className="space-y-1.5">
                 {list.map((piece) => (
                   <li key={piece.id}>
                     <CalendarPost piece={piece} to={postHref(piece.id)} dnd={dnd} layout="week" />
+                  </li>
+                ))}
+                {plannedList.map((item) => (
+                  <li key={item.id}>
+                    <PlannedItem item={item} layout="week" />
                   </li>
                 ))}
               </ul>

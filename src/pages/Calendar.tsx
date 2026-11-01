@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, ClipboardList } from "lucide-react";
 import { Link, useSearchParams } from "react-router";
 import AgendaView from "../components/calendar/AgendaView";
+import { usePlannedItems, type CalendarItem } from "../lib/calendars";
 import CalendarNotice, { type Notice } from "../components/calendar/CalendarNotice";
 import type { DragAndDrop, DragSource } from "../components/calendar/dragAndDrop";
 import MonthView from "../components/calendar/MonthView";
@@ -127,6 +128,16 @@ export default function Calendar() {
   }, [view, anchorKey]);
 
   const scheduled = useScheduledPosts(period.start, period.end);
+  // Approved content calendar items with no post yet: planned, not written.
+  const plannedItems = usePlannedItems(period.start, period.end);
+  const planned = useMemo(() => {
+    const days = new Map<string, CalendarItem[]>();
+    for (const item of plannedItems.data ?? []) {
+      const key = dayKey(new Date(item.scheduled_for));
+      days.set(key, [...(days.get(key) ?? []), item]);
+    }
+    return days;
+  }, [plannedItems.data]);
   const [trayCount, setTrayCount] = useState(TRAY_PAGE);
   const tray = useUnscheduledPosts(trayCount);
   const schedule = useSchedulePost();
@@ -383,6 +394,7 @@ export default function Calendar() {
               days={period.days}
               month={period.month}
               posts={posts}
+              planned={planned}
               today={today}
               dnd={dnd}
               postHref={postHref}
@@ -390,9 +402,9 @@ export default function Calendar() {
               label={label}
             />
           ) : view === "week" ? (
-            <WeekView days={period.days} posts={posts} today={today} dnd={dnd} postHref={postHref} label={label} />
+            <WeekView days={period.days} posts={posts} planned={planned} today={today} dnd={dnd} postHref={postHref} label={label} />
           ) : (
-            <AgendaView days={period.days} posts={posts} today={today} dnd={dnd} postHref={postHref} periodName={period.title} />
+            <AgendaView days={period.days} posts={posts} planned={planned} today={today} dnd={dnd} postHref={postHref} periodName={period.title} />
           )}
         </section>
 

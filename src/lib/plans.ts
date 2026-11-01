@@ -62,6 +62,8 @@ export function postOrigin(
   if (piece.project_source_type === "plan") {
     return { to: piece.plan ? `/plans/${piece.plan.id}` : null, label: piece.plan?.name ?? piece.project_name };
   }
+  // Written in the Content Studio from a content calendar's brief.
+  if (piece.project_source_type === "calendar") return { to: "/content-studio", label: piece.project_name };
   // A Motion Studio video's posts go back to the video in Motion Studio.
   if (piece.clip?.studio_project) return { to: `/studio/${piece.clip.studio_project}`, label: piece.clip.title };
   return { to: `/projects/${piece.project}`, label: piece.project_name };

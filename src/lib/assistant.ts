@@ -72,6 +72,10 @@ const PAGE_LABELS: [pattern: string, label: string][] = [
   ["/projects/:projectId", "This project"],
   ["/plans/:planId", "This content plan"],
   ["/studio/:projectId", "This video"],
+  ["/content-calendar/:calendarId/plan", "This calendar's plan"],
+  ["/content-studio", "Content studio"],
+  ["/content-calendar/:calendarId", "This calendar"],
+  ["/content-calendar", "Content calendar"],
   ["/brand", "Brand profile"],
   ["/planner", "Planner"],
   ["/analytics", "Analytics"],
@@ -97,6 +101,7 @@ export function pageContext(pathname: string, search: string): PageContext {
 export function starters(page: PageContext): string[] {
   if (matchPath("/library/:pieceId", page.path)) return ["Make this post shorter", "Give me two other hooks for this post", "Is this post right for its platform?"];
   if (matchPath("/campaigns/:campaignId", page.path)) return ["What's missing from this campaign?", "Suggest targets for this campaign"];
+  if (matchPath("/content-calendar/:calendarId", page.path)) return ["Add two more review posts to this draft", "Is this calendar balanced across my pillars?"];
   if (page.path === "/brand") return ["What's missing from my brand profile?", "Suggest content pillars for my brand"];
   if (page.path === "/analytics") return ["How did my posts do this month?", "Which platform works best for me?"];
   if (page.path === "/planner") return ["What's coming up this week?", "Which days have nothing planned?"];
