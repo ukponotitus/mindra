@@ -729,12 +729,12 @@ export default function CreateProject() {
 
                 <div>
                   <label htmlFor="photo-note" className="mb-2 block text-sm font-medium text-foreground">
-                    {isFlyer ? "Anything to add?" : "What do these photos show?"}
+                    {isFlyer ? "Anything to add?" : "What's this post about?"}
                   </label>
                   <input
                     id="photo-note"
                     type="text"
-                    placeholder={isFlyer ? "Free buses from the city centre" : "Youth Sunday, 12 October"}
+                    placeholder={isFlyer ? "Free buses from the city centre" : "New month greeting: book a styling session"}
                     value={note}
                     maxLength={500}
                     disabled={locked}
@@ -746,7 +746,7 @@ export default function CreateProject() {
                   <p id="photo-note-hint" className="mt-2 text-xs text-pretty text-muted-foreground">
                     {isFlyer
                       ? "Optional, one line. Nothing to type from the flyer itself: Mindra reads that. Add only what the flyer doesn't say."
-                      : "Optional, one line. The captions use it for what the pictures can't say, such as the event and date."}
+                      : "Optional, one line: the occasion, and what you'd like people to do. The captions are written around it, not as a description of the photos."}
                   </p>
                   <FieldError id="photo-note-error" message={fieldErrors.note?.[0]} />
                 </div>

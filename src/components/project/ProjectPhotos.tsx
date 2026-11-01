@@ -248,14 +248,14 @@ function PhotoDetails({ project }: { project: Project }) {
       </h3>
       <div>
         <label htmlFor={`${ids}-note`} className="mb-2 block text-sm font-medium text-foreground">
-          {isFlyer ? "Anything to add?" : "What do these photos show?"}
+          {isFlyer ? "Anything to add?" : "What's this post about?"}
         </label>
         <textarea
           id={`${ids}-note`}
           value={note}
           maxLength={500}
           rows={3}
-          placeholder={isFlyer ? "Free buses from the city centre" : "Youth Sunday, 12 October"}
+          placeholder={isFlyer ? "Free buses from the city centre" : "New month greeting: book a styling session"}
           onChange={(event) => setNote(event.target.value)}
           aria-describedby={`${ids}-note-hint`}
           className={cn(fieldClass, "resize-y")}
@@ -264,7 +264,7 @@ function PhotoDetails({ project }: { project: Project }) {
           <span>
             {isFlyer
               ? "For what the flyer doesn't say. The posts use it along with the flyer's text."
-              : "The captions use this for what the pictures can't say, such as the event and date."}
+              : "The occasion, and what you'd like people to do. The captions are written around it, not as a description of the photos."}
           </span>
           <span className="shrink-0 tabular-nums">{note.length}/500</span>
         </p>
