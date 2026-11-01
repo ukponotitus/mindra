@@ -48,10 +48,12 @@ test("draft a content calendar, change an item, approve it and see it planned", 
   await main.getByRole("button", { name: "Approve the plan" }).click();
   await expect(main.getByText("Approved. The Content Studio makes each post from its brief.")).toBeVisible();
 
-  // Phase 5: the Content Studio makes the post from its brief; a text-only format can be approved at once, and it's
-  // planned at its time.
-  await main.getByRole("link", { name: "Open the Content Studio" }).click();
+  // Phase 5: each approved brief opens in the Content Studio, which writes its post on the server (shown as being
+  // written until it's in); a text-only format can be approved at once, and it's planned at its time.
+  await main.getByRole("listitem").filter({ hasText: "Why sunscreen every day" }).getByRole("link", { name: "Open in Content Studio" }).click();
+  await expect(page).toHaveURL(/\/content-studio\?item=/);
   await expect(main.getByRole("heading", { name: /Ready to make/ })).toBeVisible();
+  await expect(main.getByRole("button", { name: /^Make all \d+ posts$/ })).toBeVisible();
   const card = main.getByRole("listitem").filter({ hasText: "Why sunscreen every day" });
   await card.getByRole("button", { name: "Make the post" }).click();
   await expect(main.getByRole("heading", { name: /Ready for review|In production/ }).first()).toBeVisible({ timeout: 30_000 });

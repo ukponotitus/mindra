@@ -149,10 +149,6 @@ export default function Dashboard() {
         <p className="mt-1 text-sm text-pretty text-muted-foreground">{subtitle}</p>
       </div>
 
-      <AccessBanner />
-      <BrandSetup />
-      <WaitingForYou />
-
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4" aria-busy={summary.isPending}>
         {stats.map((stat) => (
           <div key={stat.label} className="rounded-xl border border-border bg-card p-4 sm:p-5">
@@ -167,6 +163,10 @@ export default function Dashboard() {
           </div>
         ))}
       </div>
+
+      <AccessBanner />
+      <BrandSetup />
+      <WaitingForYou />
 
       <div className="grid gap-6 lg:grid-cols-3">
         <section aria-labelledby="recent-projects" className="overflow-hidden rounded-xl border border-border bg-card lg:col-span-2 lg:self-start">

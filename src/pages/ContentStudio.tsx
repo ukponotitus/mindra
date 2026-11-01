@@ -1,12 +1,13 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Check, Clapperboard, ImagePlus, LoaderCircle, PenLine } from "lucide-react";
-import { Link } from "react-router";
+import { Link, useSearchParams } from "react-router";
 import PlatformBadge from "../components/content/PlatformBadge";
 import SeePlans from "../components/SeePlans";
 import { buttonStyles } from "../components/ui/button";
 import { ApiError } from "../lib/api";
 import { formatLabel } from "../lib/calendars";
-import { studioVideoLink, useApprovePost, useMakePost, useStudioQueue, type StudioItem } from "../lib/studioQueue";
+import { cn } from "../lib/cn";
+import { studioVideoLink, useApprovePost, useMakeAll, useMakePost, useStudioQueue, type StudioItem } from "../lib/studioQueue";
 
 // The Content Studio (Phase 5): every approved brief, with its post made from it, reviewed and approved. Approved posts
 // are planned at their time in the Planner and go out by themselves or with a reminder.
@@ -32,7 +33,7 @@ const SCHEDULE_WORDS: Record<string, string> = {
   missed: "Missed",
 };
 
-function Card({ item }: { item: StudioItem }) {
+function Card({ item, chosen }: { item: StudioItem; chosen: boolean }) {
   const make = useMakePost();
   const approve = useApprovePost();
   const [error, setError] = useState<unknown>(null);
@@ -46,12 +47,20 @@ function Card({ item }: { item: StudioItem }) {
     }
   };
 
+  const busy = make.isPending || item.writing;
   let actions: ReactNode = null;
-  if (item.status === "plan_approved") {
+  if (item.writing) {
     actions = (
-      <button type="button" onClick={() => run(() => make.mutateAsync(item.id))} disabled={make.isPending} className={buttonStyles({ size: "sm" })}>
-        {make.isPending ? <LoaderCircle aria-hidden="true" className="size-4 animate-spin motion-reduce:animate-none" /> : <PenLine aria-hidden="true" className="size-4" />}
-        {make.isPending ? "Writing…" : "Make the post"}
+      <p role="status" className="flex items-center gap-2 text-sm text-muted-foreground">
+        <LoaderCircle aria-hidden="true" className="size-4 animate-spin motion-reduce:animate-none" />
+        Writing the post. You can leave this page: it carries on.
+      </p>
+    );
+  } else if (item.status === "plan_approved") {
+    actions = (
+      <button type="button" onClick={() => run(() => make.mutateAsync(item.id))} disabled={busy} className={buttonStyles({ size: "sm" })}>
+        {busy ? <LoaderCircle aria-hidden="true" className="size-4 animate-spin motion-reduce:animate-none" /> : <PenLine aria-hidden="true" className="size-4" />}
+        {item.post_error ? "Try again" : "Make the post"}
       </button>
     );
   } else if (item.post) {
@@ -68,8 +77,8 @@ function Card({ item }: { item: StudioItem }) {
           </Link>
         )}
         {(item.status === "ready" || item.status === "in_production") && (
-          <button type="button" onClick={() => run(() => make.mutateAsync(item.id))} disabled={make.isPending} className={buttonStyles({ variant: "ghost", size: "sm" })}>
-            {make.isPending ? "Writing…" : "Write it again"}
+          <button type="button" onClick={() => run(() => make.mutateAsync(item.id))} disabled={busy} className={buttonStyles({ variant: "ghost", size: "sm" })}>
+            Write it again
           </button>
         )}
         {item.status === "ready" && (
@@ -83,7 +92,7 @@ function Card({ item }: { item: StudioItem }) {
   }
 
   return (
-    <li className="rounded-xl border border-border bg-card p-4">
+    <li id={`item-${item.id}`} className={cn("scroll-mt-20 rounded-xl border bg-card p-4", chosen ? "border-primary ring-2 ring-primary/20" : "border-border")}>
       <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
         <span className="font-medium text-foreground">{when(item)}</span>
         <PlatformBadge platform={item.platform} />
@@ -103,6 +112,12 @@ function Card({ item }: { item: StudioItem }) {
         </p>
       )}
       {actions && <div className="mt-3 flex flex-wrap gap-2">{actions}</div>}
+      {/* The last try on the server failed: why, until the next try. */}
+      {item.post_error && !item.writing && (
+        <p className="mt-2 text-sm text-pretty text-red-600">
+          Couldn't write this post: {item.post_error} <SeePlans text={item.post_error} />
+        </p>
+      )}
       {Boolean(error) && (
         <p role="alert" className="mt-2 text-sm text-red-600">
           {error instanceof ApiError ? error.message : "Something went wrong. Try again."} <SeePlans error={error} />
@@ -115,6 +130,14 @@ function Card({ item }: { item: StudioItem }) {
 export default function ContentStudio() {
   const queue = useStudioQueue();
   const items = queue.data ?? [];
+  const makeAll = useMakeAll();
+  // ?item=<id>: the one opened from its plan, shown and marked.
+  const [params] = useSearchParams();
+  const chosen = params.get("item");
+  const found = items.some((item) => item.id === chosen);
+  useEffect(() => {
+    if (found) document.getElementById(`item-${chosen}`)?.scrollIntoView({ block: "center" });
+  }, [found, chosen]);
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
@@ -142,13 +165,28 @@ export default function ContentStudio() {
           if (list.length === 0) return null;
           return (
             <section key={group.id} aria-labelledby={`studio-${group.id}`}>
-              <h3 id={`studio-${group.id}`} className="font-semibold text-foreground">
-                {group.title} <span className="text-sm font-normal text-muted-foreground tabular-nums">({list.length})</span>
-              </h3>
-              <p className="mb-3 text-sm text-muted-foreground">{group.hint}</p>
+              <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
+                <div>
+                  <h3 id={`studio-${group.id}`} className="font-semibold text-foreground">
+                    {group.title} <span className="text-sm font-normal text-muted-foreground tabular-nums">({list.length})</span>
+                  </h3>
+                  <p className="text-sm text-muted-foreground">{group.hint}</p>
+                </div>
+                {group.id === "make" && list.some((item) => !item.writing) && (
+                  <button type="button" onClick={() => makeAll.mutate()} disabled={makeAll.isPending} className={buttonStyles({ variant: "secondary", size: "sm" })}>
+                    {makeAll.isPending ? <LoaderCircle aria-hidden="true" className="size-4 animate-spin motion-reduce:animate-none" /> : <PenLine aria-hidden="true" className="size-4" />}
+                    Make all {list.filter((item) => !item.writing).length} posts
+                  </button>
+                )}
+              </div>
+              {group.id === "make" && makeAll.isError && (
+                <p role="alert" className="mb-3 text-sm text-pretty text-red-600">
+                  {makeAll.error.message} <SeePlans error={makeAll.error} />
+                </p>
+              )}
               <ul className="grid gap-3 md:grid-cols-2">
                 {list.map((item) => (
-                  <Card key={item.id} item={item} />
+                  <Card key={item.id} item={item} chosen={item.id === chosen} />
                 ))}
               </ul>
             </section>

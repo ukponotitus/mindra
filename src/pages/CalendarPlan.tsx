@@ -6,6 +6,7 @@ import { buttonStyles } from "../components/ui/button";
 import { ApiError } from "../lib/api";
 import { STRATEGY_FIELDS, useApprovePlan, useBriefActions, usePlan, useUpdateStrategy, useWritePlan, type Brief, type PlanItem, type Strategy } from "../lib/briefs";
 import { formatLabel, useCalendar } from "../lib/calendars";
+import { IN_STUDIO } from "../lib/studioQueue";
 import { cn } from "../lib/cn";
 
 // A calendar's content plan (Phase 4): the strategy for its dates, and how each approved item is made. Written by AI,
@@ -245,6 +246,13 @@ function BriefCard({ calendarId, item }: { calendarId: string; item: PlanItem })
               Approve
             </button>
           )}
+          {IN_STUDIO.includes(item.status) && <StudioLink itemId={item.id} />}
+        </div>
+      )}
+      {/* Approved and past its brief (in production, ready, approved): its post is in the Content Studio. */}
+      {locked && IN_STUDIO.includes(item.status) && (
+        <div className="mt-4">
+          <StudioLink itemId={item.id} />
         </div>
       )}
       {error && (
@@ -253,6 +261,15 @@ function BriefCard({ calendarId, item }: { calendarId: string; item: PlanItem })
         </p>
       )}
     </li>
+  );
+}
+
+function StudioLink({ itemId }: { itemId: string }) {
+  return (
+    <Link to={`/content-studio?item=${itemId}`} className={buttonStyles({ variant: "secondary", size: "sm" })}>
+      Open in Content Studio
+      <ChevronRight aria-hidden="true" className="size-4" />
+    </Link>
   );
 }
 
@@ -278,6 +295,7 @@ export default function CalendarPlan() {
   const items = plan.data?.items ?? [];
   const waitingBriefs = items.filter((item) => !item.brief).length;
   const waitingApproval = items.filter((item) => item.status === "plan_generated").length;
+  const inStudio = items.filter((item) => IN_STUDIO.includes(item.status)).length;
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
@@ -341,8 +359,9 @@ export default function CalendarPlan() {
           ) : (
             <>
               {strategy.status === "failed" && (
-                <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
-                  {strategy.error || "The plan couldn't be written."}
+                <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-pretty text-red-800">
+                  Mindra couldn't write {waitingBriefs ? "the missing briefs" : "the plan"}: {strategy.error || "something went wrong."} Write them again
+                  below; the briefs already written stay.
                 </p>
               )}
               <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card p-4">
@@ -356,9 +375,10 @@ export default function CalendarPlan() {
                     Write the missing briefs
                   </button>
                 )}
-                {strategy.status === "approved" && (
+                {/* Each approved brief is in the Content Studio at once, without waiting for the whole plan. */}
+                {inStudio > 0 && (
                   <Link to="/content-studio" className={buttonStyles({ variant: "secondary", size: "sm" })}>
-                    Open the Content Studio
+                    Open the Content Studio ({inStudio})
                   </Link>
                 )}
                 {waitingApproval > 0 && (
