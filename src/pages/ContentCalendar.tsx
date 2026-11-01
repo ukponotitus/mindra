@@ -11,10 +11,13 @@ import { useBrandProfile } from "../lib/brand";
 import { addDays, addMonths, dayKey, formatDayLong, monthGrid, parseDayKey, startOfMonth, weekDays } from "../lib/calendar";
 import {
   formatLabel,
+  leadingVersion,
   useCalendar,
   useDecideVersion,
   useDeleteCalendar,
+  useDeleteVersion,
   useGenerateVersion,
+  useRetryVersion,
   useVersionItems,
   VERSION_LABELS,
   type CalendarItem,
@@ -40,13 +43,9 @@ function time(item: CalendarItem) {
   return new Date(item.scheduled_for).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
 }
 
-/** The version to show: the one in the address, else the newest draft (or one being drafted), else the newest. */
+/** The version to show: the one in the address, else a draft (or one being drafted), else the newest approved. */
 function chosenVersion(versions: CalendarVersion[], wanted: string | null) {
-  return (
-    versions.find((version) => version.id === wanted) ??
-    versions.find((version) => version.status === "draft" || version.status === "generating") ??
-    versions[0]
-  );
+  return versions.find((version) => version.id === wanted) ?? leadingVersion(versions);
 }
 
 function ItemCard({ item, onOpen, compact = false }: { item: CalendarItem; onOpen: () => void; compact?: boolean }) {
@@ -149,6 +148,8 @@ export default function ContentCalendarPage() {
   const items = useVersionItems(version?.id, version?.status);
   const decide = useDecideVersion(calendarId ?? "");
   const generate = useGenerateVersion(calendarId ?? "");
+  const retry = useRetryVersion(calendarId ?? "");
+  const removeVersion = useDeleteVersion(calendarId ?? "");
   const remove = useDeleteCalendar();
   const [view, setView] = useState<View>("list");
   const [request, setRequest] = useState("");
@@ -173,6 +174,7 @@ export default function ContentCalendarPage() {
   const start = parseDayKey(data.starts_on) ?? new Date();
   const shown = anchor ?? start;
   const isDraft = version?.status === "draft";
+  const failedVersions = versions.filter((item) => item.status === "failed");
   const wantedTotal = Object.values(data.wanted).reduce((sum, count) => sum + (count ?? 0), 0);
 
   const act = async (work: () => Promise<unknown>) => {
@@ -270,12 +272,37 @@ export default function ContentCalendarPage() {
         </p>
       )}
       {version?.status === "failed" && (
-        <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-5 text-sm text-red-800">
-          {version.error || "This version couldn't be drafted."}{" "}
-          <button type="button" onClick={() => act(() => generate.mutateAsync(version.request))} className="font-medium underline">
+        <div role="alert" className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-red-200 bg-red-50 p-5 text-sm text-red-800">
+          <p className="mr-auto">Version {version.number} couldn't be drafted: {version.error || "something went wrong."}</p>
+          {/* Drafts the same version again, rather than adding another. */}
+          <button type="button" onClick={() => act(() => retry.mutateAsync(version.id))} disabled={retry.isPending} className="font-medium underline">
             Try again
           </button>
+          <button
+            type="button"
+            onClick={() => act(() => removeVersion.mutateAsync(version.id).then(() => setParams({}, { replace: true })))}
+            disabled={removeVersion.isPending}
+            className="font-medium underline"
+          >
+            Delete this version
+          </button>
         </div>
+      )}
+      {failedVersions.length > 1 && (
+        <button
+          type="button"
+          onClick={() =>
+            act(async () => {
+              for (const failed of failedVersions) await removeVersion.mutateAsync(failed.id);
+              setParams({}, { replace: true });
+            })
+          }
+          disabled={removeVersion.isPending}
+          className={buttonStyles({ variant: "ghost", size: "sm" })}
+        >
+          <Trash2 aria-hidden="true" className="size-4" />
+          Delete the {failedVersions.length} versions that couldn't be drafted
+        </button>
       )}
 
       {isDraft && (
@@ -357,6 +384,14 @@ export default function ContentCalendarPage() {
 
           {items.isPending ? (
             <p className="text-sm text-muted-foreground">Loading its items…</p>
+          ) : items.isError ? (
+            // A failure to load isn't an empty version: say so, with why.
+            <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-5 text-sm text-pretty text-red-800">
+              Couldn't load this version's posts: {items.error.message}{" "}
+              <button type="button" onClick={() => items.refetch()} className="font-medium underline">
+                Try again
+              </button>
+            </div>
           ) : (items.data?.length ?? 0) === 0 ? (
             <p className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">Nothing in this version.</p>
           ) : view === "list" ? (

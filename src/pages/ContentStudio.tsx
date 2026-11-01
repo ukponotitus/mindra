@@ -150,6 +150,13 @@ export default function ContentStudio() {
       </div>
       {queue.isPending ? (
         <p className="text-sm text-muted-foreground">Loading…</p>
+      ) : queue.isError ? (
+        <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-5 text-sm text-pretty text-red-800">
+          Couldn't load the Content Studio: {queue.error.message}{" "}
+          <button type="button" onClick={() => queue.refetch()} className="font-medium underline">
+            Try again
+          </button>
+        </div>
       ) : items.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border bg-card p-10 text-center">
           <PenLine aria-hidden="true" className="mx-auto size-8 text-muted-foreground" />

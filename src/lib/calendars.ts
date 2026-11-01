@@ -178,6 +178,42 @@ export function useGenerateVersion(calendarId: string) {
   });
 }
 
+/** The version to show first: a draft (or one being drafted), else the newest approved, else the newest. A version that
+ * failed after an approved one doesn't hide the approved posts. `versions` is newest first. */
+export function leadingVersion(versions: CalendarVersion[]) {
+  return (
+    versions.find((version) => version.status === "draft" || version.status === "generating") ??
+    versions.find((version) => version.status === "approved") ??
+    versions[0]
+  );
+}
+
+function useVersionsChanged(calendarId: string) {
+  const queryClient = useQueryClient();
+  return () => {
+    queryClient.invalidateQueries({ queryKey: detailKey(calendarId) });
+    queryClient.invalidateQueries({ queryKey: listKey });
+  };
+}
+
+/** Draft a version that failed again, as the same version. */
+export function useRetryVersion(calendarId: string) {
+  const changed = useVersionsChanged(calendarId);
+  return useMutation({
+    mutationFn: (id: string) => apiRequest<CalendarVersion>(`/api/calendar-versions/${id}/retry/`, { method: "POST" }),
+    onSuccess: changed,
+  });
+}
+
+/** Delete a version that isn't approved (failed, rejected or a draft). */
+export function useDeleteVersion(calendarId: string) {
+  const changed = useVersionsChanged(calendarId);
+  return useMutation({
+    mutationFn: (id: string) => apiRequest<null>(`/api/calendar-versions/${id}/`, { method: "DELETE" }),
+    onSuccess: changed,
+  });
+}
+
 export function useDecideVersion(calendarId: string) {
   const queryClient = useQueryClient();
   return useMutation({

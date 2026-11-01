@@ -3,7 +3,7 @@ import { Link } from "react-router";
 import PlatformBadge from "../components/content/PlatformBadge";
 import { buttonStyles } from "../components/ui/button";
 import { parseDayKey } from "../lib/calendar";
-import { useCalendars, VERSION_LABELS } from "../lib/calendars";
+import { leadingVersion, useCalendars, VERSION_LABELS } from "../lib/calendars";
 import type { Platform } from "../lib/types";
 
 function shortDate(key: string) {
@@ -32,6 +32,13 @@ export default function ContentCalendars() {
 
       {calendars.isPending ? (
         <p className="text-sm text-muted-foreground">Loading…</p>
+      ) : calendars.isError ? (
+        <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-5 text-sm text-pretty text-red-800">
+          Couldn't load your calendars: {calendars.error.message}{" "}
+          <button type="button" onClick={() => calendars.refetch()} className="font-medium underline">
+            Try again
+          </button>
+        </div>
       ) : (calendars.data?.length ?? 0) === 0 ? (
         <div className="rounded-xl border border-dashed border-border bg-card p-10 text-center">
           <CalendarRange aria-hidden="true" className="mx-auto size-8 text-muted-foreground" />
@@ -44,7 +51,8 @@ export default function ContentCalendars() {
       ) : (
         <ul className="space-y-3">
           {calendars.data?.map((calendar) => {
-            const newest = calendar.versions[0];
+            // A draft, else the approved version: a later draft that failed doesn't make the calendar look failed.
+            const newest = leadingVersion(calendar.versions);
             return (
               <li key={calendar.id}>
                 <Link

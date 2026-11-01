@@ -322,6 +322,13 @@ export default function CalendarPlan() {
 
       {plan.isPending ? (
         <p className="text-sm text-muted-foreground">Loading the plan…</p>
+      ) : plan.isError ? (
+        <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-5 text-sm text-pretty text-red-800">
+          Couldn't load the plan: {plan.error.message}{" "}
+          <button type="button" onClick={() => plan.refetch()} className="font-medium underline">
+            Try again
+          </button>
+        </div>
       ) : items.length === 0 ? (
         <p className="rounded-xl border border-dashed border-border bg-card p-6 text-center text-sm text-muted-foreground">
           Approve the calendar first: the plan is written for its approved items.{" "}
