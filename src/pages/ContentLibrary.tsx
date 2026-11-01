@@ -87,7 +87,8 @@ export default function ContentLibrary() {
             {content.data ? `${count} post${count === 1 ? "" : "s"}` : "Every post Mindra has written for you."}
           </p>
         </div>
-        <Link to="/ai-studio" className={buttonStyles()}>
+        {/* Posts are written from their recording, photos or flyer: its project's page. */}
+        <Link to={project ? `/projects/${project}?tab=posts` : "/projects"} className={buttonStyles()}>
           <Plus aria-hidden="true" className="size-4" />
           Write posts
         </Link>
@@ -208,10 +209,10 @@ export default function ContentLibrary() {
           <EmptyState
             icon={FileText}
             title="Nothing written yet"
-            description="Pick a recording in AI Studio and Mindra will write posts for the platforms you choose."
+            description="Open a recording, photos or a flyer in Projects and choose Write posts. Mindra writes them for the platforms you choose, and they all appear here."
             action={
-              <Link to="/ai-studio" className={buttonStyles()}>
-                Open AI Studio
+              <Link to="/projects" className={buttonStyles()}>
+                Go to Projects
               </Link>
             }
           />

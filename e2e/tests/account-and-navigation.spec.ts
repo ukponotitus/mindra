@@ -26,7 +26,6 @@ test("the sidebar groups related pages, and each page opens", async ({ page }) =
     ["Brand", "Brand Voice", "Brand Voice"],
     ["Plan", "Content Plans", "Content Plans"],
     ["Create", "Projects", "Projects"],
-    ["Create", "AI Studio", "AI Studio"],
     ["Create", "Clips", "Clips"],
     ["Create", "Vertical Videos", "Vertical Videos"],
     ["Create", "Motion Studio", "Motion Studio"],
@@ -52,6 +51,13 @@ test("the sidebar groups related pages, and each page opens", async ({ page }) =
   await nav.getByRole("link", { name: "Audience", exact: true }).click();
   await expect(page).toHaveURL(/\/analytics\?tab=audience/);
   await expect(nav.getByRole("link", { name: "Audience", exact: true })).toHaveAttribute("aria-current", "page");
+});
+
+test("AI Studio's old links open the Content Library", async ({ page }) => {
+  await logIn(page, person);
+  await page.goto("/ai-studio");
+  await expect(page).toHaveURL(/\/library$/);
+  await expect(page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "AI Studio" })).toHaveCount(0);
 });
 
 test("the Calendar is now the Planner, and old links still work", async ({ page }) => {
