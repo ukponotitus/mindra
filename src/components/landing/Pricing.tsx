@@ -4,7 +4,7 @@ import { Check, Minus, Tag } from "lucide-react";
 import { Link } from "react-router";
 import Reveal from "./Reveal";
 import SectionLabel from "./SectionLabel";
-import { offerLastDay, recordingAllowance, usePricingPlans } from "../../lib/billing";
+import { firstDays, offerLastDay, recordingAllowance, usePricingPlans } from "../../lib/billing";
 import { useCtaLinks } from "./useCtaLinks";
 
 // Monthly prices in naira; yearly billing gives two months free. The plans come from the API (billing/plans.py, the
@@ -24,6 +24,8 @@ export default function Pricing() {
   // The launch offer: every account has everything open, free, to its last day.
   const inBeta = pricing?.in_beta ?? true;
   const lastDay = offerLastDay(pricing?.beta_ends_on ?? null);
+  // After the offer, new accounts still start with everything open for a while.
+  const newDays = !inBeta && pricing?.new_account_days ? pricing.new_account_days : 0;
 
   return (
     <section id="pricing" className="relative scroll-mt-16 overflow-hidden bg-black px-6 py-24 lg:py-32">
@@ -41,9 +43,13 @@ export default function Pricing() {
         </Reveal>
 
         <Reveal className="mt-10 flex flex-col items-center gap-5">
-          {inBeta && (
+          {(inBeta || newDays > 0) && (
             <div className="inline-flex items-center rounded-full bg-[#34D399]/10 px-4 py-2 text-sm font-medium text-[#6EE7B7] ring-1 ring-[#34D399]/20">
-              {lastDay ? `Launch offer: everything open, free, until ${lastDay}` : "Launch offer: everything open, free"}
+              {!inBeta
+                ? `New accounts: everything open, free, for the ${firstDays(newDays)}`
+                : lastDay
+                  ? `Launch offer: everything open, free, until ${lastDay}`
+                  : "Launch offer: everything open, free"}
             </div>
           )}
           <div role="group" aria-label="Billing period" className="relative flex rounded-full bg-white/[0.06] p-1 ring-1 ring-white/10">

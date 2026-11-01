@@ -6,7 +6,7 @@ import { useAuth } from "../auth/context";
 import BrandMark from "../components/BrandMark";
 import { buttonStyles } from "../components/ui/button";
 import { ApiError, apiRequest, type FieldErrors } from "../lib/api";
-import { offerLastDay, usePricingPlans } from "../lib/billing";
+import { firstDays, offerLastDay, usePricingPlans } from "../lib/billing";
 import { cn } from "../lib/cn";
 import type { AuthResponse } from "../lib/types";
 import { useDocumentTitle } from "../lib/useDocumentTitle";
@@ -179,7 +179,15 @@ export default function AuthPage({ mode }: Props) {
   };
 
   const { title, submit: submitLabel } = copy[mode];
-  const subtitle = mode === "signup" && lastDay ? `Everything is open, free, until ${lastDay}.` : copy[mode].subtitle;
+  const newDays = !pricing?.in_beta && pricing?.new_account_days ? pricing.new_account_days : 0;
+  const subtitle =
+    mode !== "signup"
+      ? copy[mode].subtitle
+      : lastDay
+        ? `Everything is open, free, until ${lastDay}.`
+        : newDays
+          ? `Everything is open, free, for your ${firstDays(newDays)}.`
+          : copy[mode].subtitle;
   const resetLinkMissing = mode === "reset" && (!uid || !token);
   const passwordHint = mode !== "login" ? "At least 8 characters, not too common." : undefined;
 
