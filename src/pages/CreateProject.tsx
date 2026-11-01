@@ -792,8 +792,20 @@ export default function CreateProject() {
 
           {isPhotos && created && failedPhotos > 0 && !submitting && (
             <div role="alert" className="rounded-lg bg-red-50 px-4 py-3 text-sm text-pretty text-red-700">
-              {failedPhotos} of {photoCount} {pictures} couldn&apos;t be uploaded; each one says why above. The project is
-              made: try them again, or open it and add {pictures} there later.
+              <p>
+                {failedPhotos} of {photoCount} {pictures} couldn&apos;t be uploaded. The project is made: try them again, or open it
+                and add {pictures} there later.
+              </p>
+              {/* Which ones, and why, here rather than only on each card higher up. */}
+              <ul className="mt-2 list-disc space-y-1 pl-5">
+                {photoQueue.items
+                  .filter((item) => item.status === "failed")
+                  .map((item) => (
+                    <li key={item.key}>
+                      <span className="font-medium break-all">{item.name}</span>: {item.note || "The upload failed."}
+                    </li>
+                  ))}
+              </ul>
             </div>
           )}
           <p role="status" className="sr-only">
