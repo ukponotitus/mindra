@@ -76,7 +76,7 @@ function NewVerticalVideo() {
     const seconds = await videoDuration(candidate);
     if (seconds !== null && seconds > maxMinutes * 60 + 1) {
       setProblem(
-        `This video is ${formatDuration(seconds)} long. During the beta, videos can be up to ${maxMinutes} minutes. Trim it, then choose it again.`,
+        `This video is ${formatDuration(seconds)} long. Videos can be up to ${maxMinutes} minutes. Trim it, then choose it again.`,
       );
       return;
     }
@@ -204,7 +204,7 @@ function NewVerticalVideo() {
               <span className="mb-4 block text-sm text-muted-foreground">{extensions.length > 0 ? formatExtensions(extensions) : " "}</span>
               <span className={buttonStyles({ variant: "secondary" })}>Choose Video</span>
               <span id={`${ids}-hint`} className="mt-3 block text-xs text-pretty text-muted-foreground tabular-nums">
-                Up to {maxMinutes} minutes during the beta
+                Up to {maxMinutes} minutes long
                 {options ? `, and ${formatMegabytes(options.max_upload_mb)}` : ""}.
               </span>
             </label>

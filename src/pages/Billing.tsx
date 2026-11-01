@@ -31,12 +31,12 @@ function when(value: string | null) {
   return value ? formatDayLong(new Date(value)) : "";
 }
 
-/** The plan a workspace goes back to at `moment` (now when null): Beta during the beta, Free after it. */
+/** The plan a workspace goes back to at `moment` (now when null): Full access during the launch offer, Free after it. */
 function fallbackAt(billing: BillingOverview, moment: string | null) {
   if (!billing.in_beta) return "Free";
-  if (!billing.beta_ends_on) return "Beta";
+  if (!billing.beta_ends_on) return "Full access";
   const [year, month, date] = billing.beta_ends_on.split("-").map(Number);
-  return (moment ? new Date(moment) : new Date()) < new Date(year, month - 1, date) ? "Beta" : "Free";
+  return (moment ? new Date(moment) : new Date()) < new Date(year, month - 1, date) ? "Full access" : "Free";
 }
 
 /** The plan a given or paid one gives way to when it ends. */
@@ -62,8 +62,8 @@ function planNote(billing: BillingOverview) {
   switch (billing.source) {
     case "beta":
       return billing.beta_ends_on
-        ? `Everything is free while Mindra is in beta, until ${dayText(billing.beta_ends_on, 1)}. After that the Free plan stays free, and paid plans start at ${naira(5000)} a month.`
-        : "Everything is free while Mindra is in beta.";
+        ? `Mindra's launch offer: everything is open, free, until ${dayText(billing.beta_ends_on, 1)}. After that your workspace moves to the Free plan, unless you choose a paid plan, from ${naira(5000)} a month. Nothing you've made is removed.`
+        : "Mindra's launch offer: everything is open, free.";
     case "given":
       return until
         ? `Mindra gave your workspace this plan until ${until}. After that it's on the ${afterwards(billing)} plan.`
@@ -488,7 +488,7 @@ export default function Billing() {
               <p className="mt-1 max-w-2xl text-sm text-pretty text-muted-foreground">
                 Pay by card on Paystack's secure page. A paid plan starts as soon as it's paid and renews by itself each{" "}
                 {interval === "yearly" ? "year" : "month"} until you cancel; cancelling keeps it until the end of the period paid for.
-                {data.in_beta && " During the beta, paying moves your workspace to the plan you choose from today."}
+                {data.in_beta && " During the launch offer, paying moves your workspace to the plan you choose from today."}
               </p>
             )}
           </div>

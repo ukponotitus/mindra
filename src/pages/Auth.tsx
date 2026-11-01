@@ -6,6 +6,7 @@ import { useAuth } from "../auth/context";
 import BrandMark from "../components/BrandMark";
 import { buttonStyles } from "../components/ui/button";
 import { ApiError, apiRequest, type FieldErrors } from "../lib/api";
+import { offerLastDay, usePricingPlans } from "../lib/billing";
 import { cn } from "../lib/cn";
 import type { AuthResponse } from "../lib/types";
 import { useDocumentTitle } from "../lib/useDocumentTitle";
@@ -24,7 +25,7 @@ const copy: Record<Mode, { tabTitle: string; title: string; subtitle: string; su
   signup: {
     tabTitle: "Sign up",
     title: "Create your account",
-    subtitle: "Mindra is free while it's in beta.",
+    subtitle: "Start on the Free plan, and upgrade when you need more.",
     submit: "Create Account",
   },
   forgot: {
@@ -124,6 +125,9 @@ export default function AuthPage({ mode }: Props) {
   const uid = searchParams.get("uid") ?? "";
   const token = searchParams.get("token") ?? "";
 
+  // During the launch offer, sign-up says what's open and until when.
+  const pricing = usePricingPlans().data;
+  const lastDay = pricing?.in_beta ? offerLastDay(pricing.beta_ends_on) : null;
   if (status === "signedIn" && mode !== "reset") return <Navigate to={from} replace />;
 
   const fieldError = (field: string) => fieldErrors[field]?.[0];
@@ -174,7 +178,8 @@ export default function AuthPage({ mode }: Props) {
     }
   };
 
-  const { title, subtitle, submit: submitLabel } = copy[mode];
+  const { title, submit: submitLabel } = copy[mode];
+  const subtitle = mode === "signup" && lastDay ? `Everything is open, free, until ${lastDay}.` : copy[mode].subtitle;
   const resetLinkMissing = mode === "reset" && (!uid || !token);
   const passwordHint = mode !== "login" ? "At least 8 characters, not too common." : undefined;
 
@@ -315,7 +320,7 @@ export default function AuthPage({ mode }: Props) {
                     id="auth-invite-code"
                     label="Invite code"
                     error={fieldError("invite_code")}
-                    hint="Sign-up is by invitation during the beta."
+                    hint="Sign-up needs an invite code for now."
                   >
                     <input
                       {...describe("auth-invite-code", "invite_code", true)}

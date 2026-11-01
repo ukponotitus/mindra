@@ -231,6 +231,13 @@ export const BUILT_IN_PLANS: PricingPlan[] = [
 
 const BUILT_IN_LIST: PlanList = { plans: BUILT_IN_PLANS, in_beta: true, beta_ends_on: null };
 
+/** The launch offer's last day ("15 November"), from `beta_ends_on`, the first day after it; null when it has no end. */
+export function offerLastDay(betaEndsOn: string | null): string | null {
+  if (!betaEndsOn) return null;
+  const [year, month, date] = betaEndsOn.split("-").map(Number);
+  return new Date(year, month - 1, date - 1).toLocaleDateString("en-GB", { day: "numeric", month: "long" });
+}
+
 /** The pricing cards' plans, for the landing page (no sign-in needed). */
 export function usePricingPlans() {
   return useQuery({

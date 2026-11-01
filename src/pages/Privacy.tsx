@@ -15,7 +15,7 @@ export default function PrivacyPage() {
         (“we”).
       </p>
       <p>
-        Mindra is in a private beta, and this policy will change as Mindra does. When it changes, we’ll update the date above,
+        Mindra is new, and this policy will change as Mindra does. When it changes, we’ll update the date above,
         and we’ll email you before an important change applies.
       </p>
 
@@ -75,15 +75,15 @@ export default function PrivacyPage() {
         <li>To publish the posts you choose to the Facebook Pages and Instagram accounts you connect.</li>
         <li>To show you how your posts did: their views, likes, comments and shares, and the clicks on their links.</li>
         <li>To take payments for paid plans, and keep a record of them.</li>
-        <li>To email you about your account, such as password reset links and a renewal that wasn’t paid, and about important changes to the beta.</li>
+        <li>To email you about your account, such as password reset links and a renewal that wasn’t paid, and about important changes to Mindra.</li>
         <li>To keep Mindra secure, fix problems and keep costs in check.</li>
       </ul>
       <p>
         We don’t sell your data or share it with advertisers, and Mindra itself doesn’t use your recordings or posts to train
         AI models. Mindra’s AI writing runs on Anthropic’s Claude API or Google’s Gemini API. Under Anthropic’s commercial
-        terms, what Mindra sends to Claude isn’t used to train its models. During the private beta, Gemini runs on Google’s
-        free tier, whose terms let Google use what it’s sent to improve its products; we’ll move to Google’s paid service,
-        where that doesn’t happen, before Mindra charges for plans.
+        terms, what Mindra sends to Claude isn’t used to train its models. For now, Gemini runs on Google’s free tier, whose terms
+        let Google use what it’s sent to improve its products. We’ll move to Google’s paid service, where that doesn’t
+        happen, before Mindra charges for plans.
       </p>
 
       <h2 id="facebook-instagram">Connected Facebook and Instagram accounts</h2>

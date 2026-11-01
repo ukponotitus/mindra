@@ -4,7 +4,7 @@ import { Check, Minus, Tag } from "lucide-react";
 import { Link } from "react-router";
 import Reveal from "./Reveal";
 import SectionLabel from "./SectionLabel";
-import { recordingAllowance, usePricingPlans } from "../../lib/billing";
+import { offerLastDay, recordingAllowance, usePricingPlans } from "../../lib/billing";
 import { useCtaLinks } from "./useCtaLinks";
 
 // Monthly prices in naira; yearly billing gives two months free. The plans come from the API (billing/plans.py, the
@@ -21,11 +21,9 @@ export default function Pricing() {
   const [yearly, setYearly] = useState(false);
   const pricing = usePricingPlans().data;
   const plans = pricing?.plans ?? [];
+  // The launch offer: every account has everything open, free, to its last day.
   const inBeta = pricing?.in_beta ?? true;
-  // beta_ends_on is the first day after the beta, as YYYY-MM-DD.
-  const betaEnds = pricing?.beta_ends_on
-    ? new Date(`${pricing.beta_ends_on}T12:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })
-    : null;
+  const lastDay = offerLastDay(pricing?.beta_ends_on ?? null);
 
   return (
     <section id="pricing" className="relative scroll-mt-16 overflow-hidden bg-black px-6 py-24 lg:py-32">
@@ -45,7 +43,7 @@ export default function Pricing() {
         <Reveal className="mt-10 flex flex-col items-center gap-5">
           {inBeta && (
             <div className="inline-flex items-center rounded-full bg-[#34D399]/10 px-4 py-2 text-sm font-medium text-[#6EE7B7] ring-1 ring-[#34D399]/20">
-              Everything is free while Mindra is in beta
+              {lastDay ? `Launch offer: everything open, free, until ${lastDay}` : "Launch offer: everything open, free"}
             </div>
           )}
           <div role="group" aria-label="Billing period" className="relative flex rounded-full bg-white/[0.06] p-1 ring-1 ring-white/10">
@@ -151,7 +149,7 @@ export default function Pricing() {
 
         <p className="mx-auto mt-10 max-w-2xl text-center text-sm text-white/35">
           Prices in naira.
-          {inBeta && (betaEnds ? ` Everything is free until the beta ends on ${betaEnds}; paid plans start then.` : " Paid plans start after the beta.")}{" "}
+          {inBeta && (lastDay ? ` Every account has everything open, free, until ${lastDay}; the plans apply after that.` : " The plans apply after the launch offer.")}{" "}
           Agency plans for teams running many brands are on the way.
         </p>
       </div>

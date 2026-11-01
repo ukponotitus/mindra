@@ -61,7 +61,7 @@ export default function Roadmap() {
       <div className="mx-auto max-w-7xl">
         <Reveal className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <SectionLabel icon={Flag}>Private beta</SectionLabel>
+            <SectionLabel icon={Flag}>Roadmap</SectionLabel>
             <h2 className="mt-6 text-[2.6rem] leading-[1.02] font-medium text-balance text-[#0B0B0F] sm:text-6xl">
               Live today,
               <br />
@@ -70,13 +70,13 @@ export default function Roadmap() {
           </div>
           <div className="max-w-sm lg:pb-2">
             <p className="text-[15px] leading-relaxed text-[#52525B]">
-              What you can use now, what we're finishing and what's planned. Beta members help decide what we build first.
+              What you can use now, what we're finishing and what's planned. Early users help decide what we build first.
             </p>
             <Link
               to={startTo}
               className="group mt-5 inline-flex items-center gap-2 rounded-full bg-[#0B0B0F] px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#27272A]"
             >
-              Join the beta
+              Start free
               <ArrowRight aria-hidden="true" className="size-4 transition-transform group-hover:translate-x-0.5" />
             </Link>
           </div>

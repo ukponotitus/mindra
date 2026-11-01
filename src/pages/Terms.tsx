@@ -13,16 +13,17 @@ export default function TermsPage() {
         agree to them. Read them with our <Link to="/privacy">Privacy Policy</Link>, which explains how we handle your data.
       </p>
 
-      <h2>Mindra is in beta</h2>
+      <h2>Mindra is new</h2>
       <ul>
-        <li>Mindra is in a private beta. Features may change, stop working or be removed while we build it.</li>
+        <li>Mindra is new and still growing. Features may change, stop working or be removed as we build it.</li>
         <li>
           There may be limits on how long a recording can be and how many hours of recordings your workspace can process each
           month. Mindra tells you when you reach one.
         </li>
         <li>
-          Mindra is free during the beta. Paid plans are optional: we never charge you unless you choose one and pay for it
-          on the Billing page.
+          At launch, every account has everything open, free, until the date shown on the Billing page. After that your
+          workspace is on the Free plan unless you choose a paid one. Paid plans are optional: we never charge you unless
+          you choose one and pay for it on the Billing page.
         </li>
       </ul>
 
@@ -160,7 +161,7 @@ export default function TermsPage() {
       <p>
         You can stop using Mindra at any time, and ask us to delete your account by emailing {email}; the{" "}
         <Link to="/data-deletion">Data Deletion</Link> page lists every way to delete your data. We may suspend or close
-        an account that breaks these terms. If we end the beta or close Mindra, we’ll give you notice and time to download
+        an account that breaks these terms. If we close Mindra, we’ll give you notice and time to download
         your clips and copy your posts.
       </p>
 
