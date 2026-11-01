@@ -39,6 +39,60 @@
   --radius: 12px;
 }
 
+/* Dark mode: the app's shell (DashboardShell, src/lib/theme.ts) puts .dark on <html> when it's chosen, or when the
+   device is dark and nothing's chosen. Every surface uses the tokens above, so changing them changes the app. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+.dark {
+  color-scheme: dark;
+  --background: #0F1015;
+  --foreground: #E8E9EE;
+  --card: #17181F;
+  --card-foreground: #E8E9EE;
+  /* Lighter on dark, with dark text on it: 6.1:1 as a button, 5.9:1 as text on the cards. */
+  --primary: #8B80F5;
+  --primary-foreground: #0F1015;
+  --secondary: #23242D;
+  --secondary-foreground: #D3D5DE;
+  --muted: #1E1F27;
+  --muted-foreground: #9EA1B2;
+  --accent: #3ECFCE;
+  --accent-foreground: #0F172A;
+  --border: #2D2F3B;
+  --ring: #8B80F5;
+
+  /* Status colours: the pale fills and borders (50 to 200) become tints of the card, and the dark text shades (700 to
+     900) become light ones, so "bg-red-50 text-red-700 border-red-200" reads well on either. */
+  --color-red-50: color-mix(in oklab, var(--color-red-500) 12%, var(--card));
+  --color-red-100: color-mix(in oklab, var(--color-red-500) 18%, var(--card));
+  --color-red-200: color-mix(in oklab, var(--color-red-500) 32%, var(--card));
+  --color-red-700: oklch(80.8% 0.114 19.571);
+  --color-red-800: oklch(88.5% 0.062 18.334);
+  --color-red-900: oklch(93.6% 0.032 17.717);
+  --color-emerald-50: color-mix(in oklab, var(--color-emerald-500) 12%, var(--card));
+  --color-emerald-100: color-mix(in oklab, var(--color-emerald-500) 18%, var(--card));
+  --color-emerald-200: color-mix(in oklab, var(--color-emerald-500) 32%, var(--card));
+  --color-emerald-700: oklch(84.5% 0.143 164.978);
+  --color-emerald-800: oklch(90.5% 0.093 164.15);
+  --color-emerald-900: oklch(95% 0.052 163.051);
+  --color-amber-50: color-mix(in oklab, var(--color-amber-500) 12%, var(--card));
+  --color-amber-100: color-mix(in oklab, var(--color-amber-500) 18%, var(--card));
+  --color-amber-200: color-mix(in oklab, var(--color-amber-500) 32%, var(--card));
+  --color-amber-700: oklch(87.9% 0.169 91.605);
+  --color-amber-800: oklch(92.4% 0.12 95.746);
+  --color-amber-900: oklch(96.2% 0.059 95.617);
+  --color-violet-50: color-mix(in oklab, var(--color-violet-500) 12%, var(--card));
+  --color-violet-900: oklch(89.4% 0.057 293.283);
+  --color-sky-50: color-mix(in oklab, var(--color-sky-500) 12%, var(--card));
+  --color-sky-900: oklch(90.1% 0.058 230.902);
+}
+
+/* Error and success words in the 600 shade are too dark on a dark card; buttons filled with it keep it. */
+.dark .text-red-600 { color: var(--color-red-400); }
+.dark .text-emerald-600 { color: var(--color-emerald-400); }
+.dark *:hover::-webkit-scrollbar-thumb { background: #3A3C49; }
+.dark *:hover { scrollbar-color: #3A3C49 transparent; }
+
 * {
   font-family: 'Inter', sans-serif;
   font-optical-sizing: auto;

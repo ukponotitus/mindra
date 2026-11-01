@@ -15,7 +15,7 @@ export default function RequireAuth() {
   if (status === "unreachable") {
     return (
       <div className="flex min-h-dvh items-center justify-center bg-background p-6">
-        <div role="alert" className="max-w-sm rounded-xl border border-border bg-white p-8 text-center">
+        <div role="alert" className="max-w-sm rounded-xl border border-border bg-card p-8 text-center">
           <WifiOff aria-hidden="true" className="mx-auto mb-3 size-7 text-muted-foreground" />
           <h1 className="mb-2 font-semibold text-balance text-foreground">Can't reach Mindra</h1>
           <p className="mb-5 text-sm text-pretty text-muted-foreground">Check your internet connection, then try again.</p>

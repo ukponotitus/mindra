@@ -9,7 +9,7 @@ import type { ConnectedAccount, TikTokPrivacy } from "../../lib/types";
 import type { AutomationConfig, PlatformId, TikTokConfig } from "../../lib/automations";
 
 const selectClass =
-  "h-10 w-full min-w-0 rounded-lg border border-border bg-white px-3 text-sm text-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-hidden disabled:opacity-50";
+  "h-10 w-full min-w-0 rounded-lg border border-border bg-card px-3 text-sm text-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-hidden disabled:opacity-50";
 const linkClass = "font-medium text-primary underline-offset-2 hover:underline";
 
 function Tick({ label, hint, checked, disabled, onChange }: { label: string; hint?: string; checked: boolean; disabled?: boolean; onChange: (value: boolean) => void }) {
@@ -100,7 +100,7 @@ function PlatformCard({
 }) {
   const id = useId();
   return (
-    <section className={cn("rounded-xl border bg-white", on ? "border-primary/40" : "border-border")} aria-labelledby={id}>
+    <section className={cn("rounded-xl border bg-card", on ? "border-primary/40" : "border-border")} aria-labelledby={id}>
       <div className="flex items-center justify-between gap-3 p-4">
         <h3 id={id} className="flex items-center gap-2">
           <PlatformBadge platform={platform} withLabel={false} />
@@ -146,7 +146,7 @@ export default function PlatformCards(props: Props) {
   const tiktok = tiktoks.find((account) => account.id === props.tiktok);
   const ids = { privacy: useId(), audience: useId(), delay: useId() };
 
-  if (accounts.isPending) return <div aria-busy="true" className="h-40 animate-pulse rounded-xl border border-border bg-white" />;
+  if (accounts.isPending) return <div aria-busy="true" className="h-40 animate-pulse rounded-xl border border-border bg-card" />;
 
   return (
     <div className="space-y-4">

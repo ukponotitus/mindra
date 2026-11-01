@@ -10,7 +10,7 @@ import { useProjects } from "../lib/projects";
 const PAGE_SIZE = 24;
 
 const fieldClass =
-  "h-10 rounded-lg border border-border bg-white px-3 text-sm text-foreground transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-hidden";
+  "h-10 rounded-lg border border-border bg-card px-3 text-sm text-foreground transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-hidden";
 
 const STATUS_OPTIONS: { id: NonNullable<ClipFilters["status"]>; label: string }[] = [
   { id: "", label: "All clips" },
@@ -22,7 +22,7 @@ function ClipTile({ clip }: { clip: Clip }) {
   const status = clipStatusLabel(clip);
   const downloadable = clip.status === "ready" && clip.download_url && !clip.is_stale;
   return (
-    <article className="flex min-w-0 gap-4 rounded-xl border border-border bg-white p-4">
+    <article className="flex min-w-0 gap-4 rounded-xl border border-border bg-card p-4">
       <Link
         to={clipPath(clip)}
         tabIndex={-1}
@@ -63,7 +63,7 @@ function ClipTile({ clip }: { clip: Clip }) {
 
 function TileSkeleton() {
   return (
-    <div className="flex gap-4 rounded-xl border border-border bg-white p-4">
+    <div className="flex gap-4 rounded-xl border border-border bg-card p-4">
       <div className="h-32 w-[4.5rem] shrink-0 animate-pulse rounded-lg bg-secondary" />
       <div className="flex-1 space-y-2.5 pt-1">
         <div className="h-3.5 w-3/4 animate-pulse rounded bg-secondary" />

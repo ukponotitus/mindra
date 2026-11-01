@@ -111,7 +111,7 @@ export default function TimeChart({
                   />
                   <span
                     aria-hidden="true"
-                    className="pointer-events-none absolute size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-primary"
+                    className="pointer-events-none absolute size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-card bg-primary"
                     style={{ left: `${(x(hovered) / width) * 100}%`, top: `${y(points[hovered].value)}%` }}
                   />
                   <div
@@ -150,7 +150,7 @@ export default function TimeChart({
                 <span
                   key={point.long}
                   title={`${point.posts} ${point.posts === 1 ? "post" : "posts"} out on ${point.long}`}
-                  className="absolute top-0 size-2.5 -translate-x-1/2 rounded-full border border-primary bg-white"
+                  className="absolute top-0 size-2.5 -translate-x-1/2 rounded-full border border-primary bg-card"
                   style={{ left: `${(x(index) / width) * 100}%` }}
                 />
               ) : null,

@@ -36,7 +36,7 @@ export default function CalendarPost({ piece, to, dnd, layout }: Props) {
       onDragEnd={dnd.end}
       data-post={piece.id}
       className={cn(
-        "flex min-w-0 rounded-md border border-l-[3px] border-border bg-white text-left transition-[background-color,opacity] hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary",
+        "flex min-w-0 rounded-md border border-l-[3px] border-border bg-card text-left transition-[background-color,opacity] hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary",
         look.edge,
         canDrag && "cursor-grab active:cursor-grabbing",
         isPostedStatus(status) && "bg-background text-muted-foreground",
@@ -74,7 +74,7 @@ export default function CalendarPost({ piece, to, dnd, layout }: Props) {
             </span>
             <span className="font-medium text-foreground tabular-nums">{time}</span>
           </span>
-          <span className="line-clamp-2 text-pretty text-gray-700">{summary}</span>
+          <span className="line-clamp-2 text-pretty text-secondary-foreground">{summary}</span>
           {status !== "planned" && (
             <span className={cn("w-fit rounded-full px-1.5 py-px text-[11px] font-medium", look.chip)}>{look.label}</span>
           )}
@@ -86,7 +86,7 @@ export default function CalendarPost({ piece, to, dnd, layout }: Props) {
           <span className="w-16 shrink-0 font-medium text-foreground tabular-nums">{time}</span>
           <span className="min-w-0 flex-1">
             <PlatformBadge platform={piece.platform} />
-            <span className="mt-0.5 block truncate text-gray-700">{summary}</span>
+            <span className="mt-0.5 block truncate text-secondary-foreground">{summary}</span>
           </span>
           <span className={cn("shrink-0 rounded-full px-2 py-0.5 text-xs font-medium", look.chip)}>{look.label}</span>
         </span>

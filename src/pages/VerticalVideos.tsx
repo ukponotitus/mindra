@@ -25,7 +25,7 @@ import {
 } from "../lib/vertical";
 
 const inputClass =
-  "w-full rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-60";
+  "w-full rounded-lg border border-border bg-card px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-60";
 
 /** "sunday_service-march.mp4" → "sunday service march". */
 function nameFromFile(filename: string) {
@@ -126,7 +126,7 @@ function NewVerticalVideo() {
         : "";
 
   return (
-    <form onSubmit={submit} noValidate aria-busy={busy} className="min-w-0 space-y-5 rounded-xl border border-border bg-white p-5">
+    <form onSubmit={submit} noValidate aria-busy={busy} className="min-w-0 space-y-5 rounded-xl border border-border bg-card p-5">
       <div>
         {file ? (
           <div className="space-y-3 rounded-lg border border-border p-4">
@@ -269,7 +269,7 @@ function VerticalVideoCard({ video }: { video: VerticalVideo }) {
   const actionError = makeAgain.error ?? remove.error;
 
   return (
-    <article className="flex min-w-0 gap-4 rounded-xl border border-border bg-white p-4">
+    <article className="flex min-w-0 gap-4 rounded-xl border border-border bg-card p-4">
       <div className="aspect-[9/16] w-28 shrink-0 overflow-hidden rounded-lg bg-secondary sm:w-32">
         {ready ? (
           <video
@@ -413,7 +413,7 @@ export default function VerticalVideos() {
               Loading vertical videos
             </p>
             {[0, 1, 2].map((item) => (
-              <div key={item} className="flex gap-4 rounded-xl border border-border bg-white p-4">
+              <div key={item} className="flex gap-4 rounded-xl border border-border bg-card p-4">
                 <div className="aspect-[9/16] w-28 shrink-0 animate-pulse rounded-lg bg-secondary sm:w-32" />
                 <div className="flex-1 space-y-2.5 pt-1">
                   <div className="h-3.5 w-3/4 animate-pulse rounded bg-secondary" />

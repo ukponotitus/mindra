@@ -47,7 +47,7 @@ export default function RenameProjectInput({ project, onDone, className = "text-
         aria-invalid={update.isError || undefined}
         aria-describedby={update.isError ? errorId : undefined}
         className={cn(
-          "w-full rounded-lg border border-primary bg-white px-3 py-1.5 text-foreground outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
+          "w-full rounded-lg border border-primary bg-card px-3 py-1.5 text-foreground outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
           update.isError && "border-red-600 focus-visible:ring-red-600/20",
           className,
         )}

@@ -80,7 +80,7 @@ export default function ContentGenerator({ project, clipId, noun = "clip", onSta
         : "";
 
   return (
-    <form onSubmit={submit} className="space-y-6 rounded-xl border border-border bg-white p-5">
+    <form onSubmit={submit} className="space-y-6 rounded-xl border border-border bg-card p-5">
       <fieldset aria-describedby={`${ids}-platforms-hint`}>
         <legend className="text-sm font-semibold text-foreground">Platforms</legend>
         <p id={`${ids}-platforms-hint`} className="mt-1 mb-3 text-sm text-pretty text-muted-foreground">
@@ -100,7 +100,7 @@ export default function ContentGenerator({ project, clipId, noun = "clip", onSta
                 key={platform.id}
                 className={cn(
                   "flex h-10 cursor-pointer items-center gap-2 rounded-lg border px-3 text-sm font-medium transition-colors has-disabled:cursor-not-allowed has-disabled:opacity-60",
-                  checked ? "border-primary bg-primary/10 text-foreground" : "border-border text-gray-700 hover:bg-secondary",
+                  checked ? "border-primary bg-primary/10 text-foreground" : "border-border text-secondary-foreground hover:bg-secondary",
                 )}
               >
                 <input
@@ -127,7 +127,7 @@ export default function ContentGenerator({ project, clipId, noun = "clip", onSta
             value={tone}
             disabled={running}
             onChange={(e) => setTone(e.target.value)}
-            className="h-10 w-full rounded-lg border border-border bg-white px-3 text-sm text-foreground transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-hidden disabled:opacity-60"
+            className="h-10 w-full rounded-lg border border-border bg-card px-3 text-sm text-foreground transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-hidden disabled:opacity-60"
           >
             <option value="">Your brand voice ({brandTone})</option>
             {TONES.map((option) => (
@@ -143,7 +143,7 @@ export default function ContentGenerator({ project, clipId, noun = "clip", onSta
                 key={count}
                 className={cn(
                   "grid h-8 cursor-pointer place-items-center rounded-md text-sm font-medium tabular-nums transition-colors has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-primary has-disabled:cursor-not-allowed has-disabled:opacity-60",
-                  variations === count ? "bg-white text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
+                  variations === count ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
                 )}
               >
                 <input

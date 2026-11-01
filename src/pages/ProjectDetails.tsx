@@ -87,8 +87,8 @@ export default function ProjectDetails() {
           <div className="h-4 w-56 max-w-full animate-pulse rounded bg-secondary" />
         </div>
         <div className="h-10 w-80 max-w-full animate-pulse rounded-lg bg-secondary" />
-        <div className="h-24 animate-pulse rounded-xl border border-border bg-white" />
-        <div className="h-48 animate-pulse rounded-xl border border-border bg-white" />
+        <div className="h-24 animate-pulse rounded-xl border border-border bg-card" />
+        <div className="h-48 animate-pulse rounded-xl border border-border bg-card" />
       </div>
     );
   }
@@ -284,7 +284,7 @@ export default function ProjectDetails() {
               className={cn(
                 "inline-flex h-10 shrink-0 items-center gap-1.5 rounded-md px-3 text-sm font-medium whitespace-nowrap transition-colors sm:h-9 sm:px-4",
                 "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
-                selected ? "bg-white text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
+                selected ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
               )}
             >
               {tab.label}
@@ -297,7 +297,7 @@ export default function ProjectDetails() {
         <div className="space-y-6">
           <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border sm:grid-cols-3 lg:grid-cols-6">
             {overviewStats.map((stat) => (
-              <div key={stat.label} className="min-w-0 bg-white px-4 py-3.5">
+              <div key={stat.label} className="min-w-0 bg-card px-4 py-3.5">
                 <dt className="text-xs font-medium text-muted-foreground">{stat.label}</dt>
                 <dd className="mt-1 truncate text-lg font-semibold text-foreground tabular-nums">{stat.value}</dd>
                 {"action" in stat && stat.action && <dd>{stat.action}</dd>}
@@ -312,7 +312,7 @@ export default function ProjectDetails() {
       {activeTab === "transcript" &&
         (transcriptReady ? (
           transcript.isPending ? (
-            <div aria-busy="true" className="space-y-4 rounded-xl border border-border bg-white p-5 sm:p-6">
+            <div aria-busy="true" className="space-y-4 rounded-xl border border-border bg-card p-5 sm:p-6">
               <p role="status" className="sr-only">
                 Loading transcript…
               </p>

@@ -86,7 +86,7 @@ function PlanName({ plan }: { plan: ContentPlanDetail }) {
           onBlur={() => save()}
           onKeyDown={(event) => event.key === "Escape" && cancel()}
           className={cn(
-            "w-full max-w-xl rounded-lg border border-primary bg-white px-3 py-1.5 text-xl font-semibold text-foreground outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
+            "w-full max-w-xl rounded-lg border border-primary bg-card px-3 py-1.5 text-xl font-semibold text-foreground outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
             rename.isError && "border-red-600",
           )}
         />
@@ -124,7 +124,7 @@ function PlanSource({ plan, canReadAgain, open = false }: { plan: ContentPlanDet
   };
 
   return (
-    <details open={open} className="group rounded-xl border border-border bg-white">
+    <details open={open} className="group rounded-xl border border-border bg-card">
       <summary className="flex cursor-pointer list-none items-center gap-2 rounded-xl px-5 py-4 text-sm font-semibold text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary [&::-webkit-details-marker]:hidden">
         <ChevronRight aria-hidden="true" className="size-4 shrink-0 transition-transform duration-150 ease-out group-open:rotate-90" />
         What you gave Mindra
@@ -149,12 +149,12 @@ function PlanSource({ plan, canReadAgain, open = false }: { plan: ContentPlanDet
               disabled={read.isPending}
               aria-invalid={textError ? true : undefined}
               onChange={(event) => setText(event.target.value)}
-              className="w-full resize-y rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm leading-relaxed text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 aria-invalid:border-red-400"
+              className="w-full resize-y rounded-lg border border-border bg-card px-3.5 py-2.5 text-sm leading-relaxed text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 aria-invalid:border-red-400"
             />
           </>
         ) : (
           plan.text && (
-            <p className="max-h-80 overflow-y-auto rounded-lg bg-background p-3 text-sm leading-relaxed whitespace-pre-wrap break-words text-gray-700">
+            <p className="max-h-80 overflow-y-auto rounded-lg bg-background p-3 text-sm leading-relaxed whitespace-pre-wrap break-words text-secondary-foreground">
               {plan.text}
             </p>
           )
@@ -225,7 +225,7 @@ function PlanActions({ plan, onSkipped }: { plan: ContentPlanDetail; onSkipped: 
   };
 
   return (
-    <div className="rounded-xl border border-border bg-white p-5">
+    <div className="rounded-xl border border-border bg-card p-5">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-muted-foreground tabular-nums">
           <span className="font-semibold text-foreground">
@@ -285,7 +285,7 @@ function Loading() {
       <div className="h-4 w-40 animate-pulse rounded bg-secondary" />
       <div className="h-7 w-72 animate-pulse rounded bg-secondary" />
       {[0, 1, 2].map((item) => (
-        <div key={item} className="space-y-3 rounded-xl border border-border bg-white p-5">
+        <div key={item} className="space-y-3 rounded-xl border border-border bg-card p-5">
           <div className="h-4 w-1/3 animate-pulse rounded bg-secondary" />
           <div className="h-3.5 w-3/4 animate-pulse rounded bg-secondary" />
         </div>
@@ -380,7 +380,7 @@ export default function PlanDetail() {
 
       {plan.status === "reading" ? (
         <>
-          <div role="status" className="flex items-start gap-3 rounded-xl border border-border bg-white p-5">
+          <div role="status" className="flex items-start gap-3 rounded-xl border border-border bg-card p-5">
             <LoaderCircle aria-hidden="true" className="mt-0.5 size-5 shrink-0 animate-spin text-primary" />
             <div className="min-w-0">
               <p className="text-sm font-semibold text-foreground">Mindra is reading your plan</p>
@@ -447,7 +447,7 @@ export default function PlanDetail() {
           })}
 
           {adding ? (
-            <div className="rounded-xl border border-border bg-white p-5">
+            <div className="rounded-xl border border-border bg-card p-5">
               <h3 className="mb-4 text-sm font-semibold text-foreground">Add a post</h3>
               <EntryForm
                 planId={plan.id}

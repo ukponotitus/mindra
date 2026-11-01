@@ -154,7 +154,7 @@ export default function MusicSearch({
               }}
               className={cn(
                 "rounded-full border px-2 py-0.5 text-[11px] font-medium transition-colors focus-visible:outline-2 focus-visible:outline-primary",
-                tag === value ? "border-primary bg-primary text-white" : "border-border bg-white text-foreground hover:bg-secondary",
+                tag === value ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-foreground hover:bg-secondary",
               )}
             >
               {label}

@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { Dialog } from "@base-ui/react/dialog";
+import AssistantPanel from "./assistant/AssistantPanel";
 import { matchPath, Outlet, useLocation } from "react-router";
 import { useDocumentTitle } from "../lib/useDocumentTitle";
+import { useApplyTheme } from "../lib/theme";
 import { useMediaQuery } from "../lib/useMediaQuery";
 import Sidebar from "./Sidebar";
 import TopNav from "./TopNav";
@@ -35,22 +37,47 @@ const pageTitles: [pattern: string, title: string][] = [
   ["/campaigns/:campaignId/edit", "Change Campaign"],
   ["/campaigns/:campaignId", "Campaign"],
   ["/campaigns", "Campaigns"],
+  ["/assistant", "Assistant"],
   ["/billing", "Billing"],
   ["/settings", "Settings"],
 ];
 
+const ASSISTANT_KEY = "mindra.assistant.open";
+
+function savedAssistantOpen() {
+  try {
+    return localStorage.getItem(ASSISTANT_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
 export default function DashboardShell() {
+  useApplyTheme();
   const wide = useMediaQuery("(min-width: 1024px)");
+  // The assistant sits beside the page when there's room for both, and over it otherwise.
+  const roomy = useMediaQuery("(min-width: 1280px)");
   const [collapsed, setCollapsed] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [assistantOpen, setAssistantOpenState] = useState(savedAssistantOpen);
   const { pathname } = useLocation();
+  // Its own page shows it already.
+  const showAssistant = assistantOpen && pathname !== "/assistant";
+  const setAssistantOpen = (open: boolean) => {
+    setAssistantOpenState(open);
+    try {
+      localStorage.setItem(ASSISTANT_KEY, open ? "1" : "0");
+    } catch {
+      // Not remembered; it still opens and closes.
+    }
+  };
   const title = pageTitles.find(([pattern]) => matchPath(pattern, pathname))?.[1] ?? "Dashboard";
   useDocumentTitle(title);
 
   return (
     <div className="flex h-dvh overflow-hidden bg-background">
       {wide && !collapsed && (
-        <aside className="w-60 shrink-0 border-r border-border bg-white">
+        <aside className="w-60 shrink-0 border-r border-border bg-card">
           <Sidebar />
         </aside>
       )}
@@ -60,7 +87,7 @@ export default function DashboardShell() {
         <Dialog.Root open={drawerOpen} onOpenChange={setDrawerOpen}>
           <Dialog.Portal>
             <Dialog.Backdrop className="fixed inset-0 z-40 bg-black/40 transition-opacity duration-200 data-[ending-style]:opacity-0 data-[starting-style]:opacity-0" />
-            <Dialog.Popup className="fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] bg-white pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] shadow-xl transition-transform duration-200 ease-out data-[ending-style]:-translate-x-full data-[starting-style]:-translate-x-full">
+            <Dialog.Popup className="fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] bg-card pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] shadow-xl transition-transform duration-200 ease-out data-[ending-style]:-translate-x-full data-[starting-style]:-translate-x-full">
               <Dialog.Title className="sr-only">Navigation</Dialog.Title>
               <Sidebar onNavigate={() => setDrawerOpen(false)} />
             </Dialog.Popup>
@@ -73,11 +100,30 @@ export default function DashboardShell() {
           title={title}
           onToggleNavigation={() => (wide ? setCollapsed((value) => !value) : setDrawerOpen(true))}
           navigationLabel={wide ? (collapsed ? "Show sidebar" : "Hide sidebar") : "Open navigation"}
+          assistantOpen={showAssistant}
+          onToggleAssistant={pathname === "/assistant" ? undefined : () => setAssistantOpen(!assistantOpen)}
         />
         <main className="relative flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
           <Outlet />
         </main>
       </div>
+
+      {showAssistant && roomy && (
+        <aside aria-label="Assistant" className="w-[400px] shrink-0 border-l border-border">
+          <AssistantPanel onClose={() => setAssistantOpen(false)} />
+        </aside>
+      )}
+      {!roomy && pathname !== "/assistant" && (
+        <Dialog.Root open={showAssistant} onOpenChange={setAssistantOpen}>
+          <Dialog.Portal>
+            <Dialog.Backdrop className="fixed inset-0 z-40 bg-black/40 transition-opacity duration-200 data-[ending-style]:opacity-0 data-[starting-style]:opacity-0" />
+            <Dialog.Popup className="fixed inset-y-0 right-0 z-50 w-full max-w-md bg-background pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] shadow-xl transition-transform duration-200 ease-out data-[ending-style]:translate-x-full data-[starting-style]:translate-x-full">
+              <Dialog.Title className="sr-only">Assistant</Dialog.Title>
+              <AssistantPanel onClose={() => setAssistantOpen(false)} />
+            </Dialog.Popup>
+          </Dialog.Portal>
+        </Dialog.Root>
+      )}
     </div>
   );
 }

@@ -57,7 +57,7 @@ export default function Roadmap() {
   const { startTo } = useCtaLinks();
 
   return (
-    <section id="roadmap" className="scroll-mt-16 bg-white px-6 py-24 lg:py-32">
+    <section id="roadmap" className="scroll-mt-16 bg-card px-6 py-24 lg:py-32">
       <div className="mx-auto max-w-7xl">
         <Reveal className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
           <div>

@@ -28,7 +28,7 @@ function BrandSetup() {
   if (!brand || brand.filled.basics) return null;
   return (
     <section aria-labelledby="brand-setup" className="flex flex-col gap-4 rounded-xl border border-primary/30 bg-primary/5 p-5 sm:flex-row sm:items-center">
-      <span className="grid size-11 shrink-0 place-items-center rounded-lg bg-primary text-white">
+      <span className="grid size-11 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground">
         <Palette aria-hidden="true" className="size-5" />
       </span>
       <div className="min-w-0 flex-1">
@@ -107,7 +107,7 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4" aria-busy={summary.isPending}>
         {stats.map((stat) => (
-          <div key={stat.label} className="rounded-xl border border-border bg-white p-4 sm:p-5">
+          <div key={stat.label} className="rounded-xl border border-border bg-card p-4 sm:p-5">
             <p className="flex items-center gap-2 text-xs font-medium text-muted-foreground sm:text-sm">
               <stat.icon aria-hidden="true" className="size-4 shrink-0" />
               {stat.label}
@@ -121,7 +121,7 @@ export default function Dashboard() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <section aria-labelledby="recent-projects" className="overflow-hidden rounded-xl border border-border bg-white lg:col-span-2 lg:self-start">
+        <section aria-labelledby="recent-projects" className="overflow-hidden rounded-xl border border-border bg-card lg:col-span-2 lg:self-start">
           <div className="flex items-center justify-between gap-4 border-b border-border px-5 py-4 sm:px-6">
             <h3 id="recent-projects" className="font-semibold text-balance text-foreground">
               Recent Projects
@@ -201,7 +201,7 @@ export default function Dashboard() {
         <div className="min-w-0 space-y-6">
           <ComingUp />
 
-          <section aria-labelledby="start-project" className="rounded-xl border border-border bg-white p-5">
+          <section aria-labelledby="start-project" className="rounded-xl border border-border bg-card p-5">
             <h3 id="start-project" className="mb-4 font-semibold text-balance text-foreground">
               Start a project
             </h3>

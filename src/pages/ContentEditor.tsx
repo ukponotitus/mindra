@@ -38,11 +38,11 @@ function EditorSkeleton() {
         <div className="h-6 w-40 animate-pulse rounded bg-secondary" />
       </div>
       <div className="grid gap-6 lg:grid-cols-3">
-        <div className="space-y-4 rounded-xl border border-border bg-white p-5 lg:col-span-2">
+        <div className="space-y-4 rounded-xl border border-border bg-card p-5 lg:col-span-2">
           <div className="h-10 w-full animate-pulse rounded-lg bg-secondary" />
           <div className="h-80 w-full animate-pulse rounded-lg bg-secondary" />
         </div>
-        <div className="space-y-4 rounded-xl border border-border bg-white p-5">
+        <div className="space-y-4 rounded-xl border border-border bg-card p-5">
           <div className="h-4 w-20 animate-pulse rounded bg-secondary" />
           <div className="h-40 w-full animate-pulse rounded-lg bg-secondary" />
         </div>
@@ -56,7 +56,7 @@ function EditorSkeleton() {
 function PostClip({ clip, project, text, title }: { clip: ClipSummary; project: string; text: string; title: string }) {
   const made = clip.status === "ready" && clip.video_url && !clip.is_stale;
   return (
-    <section aria-labelledby="post-clip" className="rounded-xl border border-border bg-white p-5">
+    <section aria-labelledby="post-clip" className="rounded-xl border border-border bg-card p-5">
       <h3 id="post-clip" className="mb-3 text-sm font-semibold text-foreground">
         Clip
       </h3>
@@ -104,6 +104,8 @@ export default function ContentEditor() {
   const [beforeAi, setBeforeAi] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const postTextRef = useRef<HTMLTextAreaElement>(null);
+  // The text as last saved, to tell a change made elsewhere (the assistant's Apply) from what's being typed here.
+  const savedText = useRef({ title: "", body: "" });
 
   // Fill the form once per post, so background refreshes don't overwrite what's being typed.
   useEffect(() => {
@@ -113,7 +115,17 @@ export default function ContentEditor() {
       setTone(TONES.includes(piece.tone) ? piece.tone : "Warm");
       setBeforeAi(null);
       setLoadedId(piece.id);
+      savedText.current = { title: piece.title, body: piece.body };
     }
+  }, [piece, loadedId]);
+
+  // The saved text changed somewhere else: show it, unless this form has unsaved changes of its own.
+  useEffect(() => {
+    if (!piece || piece.id !== loadedId) return;
+    const before = savedText.current;
+    if (piece.body !== before.body) setBody((current) => (current === before.body ? piece.body : current));
+    if (piece.title !== before.title) setTitle((current) => (current === before.title ? piece.title : current));
+    savedText.current = { title: piece.title, body: piece.body };
   }, [piece, loadedId]);
 
   if (isPending) return <EditorSkeleton />;
@@ -226,7 +238,7 @@ export default function ContentEditor() {
       <AiWriterNotice />
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <div className="space-y-5 rounded-xl border border-border bg-white p-5 lg:col-span-2">
+        <div className="space-y-5 rounded-xl border border-border bg-card p-5 lg:col-span-2">
           <div>
             <label htmlFor="post-label" className="mb-1.5 block text-sm font-medium text-foreground">
               Label
@@ -237,7 +249,7 @@ export default function ContentEditor() {
               onChange={(e) => setTitle(e.target.value)}
               maxLength={200}
               placeholder="Short label for this post"
-              className="h-10 w-full rounded-lg border border-border bg-white px-3 text-sm text-foreground placeholder:text-muted-foreground transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-hidden"
+              className="h-10 w-full rounded-lg border border-border bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-hidden"
             />
           </div>
 
@@ -266,7 +278,7 @@ export default function ContentEditor() {
                   <RefreshCw aria-hidden="true" className="size-4" />
                   Rephrase
                 </button>
-                <span className="inline-flex h-9 items-center overflow-hidden rounded-lg border border-border bg-white">
+                <span className="inline-flex h-9 items-center overflow-hidden rounded-lg border border-border bg-card">
                   <label htmlFor="rewrite-tone" className="sr-only">
                     Tone
                   </label>
@@ -274,7 +286,7 @@ export default function ContentEditor() {
                     id="rewrite-tone"
                     value={tone}
                     onChange={(e) => setTone(e.target.value)}
-                    className="h-full bg-white pr-1 pl-2.5 text-sm text-foreground focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary"
+                    className="h-full bg-card pr-1 pl-2.5 text-sm text-foreground focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary"
                   >
                     {TONES.map((option) => (
                       <option key={option}>{option}</option>
@@ -317,7 +329,7 @@ export default function ContentEditor() {
                 rows={16}
                 aria-describedby="post-text-count"
                 aria-invalid={overLimit || undefined}
-                className="block w-full resize-y bg-white px-3.5 py-3 text-sm leading-relaxed text-gray-700 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary"
+                className="block w-full resize-y bg-card px-3.5 py-3 text-sm leading-relaxed text-secondary-foreground focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary"
               />
             </div>
             {rewrite.isError && (
@@ -370,7 +382,7 @@ export default function ContentEditor() {
           {ownMedia && <PostMedia piece={piece} text={body} />}
           {!ownMedia && piece.clip && <PostClip clip={piece.clip} project={piece.project} text={body} title={piece.title} />}
           {!ownMedia && piece.photos.length > 0 && (
-            <section aria-labelledby="post-photos" className="rounded-xl border border-border bg-white p-5">
+            <section aria-labelledby="post-photos" className="rounded-xl border border-border bg-card p-5">
               <h3 id="post-photos" className="mb-3 text-sm font-semibold text-foreground">
                 Photos
               </h3>
@@ -401,7 +413,7 @@ export default function ContentEditor() {
             disabled={rewrite.isPending}
           />
 
-          <section aria-labelledby="post-preview" className="rounded-xl border border-border bg-white p-5">
+          <section aria-labelledby="post-preview" className="rounded-xl border border-border bg-card p-5">
             <h3 id="post-preview" className="mb-3 text-sm font-semibold text-foreground">
               Preview
             </h3>
@@ -419,11 +431,11 @@ export default function ContentEditor() {
                   <p className="text-xs text-muted-foreground">Just now</p>
                 </div>
               </div>
-              <p className="max-h-96 overflow-y-auto text-sm leading-relaxed whitespace-pre-wrap text-gray-700">{body}</p>
+              <p className="max-h-96 overflow-y-auto text-sm leading-relaxed whitespace-pre-wrap text-secondary-foreground">{body}</p>
             </div>
           </section>
 
-          <div className="space-y-3 rounded-xl border border-border bg-white p-5">
+          <div className="space-y-3 rounded-xl border border-border bg-card p-5">
             <button
               type="button"
               onClick={() => update.mutate({ id: piece.id, status: approved ? "draft" : "approved" })}

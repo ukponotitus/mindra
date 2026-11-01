@@ -12,7 +12,7 @@ interface Props {
   onJump: (seconds: number) => void;
 }
 
-const cardClass = "rounded-xl border border-border bg-white p-5 sm:p-6";
+const cardClass = "rounded-xl border border-border bg-card p-5 sm:p-6";
 
 function MomentList({ moments, onJump, quoted }: { moments: Moment[]; onJump: (seconds: number) => void; quoted?: boolean }) {
   return (

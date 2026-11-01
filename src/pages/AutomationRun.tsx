@@ -30,7 +30,7 @@ import { cn } from "../lib/cn";
 import type { Platform } from "../lib/types";
 
 const inputClass =
-  "w-full rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20";
+  "w-full rounded-lg border border-border bg-card px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20";
 
 function errorText(error: unknown) {
   return error instanceof ApiError ? error.message : error ? "That didn't go through. Check your connection and try again." : "";
@@ -67,7 +67,7 @@ function ScriptApproval({ run }: { run: RunDetail }) {
   const words = script.trim().split(/\s+/).filter(Boolean).length;
   const minutes = Math.max(1, Math.round(words / (WORDS_A_MINUTE.warm ?? 135)));
   return (
-    <section className="space-y-4 rounded-xl border border-amber-200 bg-white p-5">
+    <section className="space-y-4 rounded-xl border border-amber-200 bg-card p-5">
       <div>
         <h3 className="font-semibold text-foreground">Approve the script</h3>
         <p className="mt-1 text-sm text-pretty text-muted-foreground">Nothing is narrated or made until you approve it. Change any words here first if you like.</p>
@@ -163,7 +163,7 @@ function VideoApproval({ run }: { run: RunDetail }) {
   };
 
   return (
-    <section className="space-y-5 rounded-xl border border-amber-200 bg-white p-5">
+    <section className="space-y-5 rounded-xl border border-amber-200 bg-card p-5">
       <div>
         <h3 className="font-semibold text-foreground">Approve the video</h3>
         <p className="mt-1 text-sm text-pretty text-muted-foreground">Watch it and check its words. Once approved, it&apos;s saved in the Content Library and scheduled.</p>
@@ -318,7 +318,7 @@ function TikTokApproval({ run }: { run: RunDetail }) {
   const [tiktok, setTiktok] = useState<TikTokConfig>(run.tiktok);
   const approve = () => act.mutate({ action: "approve", body: { caption, tiktok } });
   return (
-    <section className="space-y-5 rounded-xl border border-amber-200 bg-white p-5">
+    <section className="space-y-5 rounded-xl border border-amber-200 bg-card p-5">
       <div>
         <h3 className="flex items-center gap-2 font-semibold text-foreground">
           <PlatformBadge platform="tiktok" withLabel={false} />
@@ -371,7 +371,7 @@ function Posts({ run }: { run: RunDetail }) {
   const entries = Object.entries(run.posts).filter(([, post]) => post) as [PlatformId, PostState][];
   if (!entries.length) return null;
   return (
-    <section className="space-y-3 rounded-xl border border-border bg-white p-4">
+    <section className="space-y-3 rounded-xl border border-border bg-card p-4">
       <h3 className="text-sm font-semibold text-foreground">In the Content Library</h3>
       <ul className="divide-y divide-border">
         {entries.map(([platform, post]) => (
@@ -414,8 +414,8 @@ export default function AutomationRun() {
         <p role="status" className="sr-only">
           Loading the video
         </p>
-        <div className="h-20 animate-pulse rounded-xl border border-border bg-white" />
-        <div className="h-96 animate-pulse rounded-xl border border-border bg-white" />
+        <div className="h-20 animate-pulse rounded-xl border border-border bg-card" />
+        <div className="h-96 animate-pulse rounded-xl border border-border bg-card" />
       </div>
     );
   }
@@ -481,7 +481,7 @@ export default function AutomationRun() {
         </p>
       )}
       {data.review_note && (
-        <p className="rounded-xl border border-border bg-white px-4 py-3 text-sm text-pretty text-muted-foreground">
+        <p className="rounded-xl border border-border bg-card px-4 py-3 text-sm text-pretty text-muted-foreground">
           <span className="font-medium text-foreground">Your note:</span> {data.review_note}
         </p>
       )}
@@ -492,13 +492,13 @@ export default function AutomationRun() {
           {waiting && data.waiting_for === "video" && <VideoApproval key={data.updated_at} run={data} />}
           {waiting && data.waiting_for === "tiktok" && <TikTokApproval key={data.updated_at} run={data} />}
           {runIsWorking(data) && (
-            <p role="status" className="flex items-center gap-2 rounded-xl border border-border bg-white px-4 py-3 text-sm text-muted-foreground">
+            <p role="status" className="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-3 text-sm text-muted-foreground">
               <LoaderCircle aria-hidden="true" className="size-4 animate-spin text-primary" />
               {data.status === "queued" ? "Waiting to start." : `Working on: ${data.step_label}.`} This page updates by itself.
             </p>
           )}
           {showPlayer && (
-            <section className="space-y-3 rounded-xl border border-border bg-white p-4">
+            <section className="space-y-3 rounded-xl border border-border bg-card p-4">
               <Player run={data} className="max-w-2xl" />
               <div className="flex flex-wrap gap-2">
                 {data.render?.video_url && (
@@ -516,7 +516,7 @@ export default function AutomationRun() {
           )}
           <Posts run={data} />
           {data.script && !(waiting && data.waiting_for === "script") && (
-            <details className="rounded-xl border border-border bg-white p-4">
+            <details className="rounded-xl border border-border bg-card p-4">
               <summary className="cursor-pointer text-sm font-semibold text-foreground">Script</summary>
               <p className="mt-3 text-sm leading-relaxed whitespace-pre-line text-foreground">{data.script}</p>
             </details>
@@ -526,7 +526,7 @@ export default function AutomationRun() {
           <h3 id="run-steps" className="text-lg font-semibold text-foreground">
             Progress
           </h3>
-          <div className="rounded-xl border border-border bg-white p-4">
+          <div className="rounded-xl border border-border bg-card p-4">
             <Timeline run={data} />
           </div>
         </section>

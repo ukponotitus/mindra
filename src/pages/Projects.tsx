@@ -61,7 +61,7 @@ export default function Projects() {
       </div>
 
       {projects.isPending ? (
-        <ul aria-busy="true" aria-label="Loading projects" className="divide-y divide-border rounded-xl border border-border bg-white">
+        <ul aria-busy="true" aria-label="Loading projects" className="divide-y divide-border rounded-xl border border-border bg-card">
           {[0, 1, 2, 3].map((i) => (
             <li key={i} className="flex items-center gap-3 px-4 py-4 sm:px-6">
               <div className="size-9 animate-pulse rounded-lg bg-secondary" />
@@ -88,7 +88,7 @@ export default function Projects() {
           }
         />
       ) : (
-        <div className="overflow-hidden rounded-xl border border-border bg-white">
+        <div className="overflow-hidden rounded-xl border border-border bg-card">
           <div
             aria-hidden="true"
             className={cn("hidden gap-4 border-b border-border px-6 py-3 text-xs font-medium text-muted-foreground md:grid", COLUMNS)}

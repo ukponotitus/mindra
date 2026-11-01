@@ -18,8 +18,8 @@ import {
 type DeviceState = "checking" | "on" | "off" | "blocked" | "dismissed" | "unsupported" | "install-first" | "update-ios" | "no-server";
 
 const switchClass =
-  "relative inline-flex h-6 w-10 shrink-0 items-center rounded-full bg-gray-300 p-0.5 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary data-[checked]:bg-primary data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50";
-const thumbClass = "size-5 rounded-full bg-white shadow-sm transition-transform duration-150 ease-out data-[checked]:translate-x-4";
+  "relative inline-flex h-6 w-10 shrink-0 items-center rounded-full bg-muted-foreground/35 p-0.5 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary data-[checked]:bg-primary data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50";
+const thumbClass = "size-5 rounded-full bg-card shadow-sm transition-transform duration-150 ease-out data-[checked]:translate-x-4";
 
 const DEVICE_NOTES: Record<DeviceState, string> = {
   checking: "Checking this device…",

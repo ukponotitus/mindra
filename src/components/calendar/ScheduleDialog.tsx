@@ -45,7 +45,7 @@ interface Props {
 }
 
 const fieldClass =
-  "h-10 w-full min-w-0 rounded-lg border border-border bg-white px-3 text-sm text-foreground tabular-nums transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-hidden aria-invalid:border-red-400";
+  "h-10 w-full min-w-0 rounded-lg border border-border bg-card px-3 text-sm text-foreground tabular-nums transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-hidden aria-invalid:border-red-400";
 
 const linkClass =
   "rounded font-medium text-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary";
@@ -231,7 +231,7 @@ function ScheduleForm({ piece, day, onDone }: { piece: ContentPiece; day?: strin
                 aria-pressed={chosen}
                 className={cn(
                   "rounded-lg border px-3 py-2 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
-                  chosen ? "border-primary bg-primary/10" : "border-border bg-white hover:bg-secondary",
+                  chosen ? "border-primary bg-primary/10" : "border-border bg-card hover:bg-secondary",
                 )}
               >
                 <span className={cn("block text-sm font-medium", chosen ? "text-primary" : "text-foreground")}>
@@ -386,7 +386,7 @@ function DialogBody({ piece, day, onDone }: { piece: ContentPiece; day?: string;
                 key={value}
                 className={cn(
                   "grid h-9 cursor-pointer place-items-center rounded-md text-sm font-medium transition-colors has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-primary",
-                  mode === value ? "bg-white text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
+                  mode === value ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
                 )}
               >
                 <input

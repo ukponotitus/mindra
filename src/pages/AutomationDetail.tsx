@@ -75,7 +75,7 @@ function Summary({ automation }: { automation: Detail }) {
     { step: "schedule", title: "Approval", text: MODES[automation.mode].description },
   ];
   return (
-    <section className="divide-y divide-border rounded-xl border border-border bg-white">
+    <section className="divide-y divide-border rounded-xl border border-border bg-card">
       {rows.map((row) => (
         <div key={row.title} className="flex items-start gap-4 px-4 py-3">
           <div className="min-w-0 flex-1">
@@ -97,7 +97,7 @@ function AutomaticPosting({ automation }: { automation: Detail }) {
   const tiktok = automation.config.publishing.platforms.includes("tiktok");
   if (automation.mode === "draft") {
     return (
-      <section className="rounded-xl border border-border bg-white p-4">
+      <section className="rounded-xl border border-border bg-card p-4">
         <h3 className="text-sm font-semibold text-foreground">Posting</h3>
         <p className="mt-1 text-sm text-pretty text-muted-foreground">Each video is saved in your Content Library as a draft. Nothing is posted until you post it.</p>
         <Link to={`/automations/${automation.id}/setup?step=schedule`} className={buttonStyles({ variant: "secondary", size: "sm", className: "mt-3" })}>
@@ -107,7 +107,7 @@ function AutomaticPosting({ automation }: { automation: Detail }) {
     );
   }
   return (
-    <section className="rounded-xl border border-border bg-white p-4">
+    <section className="rounded-xl border border-border bg-card p-4">
       <h3 className="text-sm font-semibold text-foreground">Posting</h3>
       <p className="mt-1 text-sm text-pretty text-muted-foreground">
         {on
@@ -180,8 +180,8 @@ export default function AutomationDetail() {
         <p role="status" className="sr-only">
           Loading the automation
         </p>
-        <div className="h-24 animate-pulse rounded-xl border border-border bg-white" />
-        <div className="h-96 animate-pulse rounded-xl border border-border bg-white" />
+        <div className="h-24 animate-pulse rounded-xl border border-border bg-card" />
+        <div className="h-96 animate-pulse rounded-xl border border-border bg-card" />
       </div>
     );
   }
@@ -298,7 +298,7 @@ export default function AutomationDetail() {
               )}
             </div>
             {latest.data ? (
-              <div className="space-y-3 rounded-xl border border-border bg-white p-4">
+              <div className="space-y-3 rounded-xl border border-border bg-card p-4">
                 <div className="flex flex-wrap items-center gap-2">
                   <p className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">{latest.data.title || latest.data.topic || "Choosing what to make"}</p>
                   <StatusPill {...runStatus(latest.data)} />
@@ -306,7 +306,7 @@ export default function AutomationDetail() {
                 <Timeline run={latest.data} />
               </div>
             ) : (
-              <p className="rounded-xl border border-dashed border-border bg-white px-4 py-6 text-sm text-pretty text-muted-foreground">
+              <p className="rounded-xl border border-dashed border-border bg-card px-4 py-6 text-sm text-pretty text-muted-foreground">
                 No videos yet. Make a sample to see what this automation makes; it isn&apos;t saved or posted.
               </p>
             )}
@@ -356,13 +356,13 @@ export default function AutomationDetail() {
           </div>
         </div>
         {runs.length ? (
-          <ul className="rounded-xl border border-border bg-white p-2">
+          <ul className="rounded-xl border border-border bg-card p-2">
             {runs.map((run) => (
               <RunRow key={run.id} run={run} showAutomation={false} />
             ))}
           </ul>
         ) : (
-          <p className="rounded-xl border border-dashed border-border bg-white px-4 py-6 text-sm text-pretty text-muted-foreground">
+          <p className="rounded-xl border border-dashed border-border bg-card px-4 py-6 text-sm text-pretty text-muted-foreground">
             {data.runs.length ? "None of its recent videos are here." : "No videos yet."}
           </p>
         )}

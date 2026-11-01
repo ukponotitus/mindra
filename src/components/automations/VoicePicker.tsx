@@ -65,7 +65,7 @@ export default function VoicePicker({ value, onChange }: { value: string; onChan
           onChange={(event) => setQuery(event.target.value)}
           placeholder="Search by name, accent or style"
           aria-label="Search the voices"
-          className="w-full rounded-lg border border-border bg-white py-2 pr-3 pl-9 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+          className="w-full rounded-lg border border-border bg-card py-2 pr-3 pl-9 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
         />
       </div>
       {shown.length === 0 ? (
@@ -75,7 +75,7 @@ export default function VoicePicker({ value, onChange }: { value: string; onChan
           {shown.map((voice) => {
             const chosen = voice.id === value;
             return (
-              <li key={voice.id} className={cn("flex items-center gap-2 rounded-lg border p-2", chosen ? "border-primary bg-primary/5" : "border-border bg-white")}>
+              <li key={voice.id} className={cn("flex items-center gap-2 rounded-lg border p-2", chosen ? "border-primary bg-primary/5" : "border-border bg-card")}>
                 <button
                   type="button"
                   onClick={() => listen(voice)}

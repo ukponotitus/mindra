@@ -10,7 +10,7 @@ const MAX_REFERENCES = 3;
 const PROMPT_MAX = 1000;
 
 const inputClass =
-  "w-full rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-60 aria-invalid:border-red-400";
+  "w-full rounded-lg border border-border bg-card px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-60 aria-invalid:border-red-400";
 
 interface Props {
   /** The shape it starts on. */
@@ -140,7 +140,7 @@ export default function AiImageForm({ aspect: initialAspect = "4:5", onMade }: P
                   >
                     {asset.thumbnail_url && <img src={asset.thumbnail_url} alt="" className="size-full object-cover" />}
                     {on && (
-                      <span className="absolute top-0.5 right-0.5 grid size-4 place-items-center rounded-full bg-primary text-white">
+                      <span className="absolute top-0.5 right-0.5 grid size-4 place-items-center rounded-full bg-primary text-primary-foreground">
                         <Check aria-hidden="true" className="size-2.5" strokeWidth={3} />
                       </span>
                     )}

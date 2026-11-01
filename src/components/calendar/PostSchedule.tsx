@@ -30,7 +30,7 @@ export default function PostSchedule({ piece }: { piece: ContentPiece }) {
   const note = status === "planned" && piece.publish_to ? "" : status ? NOTES[status] : "";
 
   return (
-    <section aria-labelledby="post-schedule" className="rounded-xl border border-border bg-white p-5">
+    <section aria-labelledby="post-schedule" className="rounded-xl border border-border bg-card p-5">
       <h3 id="post-schedule" className="mb-3 text-sm font-semibold text-foreground">
         Schedule
       </h3>

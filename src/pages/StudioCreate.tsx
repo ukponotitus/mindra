@@ -223,9 +223,9 @@ export default function StudioCreate() {
                       </span>
                     )}
                     <span className="sr-only">{asset.name}</span>
-                    {order >= 0 && <span className="absolute top-1 left-1 grid size-6 place-items-center rounded-full bg-primary text-xs font-semibold text-white">{order + 1}</span>}
+                    {order >= 0 && <span className="absolute top-1 left-1 grid size-6 place-items-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">{order + 1}</span>}
                     {asset.status === "processing" && (
-                      <span className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-1 bg-white/85 py-0.5 text-[10px] font-medium text-foreground">
+                      <span className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-1 bg-card/85 py-0.5 text-[10px] font-medium text-foreground">
                         <LoaderCircle aria-hidden="true" className="size-3 animate-spin" />
                         Getting ready
                       </span>
@@ -398,7 +398,7 @@ export default function StudioCreate() {
                   className={cn("relative size-14 overflow-hidden rounded-lg border-2 bg-[repeating-conic-gradient(#e5e7eb_0_25%,#fff_0_50%)] bg-[length:12px_12px]", logo === asset.id ? "border-primary" : "border-border")}
                 >
                   {asset.thumbnail_url && <img src={asset.thumbnail_url} alt="" className="size-full object-contain" />}
-                  {logo === asset.id && <Check aria-hidden="true" className="absolute top-0.5 right-0.5 size-4 rounded-full bg-primary p-0.5 text-white" />}
+                  {logo === asset.id && <Check aria-hidden="true" className="absolute top-0.5 right-0.5 size-4 rounded-full bg-primary p-0.5 text-primary-foreground" />}
                 </button>
               ))}
             </div>

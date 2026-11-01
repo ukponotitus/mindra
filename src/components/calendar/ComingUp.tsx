@@ -14,7 +14,7 @@ export default function ComingUp() {
   const empty = !isPending && !isError && posts.length === 0;
 
   return (
-    <section aria-labelledby="coming-up" className="overflow-hidden rounded-xl border border-border bg-white">
+    <section aria-labelledby="coming-up" className="overflow-hidden rounded-xl border border-border bg-card">
       <div className="flex items-center justify-between gap-4 border-b border-border px-5 py-4">
         <h3 id="coming-up" className="font-semibold text-balance text-foreground">
           Coming up

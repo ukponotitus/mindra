@@ -169,7 +169,7 @@ function PasteLink({ pieceId, service }: { pieceId: string; service: string }) {
           onChange={(event) => setUrl(event.target.value)}
           placeholder={`Link to the post on ${service}`}
           aria-invalid={paste.isError || undefined}
-          className="h-9 min-w-0 flex-1 rounded-lg border border-border bg-white px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-hidden"
+          className="h-9 min-w-0 flex-1 rounded-lg border border-border bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-hidden"
         />
         <button type="submit" disabled={!url.trim() || paste.isPending} className={buttonStyles({ size: "sm", className: "h-9" })}>
           {paste.isPending ? "Finding…" : "Follow"}
@@ -364,7 +364,7 @@ export default function PostResults({ piece, body, onBodyChange }: Props) {
   }
 
   return (
-    <section aria-labelledby={`post-results-${piece.id}`} className="rounded-xl border border-border bg-white p-5">
+    <section aria-labelledby={`post-results-${piece.id}`} className="rounded-xl border border-border bg-card p-5">
       <h3 id={`post-results-${piece.id}`} className="mb-3 text-sm font-semibold text-foreground">
         Analytics
       </h3>

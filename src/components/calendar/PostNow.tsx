@@ -259,7 +259,7 @@ function PostToAccount({
               setChosenOptions(null);
             }}
             disabled={busy}
-            className="h-10 w-full min-w-0 rounded-lg border border-border bg-white px-3 text-sm text-foreground transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-hidden disabled:opacity-50"
+            className="h-10 w-full min-w-0 rounded-lg border border-border bg-card px-3 text-sm text-foreground transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-hidden disabled:opacity-50"
           >
             {accounts.map((option) => (
               <option key={option.id} value={String(option.id)}>

@@ -44,7 +44,7 @@ import {
 import { cn } from "../lib/cn";
 
 const inputClass =
-  "w-full rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-60";
+  "w-full rounded-lg border border-border bg-card px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-60";
 
 // The person's journey: what to automate, the content, the video, where it's posted, when (and with whose approval),
 // and a last look before switching it on. A step's problems from the API are shown on it (Problem.field).
@@ -104,7 +104,7 @@ function Checkbox({ checked, onChange, label, hint, disabled }: { checked: boole
 
 function Section({ title, description, children }: { title: string; description?: string; children: ReactNode }) {
   return (
-    <fieldset className="space-y-4 rounded-xl border border-border bg-white p-5">
+    <fieldset className="space-y-4 rounded-xl border border-border bg-card p-5">
       <legend className="sr-only">{title}</legend>
       <div>
         <h3 className="font-semibold text-foreground">{title}</h3>
@@ -257,7 +257,7 @@ function AutomationStep({ automation, save, saving, error, first }: StepProps) {
           <ol className="grid gap-2 sm:grid-cols-2">
             {stepsFor(automation.kind).map((step, index) => (
               <li key={step.name} className="flex gap-3 rounded-lg bg-secondary/50 p-3">
-                <span className="grid size-6 shrink-0 place-items-center rounded-full bg-white text-xs font-semibold text-foreground tabular-nums">{index + 1}</span>
+                <span className="grid size-6 shrink-0 place-items-center rounded-full bg-card text-xs font-semibold text-foreground tabular-nums">{index + 1}</span>
                 <span className="min-w-0">
                   <span className="block text-sm font-medium text-foreground">{step.label}</span>
                   <span className="block text-xs text-pretty text-muted-foreground">{step.description}</span>
@@ -476,7 +476,7 @@ function SampleButton({ automation }: { automation: AutomationDetail }) {
   const start = useStartRun(automation.id);
   const blocked = automation.test_problems.length > 0;
   return (
-    <div className="space-y-2 rounded-xl border border-border bg-white p-4">
+    <div className="space-y-2 rounded-xl border border-border bg-card p-4">
       <p className="text-sm font-medium text-foreground">See it before switching it on</p>
       <p className="text-sm text-pretty text-muted-foreground">
         A sample uses these settings to make one video now: about a minute long, so it&apos;s quick and uses little of the voice-over allowance. It isn&apos;t saved to the
@@ -671,7 +671,7 @@ function VideoStep({ automation, save, saving, error, first }: StepProps) {
             <label htmlFor={ids.accent} className="block text-sm font-medium text-foreground">
               Your colour
             </label>
-            <input id={ids.accent} type="color" value={branding.accent} onChange={(event) => setBranding((current) => ({ ...current, accent: event.target.value.toUpperCase() }))} className="h-10 w-20 cursor-pointer rounded-lg border border-border bg-white p-1" />
+            <input id={ids.accent} type="color" value={branding.accent} onChange={(event) => setBranding((current) => ({ ...current, accent: event.target.value.toUpperCase() }))} className="h-10 w-20 cursor-pointer rounded-lg border border-border bg-card p-1" />
             <p className="text-xs text-muted-foreground">For the word being said in the captions.</p>
           </div>
           <Field label="Closing line (optional)" hint="Shown for the last few seconds.">
@@ -795,7 +795,7 @@ function ScheduleStep({ automation, save, saving, error, first }: StepProps) {
                   onClick={() => (frequency === "weekly" ? setWeekdays([index]) : toggleDay(index))}
                   className={cn(
                     "h-9 min-w-12 rounded-lg border px-3 text-sm font-medium focus-visible:outline-2 focus-visible:outline-primary",
-                    weekdays.includes(index) ? "border-primary bg-primary text-primary-foreground" : "border-border bg-white text-foreground hover:bg-secondary",
+                    weekdays.includes(index) ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-foreground hover:bg-secondary",
                   )}
                 >
                   {day}
@@ -939,7 +939,7 @@ function ReviewStep({ automation, go }: { automation: AutomationDetail; go: (ste
 
   return (
     <div className="space-y-5">
-      <section className="divide-y divide-border rounded-xl border border-border bg-white">
+      <section className="divide-y divide-border rounded-xl border border-border bg-card">
         {rows.map((row) => (
           <div key={row.step} className="flex items-start gap-4 p-4">
             <div className="min-w-0 flex-1">
@@ -1057,7 +1057,7 @@ export default function AutomationSetup() {
         </ol>
       </nav>
       {automation.isPending ? (
-        <div aria-busy="true" className="h-96 animate-pulse rounded-xl border border-border bg-white" />
+        <div aria-busy="true" className="h-96 animate-pulse rounded-xl border border-border bg-card" />
       ) : automation.isError ? (
         <ErrorNote>{automation.error.message}</ErrorNote>
       ) : current.id === "review" ? (

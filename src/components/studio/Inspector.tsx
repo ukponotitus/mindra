@@ -195,7 +195,7 @@ function Colour({
             type="color"
             value={value}
             onChange={(event) => onChange(event.target.value.toUpperCase())}
-            className="h-8 w-10 cursor-pointer rounded border border-border bg-white"
+            className="h-8 w-10 cursor-pointer rounded border border-border bg-card"
             title="Any colour"
           />
           {!swatches && (

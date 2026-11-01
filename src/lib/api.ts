@@ -121,6 +121,48 @@ export async function apiRequest<T>(path: string, { method = "GET", body, signal
   return handleResponse<T>(response.status, data);
 }
 
+/** POST JSON and read the answer as it streams, one JSON event per line (the assistant's replies). A refusal before
+ * the stream starts throws an ApiError, as apiRequest does. */
+export async function streamEvents<E>(path: string, body: unknown, onEvent: (event: E) => void, signal?: AbortSignal): Promise<void> {
+  // JSON too, for a refusal before the stream starts (the API's errors are JSON).
+  const headers = { Accept: "application/x-ndjson, application/json", "Content-Type": "application/json", ...authHeaders() };
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}${path}`, { method: "POST", headers, body: JSON.stringify(body), signal });
+  } catch (error) {
+    if (signal?.aborted) throw signal.reason ?? error;
+    throw new ApiError(0, "Can't reach the Mindra server. Check your connection and try again.");
+  }
+  if (!response.ok || !response.body) {
+    let data: unknown = null;
+    try {
+      data = await response.json();
+    } catch {
+      data = null;
+    }
+    handleResponse(response.status, data);
+    throw new ApiError(response.status, "Something went wrong.");
+  }
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffered = "";
+  for (;;) {
+    let chunk: ReadableStreamReadResult<Uint8Array>;
+    try {
+      chunk = await reader.read();
+    } catch (error) {
+      if (signal?.aborted) throw signal.reason ?? error;
+      throw new ApiError(0, "The connection dropped. What arrived so far is kept.");
+    }
+    buffered += decoder.decode(chunk.value ?? new Uint8Array(), { stream: !chunk.done });
+    const lines = buffered.split("\n");
+    buffered = lines.pop() ?? "";
+    for (const line of lines) if (line.trim()) onEvent(JSON.parse(line) as E);
+    if (chunk.done) break;
+  }
+  if (buffered.trim()) onEvent(JSON.parse(buffered) as E);
+}
+
 /** POST a form with files, reporting upload progress from 0 to 1 (fetch can't report upload progress). */
 export function uploadWithProgress<T>(path: string, form: FormData, onProgress: (fraction: number) => void): Promise<T> {
   return new Promise((resolve, reject) => {

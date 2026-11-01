@@ -114,7 +114,7 @@ export default function MediaPicker({
                 onClick={() => toggle(asset)}
                 className="flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm hover:bg-secondary focus-visible:outline-2 focus-visible:outline-primary"
               >
-                <span className={cn("grid size-5 shrink-0 place-items-center rounded border", chosen.has(asset.id) ? "border-primary bg-primary text-white" : "border-border")}>
+                <span className={cn("grid size-5 shrink-0 place-items-center rounded border", chosen.has(asset.id) ? "border-primary bg-primary text-primary-foreground" : "border-border")}>
                   {chosen.has(asset.id) && <Check aria-hidden="true" className="size-3.5" />}
                 </span>
                 <Music aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
@@ -148,7 +148,7 @@ export default function MediaPicker({
                     <Film aria-hidden="true" className="m-auto size-5 text-muted-foreground" />
                   )}
                   {on && (
-                    <span className="absolute top-1.5 right-1.5 grid size-5 place-items-center rounded-full bg-primary text-white">
+                    <span className="absolute top-1.5 right-1.5 grid size-5 place-items-center rounded-full bg-primary text-primary-foreground">
                       <Check aria-hidden="true" className="size-3.5" />
                     </span>
                   )}

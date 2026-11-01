@@ -24,6 +24,8 @@ export type PricingPlan = {
   clips_per_month: number | null;
   picture_projects_per_month: number | null;
   ai_images_per_month: number | null;
+  /** Messages to the assistant; only listed on the cards once the assistant is switched on. */
+  assistant_messages_per_month?: number | null;
   /** Who the plan is for, under its name. */
   tagline: string;
   /** What the card lists after the recording time; `soon` for what isn't built yet, `included` false for what the
@@ -97,6 +99,8 @@ export type BillingOverview = PlanList & {
     picture_projects_limit: number | null;
     ai_images_used: number;
     ai_images_limit: number | null;
+    assistant_messages_used: number;
+    assistant_messages_limit: number | null;
   };
   payments: {
     /** Paying online is switched on (the API has Paystack's key). */

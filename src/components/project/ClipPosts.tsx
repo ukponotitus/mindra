@@ -25,7 +25,7 @@ export default function ClipPosts({
   const formId = useId();
 
   return (
-    <section aria-labelledby={`${formId}-title`} className="space-y-4 rounded-xl border border-border bg-white p-4 sm:p-6">
+    <section aria-labelledby={`${formId}-title`} className="space-y-4 rounded-xl border border-border bg-card p-4 sm:p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h3 id={`${formId}-title`} className="font-semibold text-balance text-foreground">

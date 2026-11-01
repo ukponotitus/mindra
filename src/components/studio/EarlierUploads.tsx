@@ -91,7 +91,7 @@ export default function EarlierUploads({
                         {formatDate(asset.created_at)}
                       </span>
                       {on && (
-                        <span className="absolute top-1 right-1 grid size-5 place-items-center rounded-full bg-primary text-white">
+                        <span className="absolute top-1 right-1 grid size-5 place-items-center rounded-full bg-primary text-primary-foreground">
                           <Check aria-hidden="true" className="size-3" strokeWidth={3} />
                         </span>
                       )}

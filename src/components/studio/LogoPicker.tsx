@@ -37,7 +37,7 @@ function Pictures({ pictures, current, onChoose }: { pictures: StudioAsset[]; cu
               </span>
               <span className="block truncate px-1 py-0.5 text-[11px] text-foreground">{asset.name}</span>
               {on && (
-                <span className="absolute top-1 right-1 grid size-5 place-items-center rounded-full bg-primary text-white">
+                <span className="absolute top-1 right-1 grid size-5 place-items-center rounded-full bg-primary text-primary-foreground">
                   <Check aria-hidden="true" className="size-3" strokeWidth={3} />
                 </span>
               )}

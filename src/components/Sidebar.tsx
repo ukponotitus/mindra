@@ -17,6 +17,7 @@ import {
   Link2,
   LogOut,
   Megaphone,
+  MessagesSquare,
   Palette,
   PenLine,
   Plus,
@@ -35,6 +36,7 @@ import { useAutomationsEnabled, useAutomationSummary } from "../lib/automations"
 import { cn } from "../lib/cn";
 import { initials } from "../lib/format";
 import BrandMark from "./BrandMark";
+import ThemeMenuItems from "./ThemeMenuItems";
 import { buttonStyles } from "./ui/button";
 
 interface Props {
@@ -63,6 +65,7 @@ const analyticsTab = (tab: string) => (place: Place) =>
 // the journey (who you are, plan, create, the content itself, what worked).
 const nav: (NavLeaf | NavGroup)[] = [
   { label: "Home", to: "/dashboard", icon: House },
+  { label: "Assistant", to: "/assistant", icon: MessagesSquare },
   {
     id: "brand",
     label: "Brand",
@@ -291,7 +294,7 @@ export default function Sidebar({ onNavigate }: Props) {
             </Menu.Trigger>
             <Menu.Portal>
               <Menu.Positioner side="top" align="start" sideOffset={6} className="z-50">
-                <Menu.Popup className="w-[var(--anchor-width)] min-w-52 origin-[var(--transform-origin)] rounded-xl border border-border bg-white py-1.5 shadow-lg outline-none transition-[opacity,scale] duration-150 ease-out data-[ending-style]:scale-95 data-[ending-style]:opacity-0 data-[starting-style]:scale-95 data-[starting-style]:opacity-0">
+                <Menu.Popup className="w-[var(--anchor-width)] min-w-52 origin-[var(--transform-origin)] rounded-xl border border-border bg-card py-1.5 shadow-lg outline-none transition-[opacity,scale] duration-150 ease-out data-[ending-style]:scale-95 data-[ending-style]:opacity-0 data-[starting-style]:scale-95 data-[starting-style]:opacity-0">
                   {accountItems.map(({ label, to, icon: Icon }) => (
                     <Menu.LinkItem
                       key={to}
@@ -303,6 +306,8 @@ export default function Sidebar({ onNavigate }: Props) {
                       {label}
                     </Menu.LinkItem>
                   ))}
+                  <Menu.Separator className="my-1.5 h-px bg-border" />
+                  <ThemeMenuItems itemClass={menuItemClass} />
                   <Menu.Separator className="my-1.5 h-px bg-border" />
                   <Menu.Item onClick={logOut} className={cn(menuItemClass, "text-red-600 data-[highlighted]:bg-red-50")}>
                     <LogOut aria-hidden="true" className="size-4" />

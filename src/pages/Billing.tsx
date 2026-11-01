@@ -17,6 +17,7 @@ import {
   type BillingSubscription,
   type PricingPlan,
 } from "../lib/billing";
+import { useAssistantStatus } from "../lib/assistant";
 import { formatDayLong } from "../lib/calendar";
 import { cn } from "../lib/cn";
 import { CONTACT_EMAIL } from "../lib/legal";
@@ -82,7 +83,7 @@ function Meter({ label, used, limit, detail }: { label: string; used: number; li
   const share = limit ? Math.min(1, used / limit) : 0;
   const full = limit != null && used >= limit;
   return (
-    <div className="rounded-xl border border-border bg-white p-4">
+    <div className="rounded-xl border border-border bg-card p-4">
       <div className="flex items-baseline justify-between gap-3">
         <p className="text-sm font-medium text-foreground">{label}</p>
         <p className={cn("text-sm tabular-nums", full ? "font-medium text-amber-700" : "text-muted-foreground")}>
@@ -114,7 +115,7 @@ function PlanCard({ plan, current, interval, action }: { plan: PricingPlan; curr
   return (
     <article
       className={cn(
-        "flex min-w-0 flex-col rounded-xl border bg-white p-5",
+        "flex min-w-0 flex-col rounded-xl border bg-card p-5",
         current ? "border-primary ring-2 ring-primary/20" : plan.recommended ? "border-primary/40" : "border-border",
       )}
     >
@@ -159,10 +160,10 @@ function PlanCard({ plan, current, interval, action }: { plan: PricingPlan; curr
 
 function PaymentList({ payments }: { payments: BillingPayment[] }) {
   if (payments.length === 0) {
-    return <p className="rounded-xl border border-dashed border-border bg-white px-4 py-6 text-center text-sm text-muted-foreground">No payments yet.</p>;
+    return <p className="rounded-xl border border-dashed border-border bg-card px-4 py-6 text-center text-sm text-muted-foreground">No payments yet.</p>;
   }
   return (
-    <ul className="divide-y divide-border rounded-xl border border-border bg-white">
+    <ul className="divide-y divide-border rounded-xl border border-border bg-card">
       {payments.map((payment) => (
         <li key={payment.reference} className="flex flex-wrap items-start justify-between gap-x-6 gap-y-1 px-4 py-3">
           <div className="min-w-0">
@@ -201,6 +202,7 @@ export default function Billing() {
   const checkPayment = useCheckPayment();
   const renewal = useChangeRenewal();
   const card = useChangeCard();
+  const assistantOn = useAssistantStatus().data?.available ?? false;
   const [searchParams, setSearchParams] = useSearchParams();
   const [notice, setNotice] = useState<Notice | null>(null);
   const [chosenInterval, setChosenInterval] = useState<BillingInterval | null>(null);
@@ -338,7 +340,7 @@ export default function Billing() {
         </div>
       )}
 
-      <section aria-labelledby="current-plan" className="rounded-xl border border-border bg-white p-5">
+      <section aria-labelledby="current-plan" className="rounded-xl border border-border bg-card p-5">
         <div className="flex items-start gap-4">
           <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
             <CreditCard aria-hidden="true" className="size-5" />
@@ -464,6 +466,14 @@ export default function Billing() {
             limit={usage.ai_images_limit}
             detail="Pictures Mindra makes for posts and campaigns. One that couldn't be made doesn't count."
           />
+          {assistantOn && (
+            <Meter
+              label="Assistant messages this month"
+              used={usage.assistant_messages_used}
+              limit={usage.assistant_messages_limit}
+              detail="Each message you send the assistant counts. One it couldn't answer doesn't."
+            />
+          )}
         </div>
       </section>
 
@@ -509,7 +519,7 @@ export default function Billing() {
                   onClick={() => setChosenInterval(id)}
                   className={cn(
                     "rounded-md px-3.5 py-1.5 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
-                    interval === id ? "bg-white text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
+                    interval === id ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
                   )}
                 >
                   {label}

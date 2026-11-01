@@ -61,7 +61,7 @@ export default function RecordScreen() {
         <Settings2 aria-hidden="true" className="size-[18px] text-white/80" />
       </div>
       <div className="mt-2 flex justify-center">
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1 font-mono text-[10px] font-semibold text-white/80 tabular-nums">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-card/10 px-2.5 py-1 font-mono text-[10px] font-semibold text-white/80 tabular-nums">
           <span className="size-1.5 animate-pulse rounded-full bg-[#FF453A]" />
           LIVE · {clock(seconds)}
         </span>
@@ -123,7 +123,7 @@ export default function RecordScreen() {
       </div>
 
       <div className="flex items-center justify-between px-8 pb-10">
-        <span className="grid size-11 place-items-center rounded-full bg-white/[0.08] ring-1 ring-white/10">
+        <span className="grid size-11 place-items-center rounded-full bg-card/[0.08] ring-1 ring-white/10">
           <SlidersHorizontal aria-hidden="true" className="size-[18px] text-white/80" />
         </span>
         <span className="relative grid size-[70px] place-items-center">
@@ -132,7 +132,7 @@ export default function RecordScreen() {
             <Mic aria-hidden="true" className="size-7" />
           </span>
         </span>
-        <span className="grid size-11 place-items-center rounded-full bg-white/[0.08] ring-1 ring-white/10">
+        <span className="grid size-11 place-items-center rounded-full bg-card/[0.08] ring-1 ring-white/10">
           <Bookmark aria-hidden="true" className="size-[18px] text-white/80" />
         </span>
       </div>

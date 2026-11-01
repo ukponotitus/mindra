@@ -62,7 +62,7 @@ export function RunRow({ run, showAutomation = true }: { run: Run; showAutomatio
 /** A card with a heading, for the side panels and sections of the Automations pages. */
 export function Panel({ title, action, children, className }: { title: string; action?: React.ReactNode; children: React.ReactNode; className?: string }) {
   return (
-    <section className={cn("rounded-xl border border-border bg-white", className)}>
+    <section className={cn("rounded-xl border border-border bg-card", className)}>
       <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
         <h3 className="text-sm font-semibold text-foreground">{title}</h3>
         {action}
@@ -83,7 +83,7 @@ export function ErrorNote({ children }: { children: React.ReactNode }) {
 /** A number on the dashboard with what it counts. */
 export function StatTile({ label, value, hint, small = false }: { label: string; value: React.ReactNode; hint?: string; small?: boolean }) {
   return (
-    <div className="min-w-0 rounded-xl border border-border bg-white p-4">
+    <div className="min-w-0 rounded-xl border border-border bg-card p-4">
       <p className="text-xs font-medium text-muted-foreground">{label}</p>
       <p className={cn("mt-1 font-semibold text-foreground tabular-nums", small ? "text-base leading-8 text-balance" : "truncate text-2xl")}>{value}</p>
       {hint && <p className="mt-0.5 truncate text-xs text-muted-foreground">{hint}</p>}

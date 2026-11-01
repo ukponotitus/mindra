@@ -41,7 +41,7 @@ export default function Templates() {
           Loading templates
         </p>
         {[0, 1, 2].map((item) => (
-          <div key={item} className="h-52 animate-pulse rounded-xl border border-border bg-white" />
+          <div key={item} className="h-52 animate-pulse rounded-xl border border-border bg-card" />
         ))}
       </div>
     );
@@ -57,7 +57,7 @@ export default function Templates() {
           const Icon = ICONS[preset.id] ?? SlidersHorizontal;
           const starting = create.isPending && create.variables?.preset === preset.id;
           return (
-            <li key={preset.id} className="flex flex-col rounded-xl border border-border bg-white p-5">
+            <li key={preset.id} className="flex flex-col rounded-xl border border-border bg-card p-5">
               <span className="grid size-10 place-items-center rounded-lg bg-primary/10 text-primary">
                 <Icon aria-hidden="true" className="size-5" />
               </span>

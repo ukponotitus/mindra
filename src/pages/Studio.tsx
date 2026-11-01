@@ -110,7 +110,7 @@ function ProjectCard({ project }: { project: StudioProjectSummary }) {
   const state = projectState(project);
   const thumbnail = project.latest_render?.thumbnail_url;
   return (
-    <li className="group relative flex flex-col overflow-hidden rounded-xl border border-border bg-white">
+    <li className="group relative flex flex-col overflow-hidden rounded-xl border border-border bg-card">
       <Link
         to={`/studio/${project.id}`}
         className="flex flex-1 flex-col focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary"
@@ -194,7 +194,7 @@ export default function Studio() {
         <button
           type="button"
           onClick={() => setManualOpen(true)}
-          className="flex gap-4 rounded-xl border border-border bg-white p-5 text-left transition-colors hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          className="flex gap-4 rounded-xl border border-border bg-card p-5 text-left transition-colors hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         >
           <span className="grid size-11 shrink-0 place-items-center rounded-lg bg-secondary text-foreground">
             <Plus aria-hidden="true" className="size-5" />
@@ -222,7 +222,7 @@ export default function Studio() {
             {projects.error.message}
           </p>
         ) : projects.data.results.length === 0 ? (
-          <p className="rounded-xl border border-dashed border-border bg-white px-4 py-8 text-center text-sm text-muted-foreground">
+          <p className="rounded-xl border border-dashed border-border bg-card px-4 py-8 text-center text-sm text-muted-foreground">
             No videos yet. Start one above.
           </p>
         ) : (

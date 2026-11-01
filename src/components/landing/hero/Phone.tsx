@@ -28,7 +28,7 @@ export default function Phone({ children, className }: { children: ReactNode; cl
           </span>
         </div>
         {children}
-        <div className="absolute bottom-2 left-1/2 z-30 h-1 w-28 -translate-x-1/2 rounded-full bg-white/60" />
+        <div className="absolute bottom-2 left-1/2 z-30 h-1 w-28 -translate-x-1/2 rounded-full bg-card/60" />
       </div>
     </div>
   );

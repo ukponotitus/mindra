@@ -26,7 +26,7 @@ export default function ReadyTray({ posts, total, loading, error, onRetry, onSho
     <section
       id="ready-to-schedule"
       aria-labelledby="ready-to-schedule-title"
-      className="scroll-mt-4 rounded-xl border border-border bg-white"
+      className="scroll-mt-4 rounded-xl border border-border bg-card"
     >
       <div className="border-b border-border px-4 py-3">
         <h3 id="ready-to-schedule-title" className="flex items-center gap-2 font-semibold text-balance text-foreground">
@@ -85,7 +85,7 @@ export default function ReadyTray({ posts, total, loading, error, onRetry, onSho
                 {dnd.enabled && <GripVertical aria-hidden="true" className="mt-1 size-4 shrink-0 text-muted-foreground" />}
                 <div className="min-w-0 flex-1">
                   <PlatformBadge platform={piece.platform} />
-                  <p className="mt-1 line-clamp-2 text-sm text-pretty text-gray-700">{postSummary(piece)}</p>
+                  <p className="mt-1 line-clamp-2 text-sm text-pretty text-secondary-foreground">{postSummary(piece)}</p>
                   <p className="mt-0.5 truncate text-xs text-muted-foreground">{piece.project_name}</p>
                 </div>
                 <ScheduleDialog

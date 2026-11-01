@@ -103,7 +103,7 @@ export default function CampaignDetail() {
         </div>
       </div>
 
-      <section className="rounded-xl border border-border bg-white p-5 sm:p-6">
+      <section className="rounded-xl border border-border bg-card p-5 sm:p-6">
         <dl className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
           {facts
             .filter(([, value]) => value)
@@ -114,7 +114,7 @@ export default function CampaignDetail() {
               </div>
             ))}
         </dl>
-        {campaign.promoting && <p className="mt-4 rounded-lg bg-background p-3 text-sm text-pretty whitespace-pre-wrap text-gray-700">{campaign.promoting}</p>}
+        {campaign.promoting && <p className="mt-4 rounded-lg bg-background p-3 text-sm text-pretty whitespace-pre-wrap text-secondary-foreground">{campaign.promoting}</p>}
         <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
           {campaign.platforms.map((platform) => (
             <PlatformBadge key={platform} platform={platform} />
@@ -128,7 +128,7 @@ export default function CampaignDetail() {
         </div>
       </section>
 
-      <section aria-labelledby="campaign-targets" className="rounded-xl border border-border bg-white p-5 sm:p-6">
+      <section aria-labelledby="campaign-targets" className="rounded-xl border border-border bg-card p-5 sm:p-6">
         <h3 id="campaign-targets" className="flex items-center gap-2 text-base font-semibold text-foreground">
           <Target aria-hidden="true" className="size-4 text-primary" />
           Targets

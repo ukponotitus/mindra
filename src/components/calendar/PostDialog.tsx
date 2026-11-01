@@ -58,7 +58,7 @@ function PostBody({ piece, onRescheduled }: { piece: ContentPiece; onRescheduled
           <PostPhotos photos={piece.photos} project={isPicturePost(piece.project_source_type) ? piece.project : null} />
         </div>
       )}
-      <p className="max-h-64 overflow-y-auto rounded-lg bg-background p-3 text-sm leading-relaxed whitespace-pre-wrap text-gray-700">
+      <p className="max-h-64 overflow-y-auto rounded-lg bg-background p-3 text-sm leading-relaxed whitespace-pre-wrap text-secondary-foreground">
         {piece.body}
       </p>
       <p className="mt-2 truncate text-xs text-muted-foreground">

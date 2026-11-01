@@ -9,7 +9,7 @@ import { platformInfo } from "../../lib/projects";
 import type { Platform, PlanEntry, PlanFormat, Project } from "../../lib/types";
 
 const fieldClass =
-  "h-10 w-full min-w-0 rounded-lg border border-border bg-white px-3 text-sm text-foreground transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-hidden disabled:opacity-60 aria-invalid:border-red-400";
+  "h-10 w-full min-w-0 rounded-lg border border-border bg-card px-3 text-sm text-foreground transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-hidden disabled:opacity-60 aria-invalid:border-red-400";
 
 const INLINE_FIELDS = ["scheduled_at", "platform", "format", "source", "brief"];
 

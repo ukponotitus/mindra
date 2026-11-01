@@ -31,7 +31,7 @@ import {
 import type { Project } from "../../lib/types";
 
 const fieldClass =
-  "w-full rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-60";
+  "w-full rounded-lg border border-border bg-card px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-60";
 const iconButton = buttonStyles({ variant: "ghost", size: "icon", className: "size-10 sm:size-9" });
 
 /** The workspace's finished recordings and transcripts, to connect photos or a flyer to. "" means none. */
@@ -152,7 +152,7 @@ export function QueuedPhotoTile({
   const failed = item.status === "failed";
   const waiting = item.status === "uploading" && Boolean(item.note);
   return (
-    <div className="min-w-0 overflow-hidden rounded-lg border border-border bg-white">
+    <div className="min-w-0 overflow-hidden rounded-lg border border-border bg-card">
       <div className="relative aspect-square bg-secondary">
         {item.preview ? (
           <img src={item.preview} alt={name} className="size-full object-cover" />
@@ -241,7 +241,7 @@ function PhotoDetails({ project }: { project: Project }) {
   };
 
   return (
-    <form onSubmit={save} aria-labelledby={`${ids}-title`} className="space-y-4 rounded-xl border border-border bg-white p-5">
+    <form onSubmit={save} aria-labelledby={`${ids}-title`} className="space-y-4 rounded-xl border border-border bg-card p-5">
       <h3 id={`${ids}-title`} className="font-semibold text-balance text-foreground">
         {isFlyer ? "About this flyer" : "About these photos"}
       </h3>
@@ -443,7 +443,7 @@ function FlyerText({ project }: { project: Project }) {
   );
 
   return (
-    <section aria-labelledby={`${ids}-title`} className="rounded-xl border border-border bg-white p-5">
+    <section aria-labelledby={`${ids}-title`} className="rounded-xl border border-border bg-card p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 id={`${ids}-title`} className="font-semibold text-balance text-foreground">
@@ -723,7 +723,7 @@ export default function ProjectPhotos({ project }: { project: Project }) {
               {list.map((photo, index) => {
                 const label = `${noun} ${index + 1}`;
                 return (
-                  <li key={photo.id} className="min-w-0 overflow-hidden rounded-lg border border-border bg-white">
+                  <li key={photo.id} className="min-w-0 overflow-hidden rounded-lg border border-border bg-card">
                     <a
                       href={photo.url}
                       target="_blank"

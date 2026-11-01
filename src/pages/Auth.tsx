@@ -50,7 +50,7 @@ const WHAT_WORKS = [
 ];
 
 const inputClass =
-  "h-11 w-full rounded-lg border border-border bg-white px-3.5 text-sm text-foreground placeholder:text-muted-foreground transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-hidden aria-invalid:border-red-300";
+  "h-11 w-full rounded-lg border border-border bg-card px-3.5 text-sm text-foreground placeholder:text-muted-foreground transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-hidden aria-invalid:border-red-300";
 
 const linkClass =
   "rounded font-medium text-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary";
@@ -204,7 +204,7 @@ export default function AuthPage({ mode }: Props) {
           </Link>
           <Link
             to="/"
-            className="inline-flex h-10 items-center gap-2 rounded-lg px-3 text-sm text-white/70 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+            className="inline-flex h-10 items-center gap-2 rounded-lg px-3 text-sm text-white/70 transition-colors hover:bg-card/10 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
           >
             <ArrowLeft aria-hidden="true" className="size-4" />
             Back to home

@@ -76,7 +76,7 @@ function ClipCard({ clip, selected, onSelect }: { clip: Clip; selected: boolean;
       onClick={onSelect}
       aria-pressed={selected}
       className={cn(
-        "flex w-full gap-3 rounded-xl border bg-white p-3 text-left transition-colors",
+        "flex w-full gap-3 rounded-xl border bg-card p-3 text-left transition-colors",
         "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
         selected ? "border-primary ring-1 ring-primary" : "border-border hover:border-muted-foreground/40",
       )}
@@ -160,7 +160,7 @@ function ClipEditor({ clip, project }: { clip: Clip; project: Project }) {
   return (
     <div
       className={cn(
-        "grid gap-6 rounded-xl border border-border bg-white p-4 sm:p-6",
+        "grid gap-6 rounded-xl border border-border bg-card p-4 sm:p-6",
         longForm ? "md:grid-cols-[minmax(0,24rem)_1fr]" : "md:grid-cols-[minmax(0,15rem)_1fr]",
       )}
     >

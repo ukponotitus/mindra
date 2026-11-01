@@ -32,7 +32,7 @@ function AutomationCard({ automation }: { automation: Automation }) {
       : KINDS[automation.kind].label;
 
   return (
-    <li className="flex min-w-0 flex-col rounded-xl border border-border bg-white">
+    <li className="flex min-w-0 flex-col rounded-xl border border-border bg-card">
       <Link
         to={`/automations/${automation.id}`}
         className="flex flex-1 items-start gap-3 rounded-t-xl p-4 transition-colors hover:bg-secondary/40 focus-visible:outline-2 focus-visible:outline-primary"
@@ -155,13 +155,13 @@ export default function Automations() {
           </p>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
             {[0, 1, 2, 3, 4].map((item) => (
-              <div key={item} className="h-24 animate-pulse rounded-xl border border-border bg-white" />
+              <div key={item} className="h-24 animate-pulse rounded-xl border border-border bg-card" />
             ))}
           </div>
-          <div className="h-40 animate-pulse rounded-xl border border-border bg-white" />
+          <div className="h-40 animate-pulse rounded-xl border border-border bg-card" />
         </div>
       ) : list.length === 0 ? (
-        <section className="rounded-xl border border-dashed border-border bg-white p-6">
+        <section className="rounded-xl border border-dashed border-border bg-card p-6">
           <div className="mx-auto max-w-2xl text-center">
             <span className="mx-auto grid size-10 place-items-center rounded-lg bg-primary/10 text-primary">
               <Workflow aria-hidden="true" className="size-5" />

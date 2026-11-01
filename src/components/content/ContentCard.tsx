@@ -34,7 +34,7 @@ export function ClipStrip({ clip, project }: { clip: ClipSummary; project: strin
     <div className="mt-3 flex items-center gap-3 rounded-lg bg-secondary p-2">
       <span
         className={cn(
-          "grid shrink-0 place-items-center overflow-hidden rounded bg-white text-muted-foreground",
+          "grid shrink-0 place-items-center overflow-hidden rounded bg-card text-muted-foreground",
           clipFrame(clip.shape, "h-12 w-7", "h-7 w-12"),
         )}
       >
@@ -166,7 +166,7 @@ export default function ContentCard({ piece, showProject = false, showClip = tru
 
   return (
     // min-w-0: in a grid, a long one-line title would otherwise make the card wider than a phone screen.
-    <article className="flex min-w-0 flex-col rounded-xl border border-border bg-white p-5">
+    <article className="flex min-w-0 flex-col rounded-xl border border-border bg-card p-5">
       <div className="mb-3 flex items-start gap-3">
         <div className="min-w-0 flex-1">
           <PlatformBadge platform={piece.platform} />
@@ -231,7 +231,7 @@ export default function ContentCard({ piece, showProject = false, showClip = tru
 
       <p
         id={bodyId}
-        className={cn("flex-1 text-sm leading-relaxed whitespace-pre-wrap text-gray-700", !expanded && "line-clamp-6")}
+        className={cn("flex-1 text-sm leading-relaxed whitespace-pre-wrap text-secondary-foreground", !expanded && "line-clamp-6")}
       >
         {piece.body}
       </p>

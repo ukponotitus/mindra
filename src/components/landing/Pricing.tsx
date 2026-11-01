@@ -52,7 +52,7 @@ export default function Pricing() {
                   : "Launch offer: everything open, free"}
             </div>
           )}
-          <div role="group" aria-label="Billing period" className="relative flex rounded-full bg-white/[0.06] p-1 ring-1 ring-white/10">
+          <div role="group" aria-label="Billing period" className="relative flex rounded-full bg-card/[0.06] p-1 ring-1 ring-white/10">
             {[
               { label: "Monthly", value: false },
               { label: "Yearly · 2 months free", value: true },
@@ -71,7 +71,7 @@ export default function Pricing() {
                   {selected && (
                     <motion.span
                       layoutId="billing-pill"
-                      className="absolute inset-0 rounded-full bg-white"
+                      className="absolute inset-0 rounded-full bg-card"
                       transition={{ duration: 0.2, ease: "easeOut" }}
                     />
                   )}
@@ -91,13 +91,13 @@ export default function Pricing() {
                   className={`relative flex h-full flex-col overflow-hidden rounded-[1.6rem] p-7 ${
                     plan.recommended
                       ? "bg-[#17142E] ring-1 ring-[#8B7CFF]/60"
-                      : "bg-white/[0.03] ring-1 ring-white/10"
+                      : "bg-card/[0.03] ring-1 ring-white/10"
                   }`}
                 >
                   <div className="flex items-center justify-between">
                     <h3 className="text-lg font-medium text-white">{plan.name}</h3>
                     {plan.recommended && (
-                      <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-black">Recommended</span>
+                      <span className="rounded-full bg-card px-2.5 py-1 text-[11px] font-semibold text-black">Recommended</span>
                     )}
                   </div>
                   {plan.tagline && <p className="mt-1.5 min-h-10 text-sm text-white/50">{plan.tagline}</p>}
@@ -142,7 +142,7 @@ export default function Pricing() {
                   <Link
                     to={startTo}
                     className={`mt-8 block rounded-full py-3 text-center text-sm font-semibold transition-colors ${
-                      plan.recommended ? "bg-white text-black hover:bg-white/90" : "bg-white/[0.07] text-white ring-1 ring-white/10 hover:bg-white/[0.12]"
+                      plan.recommended ? "bg-card text-black hover:bg-card/90" : "bg-card/[0.07] text-white ring-1 ring-white/10 hover:bg-card/[0.12]"
                     }`}
                   >
                     Start free

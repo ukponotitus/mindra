@@ -321,7 +321,7 @@ export default function Calendar() {
                   className={buttonStyles({
                     variant: "ghost",
                     size: "sm",
-                    className: cn(active && "bg-white text-foreground shadow-sm hover:bg-white"),
+                    className: cn(active && "bg-card text-foreground shadow-sm hover:bg-card"),
                   })}
                 >
                   {option.label}
@@ -336,7 +336,7 @@ export default function Calendar() {
         <section
           aria-labelledby="calendar-period"
           aria-busy={scheduled.isFetching}
-          className="min-w-0 overflow-hidden rounded-xl border border-border bg-white"
+          className="min-w-0 overflow-hidden rounded-xl border border-border bg-card"
         >
           <div className="flex items-center gap-1 border-b border-border px-2 py-2 sm:px-3">
             <button

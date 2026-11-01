@@ -160,12 +160,12 @@ export default function AudienceTabs() {
               </div>
 
               <div className="mt-8 flex flex-wrap items-center gap-3">
-                <a href="#pricing" className="rounded-full px-6 py-3 text-sm font-medium text-white ring-1 ring-white/25 transition-colors hover:bg-white/10">
+                <a href="#pricing" className="rounded-full px-6 py-3 text-sm font-medium text-white ring-1 ring-white/25 transition-colors hover:bg-card/10">
                   See pricing
                 </a>
                 <Link
                   to={startTo}
-                  className="group inline-flex items-center gap-3 rounded-full bg-[#F4F1E8] py-1.5 pr-1.5 pl-6 text-sm font-semibold text-[#111114] transition-colors hover:bg-white"
+                  className="group inline-flex items-center gap-3 rounded-full bg-[#F4F1E8] py-1.5 pr-1.5 pl-6 text-sm font-semibold text-[#111114] transition-colors hover:bg-card"
                 >
                   Try it with your next {audience.noun}
                   <span className="grid size-9 place-items-center rounded-full bg-[#111114] text-[#F4F1E8]">
@@ -232,7 +232,7 @@ export default function AudienceTabs() {
                 <div aria-hidden="true" className="absolute inset-0 translate-x-4 translate-y-4 rotate-[3deg] rounded-[1.6rem] bg-[#15151A]/30 ring-1 ring-white/10 backdrop-blur-md" />
                 <div aria-hidden="true" className="absolute inset-0 translate-x-2 translate-y-2 rotate-[1.5deg] rounded-[1.6rem] bg-[#15151A]/45 ring-1 ring-white/10 backdrop-blur-md" />
                 <div className="relative rounded-[1.6rem] bg-[#15151A]/85 p-6 text-white shadow-2xl ring-1 ring-white/15 backdrop-blur-xl">
-                  <span className="grid size-11 place-items-center rounded-xl bg-white/[0.06] ring-1 ring-white/15">
+                  <span className="grid size-11 place-items-center rounded-xl bg-card/[0.06] ring-1 ring-white/15">
                     <Play aria-hidden="true" className="size-4 translate-x-px fill-white text-white" />
                   </span>
                   <AnimatePresence mode="wait" initial={false}>

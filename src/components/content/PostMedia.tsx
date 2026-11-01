@@ -194,7 +194,7 @@ function MediaPicker({ open, onOpenChange, piece }: { open: boolean; onOpenChang
                             <span className="absolute right-1 bottom-1 rounded bg-black/70 px-1 text-[10px] text-white tabular-nums">{formatDuration(asset.duration)}</span>
                           ) : null}
                           {!ready && (
-                            <span className="absolute inset-0 grid place-items-center bg-white/75 text-[11px] font-medium text-foreground">
+                            <span className="absolute inset-0 grid place-items-center bg-card/75 text-[11px] font-medium text-foreground">
                               <span className="flex items-center gap-1">
                                 <LoaderCircle aria-hidden="true" className="size-3.5 animate-spin" />
                                 Getting ready
@@ -204,7 +204,7 @@ function MediaPicker({ open, onOpenChange, piece }: { open: boolean; onOpenChang
                         </span>
                         <span className="block truncate px-1 py-0.5 text-[11px] text-foreground">{asset.name}</span>
                         {on && (
-                          <span className="absolute top-1 right-1 grid size-5 place-items-center rounded-full bg-primary text-white">
+                          <span className="absolute top-1 right-1 grid size-5 place-items-center rounded-full bg-primary text-primary-foreground">
                             <Check aria-hidden="true" className="size-3" strokeWidth={3} />
                           </span>
                         )}
@@ -264,7 +264,7 @@ export default function PostMedia({ piece, text }: { piece: ContentPiece; text: 
   const locked = piece.media_problem;
 
   return (
-    <section aria-labelledby="post-media" className="rounded-xl border border-border bg-white p-5">
+    <section aria-labelledby="post-media" className="rounded-xl border border-border bg-card p-5">
       <h3 id="post-media" className="mb-3 text-sm font-semibold text-foreground">
         Photos or video
       </h3>

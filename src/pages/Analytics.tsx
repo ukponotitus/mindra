@@ -76,7 +76,7 @@ const TIMES_OF_DAY = [
   { label: "Evening", hint: "5 pm to 9 pm", from: 17, to: 21 },
   { label: "Night", hint: "9 pm to 5 am", from: 21, to: 29 },
 ];
-const card = "rounded-xl border border-border bg-white p-5";
+const card = "rounded-xl border border-border bg-card p-5";
 const linkClass = "rounded font-medium text-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary";
 
 // Small pieces
@@ -180,7 +180,7 @@ function MetricChart({ summary, metrics, id }: { summary: ResultsSummary; metric
   const [chosen, setChosen] = useState<MetricName>(metrics[0]);
   const metric = metrics.includes(chosen) ? chosen : metrics[0];
   return (
-    <div className="overflow-hidden rounded-xl border border-border bg-white">
+    <div className="overflow-hidden rounded-xl border border-border bg-card">
       <div role="tablist" aria-label="What to show" className={cn("grid border-b border-border", metrics.length === 3 ? "grid-cols-3" : "grid-cols-2 sm:grid-cols-4")}>
         {metrics.map((name) => {
           const value = summary.metrics[name];
@@ -197,7 +197,7 @@ function MetricChart({ summary, metrics, id }: { summary: ResultsSummary; metric
               onClick={() => setChosen(name)}
               className={cn(
                 "border-border px-4 py-4 text-center transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary sm:border-r sm:last:border-r-0",
-                active ? "bg-white" : "bg-secondary/70 hover:bg-secondary",
+                active ? "bg-card" : "bg-secondary/70 hover:bg-secondary",
               )}
             >
               <span className="block text-xs font-medium text-muted-foreground">{METRIC_LABELS[name]}</span>
@@ -622,7 +622,7 @@ function AudienceTab({ summary }: { summary: ResultsSummary }) {
     <div className="space-y-6">
       <MetricChart id="audience" summary={summary} metrics={["clicks", "posts", "engagement"]} />
       {total === 0 && (
-        <p className="rounded-lg border border-dashed border-border bg-white px-4 py-3 text-sm text-pretty text-muted-foreground">
+        <p className="rounded-lg border border-dashed border-border bg-card px-4 py-3 text-sm text-pretty text-muted-foreground">
           Who your audience is comes from the clicks on your Mindra links: where people are, their devices and when they click. Nothing about the people
           themselves is kept. In the post editor, “Count clicks” puts a Mindra link in place of a web address.
         </p>
@@ -859,7 +859,7 @@ export default function Analytics() {
             id="analytics-period"
             value={days}
             onChange={(event) => set({ days: event.target.value })}
-            className="mt-0.5 h-10 rounded-lg border border-border bg-white px-3 text-sm font-medium text-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-hidden"
+            className="mt-0.5 h-10 rounded-lg border border-border bg-card px-3 text-sm font-medium text-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-hidden"
           >
             {PERIODS.map((period) => (
               <option key={period.days} value={period.days}>

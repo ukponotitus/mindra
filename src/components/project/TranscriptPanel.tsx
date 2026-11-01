@@ -73,7 +73,7 @@ export default function TranscriptPanel({ project, segments, startAt }: Props) {
 
   return (
     <div className="grid gap-6 lg:grid-cols-5">
-      <section aria-labelledby={`${searchId}-title`} className="rounded-xl border border-border bg-white p-4 sm:p-5 lg:col-span-3">
+      <section aria-labelledby={`${searchId}-title`} className="rounded-xl border border-border bg-card p-4 sm:p-5 lg:col-span-3">
         <div className="mb-4 flex flex-wrap items-center gap-3">
           <h3 id={`${searchId}-title`} className="mr-auto font-semibold text-balance text-foreground">
             Transcript
@@ -87,7 +87,7 @@ export default function TranscriptPanel({ project, segments, startAt }: Props) {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search transcript…"
-            className="order-last h-10 w-full rounded-lg border border-border bg-white px-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 sm:order-none sm:h-9 sm:w-48"
+            className="order-last h-10 w-full rounded-lg border border-border bg-card px-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 sm:order-none sm:h-9 sm:w-48"
           />
           <button type="button" onClick={copyAll} className={buttonStyles({ variant: "secondary", size: "sm", className: "h-10 sm:h-9" })}>
             {copied ? <Check aria-hidden="true" className="size-4" /> : <Copy aria-hidden="true" className="size-4" />}
@@ -138,7 +138,7 @@ export default function TranscriptPanel({ project, segments, startAt }: Props) {
       </section>
 
       <div className="lg:col-span-2">
-        <section aria-labelledby={`${searchId}-recording`} className="rounded-xl border border-border bg-white p-4 sm:p-5 lg:sticky lg:top-0">
+        <section aria-labelledby={`${searchId}-recording`} className="rounded-xl border border-border bg-card p-4 sm:p-5 lg:sticky lg:top-0">
           <h3 id={`${searchId}-recording`} className="mb-3 font-semibold text-balance text-foreground">
             Recording
           </h3>

@@ -31,14 +31,14 @@ export default function PostsScreen() {
       </div>
 
       <motion.div initial="hidden" animate="show" className="mt-4 flex-1 space-y-2.5 px-4">
-        <motion.div custom={0} variants={card} className="rounded-2xl bg-white/[0.07] p-2.5">
+        <motion.div custom={0} variants={card} className="rounded-2xl bg-card/[0.07] p-2.5">
           <div className="mb-2 flex items-center gap-2 px-0.5">
             <span className="grid size-5 place-items-center rounded-md bg-[#E1306C] text-[8px] font-bold">IG</span>
             <span className="text-[11px] font-semibold">Instagram Reel · 0:42</span>
           </div>
           <div className="relative h-28 overflow-hidden rounded-xl bg-[#221E48]">
-            <div className="absolute top-4 left-1/2 size-9 -translate-x-1/2 rounded-full bg-white/20" />
-            <div className="absolute top-[52px] left-1/2 h-14 w-20 -translate-x-1/2 rounded-t-[2rem] bg-white/10" />
+            <div className="absolute top-4 left-1/2 size-9 -translate-x-1/2 rounded-full bg-card/20" />
+            <div className="absolute top-[52px] left-1/2 h-14 w-20 -translate-x-1/2 rounded-t-[2rem] bg-card/10" />
             <p className="absolute inset-x-2 bottom-2 text-center text-[11px] leading-tight font-extrabold">
               Fear is loud. <span className="rounded bg-[#FACC15] px-0.5 text-black">Faith</span> is louder.
             </p>
@@ -48,7 +48,7 @@ export default function PostsScreen() {
           </div>
         </motion.div>
 
-        <motion.div custom={1} variants={card} className="rounded-2xl bg-white/[0.07] p-2.5">
+        <motion.div custom={1} variants={card} className="rounded-2xl bg-card/[0.07] p-2.5">
           <div className="mb-2 flex items-center gap-2 px-0.5">
             <span className="grid size-5 place-items-center rounded-full bg-[#25D366]">
               <MessageCircle aria-hidden="true" className="size-3" />
@@ -68,7 +68,7 @@ export default function PostsScreen() {
       </motion.div>
 
       <div className="px-4 pt-3 pb-9">
-        <div className="relative flex h-9 items-center justify-center overflow-hidden rounded-full bg-white text-[12px] font-semibold text-black">
+        <div className="relative flex h-9 items-center justify-center overflow-hidden rounded-full bg-card text-[12px] font-semibold text-black">
           <AnimatePresence mode="wait" initial={false}>
             <motion.span
               key={copied ? "copied" : "copy"}

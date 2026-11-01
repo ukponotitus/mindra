@@ -62,14 +62,14 @@ function SourcesDemo() {
             key={item.kind}
             className={cn(
               "rounded-full px-3 py-1 text-[11px] font-medium transition-colors duration-200",
-              i === active ? "bg-white text-[#0B0B0F]" : "bg-white/[0.06] text-white/50",
+              i === active ? "bg-card text-[#0B0B0F]" : "bg-card/[0.06] text-white/50",
             )}
           >
             {item.kind}
           </span>
         ))}
       </div>
-      <div className="min-w-0 flex-1 rounded-xl border border-white/10 bg-white/[0.05] p-3">
+      <div className="min-w-0 flex-1 rounded-xl border border-white/10 bg-card/[0.05] p-3">
         <AnimatePresence mode="wait" initial={false}>
           <motion.div key={source.kind} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.2, ease: "easeOut" }}>
             <p className="flex items-center gap-1.5 text-[11px] font-semibold text-white/70">
@@ -99,7 +99,7 @@ function VoiceDemo() {
           </div>
         ))}
       </dl>
-      <div className="min-w-0 flex-1 rounded-xl border border-white/10 bg-white/[0.05] p-3">
+      <div className="min-w-0 flex-1 rounded-xl border border-white/10 bg-card/[0.05] p-3">
         <p className="text-[11px] font-semibold text-white/50">Draft</p>
         <p className="mt-1.5 text-[12.5px] leading-snug text-white/85">
           Welcome to the <span className="rounded bg-[#8B7CFF]/30 px-0.5">family</span>. Whatever this week brings, there is{" "}
@@ -117,8 +117,8 @@ function ClipsDemo() {
   return (
     <div className="flex items-center gap-5">
       <div className="relative h-[184px] w-[104px] shrink-0 overflow-hidden rounded-[1.4rem] border-[3px] border-white/10 bg-[#231E4A]">
-        <div className="absolute top-[20%] left-1/2 size-8 -translate-x-1/2 rounded-full bg-white/20" />
-        <div className="absolute left-1/2 top-[38%] h-14 w-16 -translate-x-1/2 rounded-t-[2rem] bg-white/10" />
+        <div className="absolute top-[20%] left-1/2 size-8 -translate-x-1/2 rounded-full bg-card/20" />
+        <div className="absolute left-1/2 top-[38%] h-14 w-16 -translate-x-1/2 rounded-t-[2rem] bg-card/10" />
         <div className="absolute bottom-14 right-1.5 flex flex-col items-center gap-2 text-white/80">
           <Heart className="size-3" />
           <MessageCircle className="size-3" />
@@ -142,7 +142,7 @@ function ClipsDemo() {
             initial={{ opacity: 0, x: 10 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.15 + i * 0.08, duration: 0.3, ease: "easeOut" }}
-            className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-medium text-white/80"
+            className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-card/5 px-3 py-1.5 text-[11px] font-medium text-white/80"
           >
             <Check aria-hidden="true" className="size-3 text-[#5EEAD4]" />
             {label}
@@ -160,12 +160,12 @@ function PlanDemo() {
   return (
     <div className="w-full max-w-[400px] space-y-1.5">
       {planLines.map((line, i) => (
-        <div key={line} className="flex items-center gap-3 rounded-lg bg-white/[0.04] px-3 py-2">
+        <div key={line} className="flex items-center gap-3 rounded-lg bg-card/[0.04] px-3 py-2">
           <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-white/75">{line}</span>
           <span
             className={cn(
               "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold transition-colors duration-200",
-              i < written ? "bg-[#34D399]/15 text-[#6EE7B7]" : "bg-white/[0.06] text-white/40",
+              i < written ? "bg-[#34D399]/15 text-[#6EE7B7]" : "bg-card/[0.06] text-white/40",
             )}
           >
             {i < written ? "Written" : "Waiting"}
@@ -192,7 +192,7 @@ function LibraryDemo() {
           initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 + i * 0.06, duration: 0.25, ease: "easeOut" }}
-          className="flex items-center gap-3 rounded-lg bg-white/[0.04] px-3 py-2"
+          className="flex items-center gap-3 rounded-lg bg-card/[0.04] px-3 py-2"
         >
           <span className="size-2 shrink-0 rounded-full" style={{ background: row.platform }} />
           <span className="min-w-0 flex-1 truncate text-[12px] text-white/80">{row.title}</span>
@@ -217,7 +217,7 @@ function CalendarDemo() {
   return (
     <div className="grid w-full grid-cols-7 gap-1.5">
       {week.map(({ day, posts }, dayIndex) => (
-        <div key={day} className="min-h-[96px] rounded-xl border border-white/5 bg-white/[0.04] p-1.5">
+        <div key={day} className="min-h-[96px] rounded-xl border border-white/5 bg-card/[0.04] p-1.5">
           <p className="mb-1.5 text-center text-[10px] text-white/40">{day}</p>
           <div className="space-y-1">
             {posts.map((color, i) => (
@@ -357,7 +357,7 @@ function CardRow({ active, setActive }: { active: number; setActive: (index: num
             onMouseEnter={() => setActive(i)}
             transition={{ duration: 0.2, ease: "easeOut" }}
             style={{ flexGrow: isOpen ? 3.6 : 1, flexBasis: 0, borderRadius: 22 }}
-            className={cn("relative min-w-0 overflow-hidden bg-white text-left ring-1", isOpen ? "shadow-lg ring-black/5" : "ring-black/[0.06]")}
+            className={cn("relative min-w-0 overflow-hidden bg-card text-left ring-1", isOpen ? "shadow-lg ring-black/5" : "ring-black/[0.06]")}
           >
             <AnimatePresence initial={false} mode="popLayout">
               {isOpen ? (
@@ -422,7 +422,7 @@ function CardStack({ active, setActive }: { active: number; setActive: (index: n
         const isOpen = i === active;
         const Icon = feature.icon;
         return (
-          <div key={feature.short} className="overflow-hidden rounded-[1.4rem] bg-white ring-1 ring-black/[0.06]">
+          <div key={feature.short} className="overflow-hidden rounded-[1.4rem] bg-card ring-1 ring-black/[0.06]">
             <button
               type="button"
               onClick={() => setActive(i)}
@@ -510,7 +510,7 @@ export default function FeatureBento() {
           {upcoming.map((item) => {
             const Icon = item.icon;
             return (
-              <div key={item.title} className="flex gap-4 rounded-[1.4rem] bg-white/60 p-5 ring-1 ring-black/[0.06]">
+              <div key={item.title} className="flex gap-4 rounded-[1.4rem] bg-card/60 p-5 ring-1 ring-black/[0.06]">
                 <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-[#F4F4F5] ring-1 ring-black/5">
                   <Icon aria-hidden="true" className="size-4 text-[#71717A]" />
                 </span>

@@ -29,7 +29,7 @@ export default function AutomationApprovals() {
       {runs.isPending ? (
         <div aria-busy="true" className="space-y-3">
           {[0, 1].map((item) => (
-            <div key={item} className="h-24 animate-pulse rounded-xl border border-border bg-white" />
+            <div key={item} className="h-24 animate-pulse rounded-xl border border-border bg-card" />
           ))}
         </div>
       ) : runs.isError ? (
@@ -39,7 +39,7 @@ export default function AutomationApprovals() {
       ) : (
         <ul className="space-y-3">
           {list.map((run) => (
-            <li key={run.id} className="flex flex-wrap items-center gap-4 rounded-xl border border-border bg-white p-4">
+            <li key={run.id} className="flex flex-wrap items-center gap-4 rounded-xl border border-border bg-card p-4">
               <span className="grid aspect-video w-28 shrink-0 place-items-center overflow-hidden rounded-md bg-secondary text-muted-foreground">
                 {run.thumbnail_url ? (
                   <img src={run.thumbnail_url} alt="" className="size-full object-cover" />

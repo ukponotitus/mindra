@@ -80,7 +80,7 @@ export default function ProjectPosts({ project }: { project: Project }) {
             Loading posts…
           </p>
           {[0, 1, 2].map((i) => (
-            <div key={i} className="space-y-3 rounded-xl border border-border bg-white p-5">
+            <div key={i} className="space-y-3 rounded-xl border border-border bg-card p-5">
               <div className="flex items-center gap-2">
                 <div className="size-6 animate-pulse rounded-md bg-secondary" />
                 <div className="h-3 w-24 animate-pulse rounded bg-secondary" />

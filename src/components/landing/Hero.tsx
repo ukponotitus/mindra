@@ -35,7 +35,7 @@ function useScrollTransform(progress: MotionValue<number>, from: string, to: str
 function GlassCard({ icon: Icon, label, title, children }: { icon: LucideIcon; label: string; title: string; children?: ReactNode }) {
   return (
     <div className="w-[236px] animate-float rounded-2xl bg-[#121218]/70 p-4 shadow-xl ring-1 ring-white/15 backdrop-blur-xl">
-      <span className="grid size-9 place-items-center rounded-xl bg-white/[0.08] ring-1 ring-white/15">
+      <span className="grid size-9 place-items-center rounded-xl bg-card/[0.08] ring-1 ring-white/15">
         <Icon aria-hidden="true" className="size-[18px] text-[#C9C1FF]" />
       </span>
       <p className="mt-3 text-xs font-medium text-white/50">{label}</p>
@@ -193,7 +193,7 @@ export default function Hero() {
         <motion.a
           {...enter(0)}
           href="#roadmap"
-          className="group inline-flex items-center gap-1 rounded-full border border-white/15 bg-white/[0.06] py-1.5 pr-3 pl-4 text-[13px] font-medium text-white/80 transition-colors hover:bg-white/10"
+          className="group inline-flex items-center gap-1 rounded-full border border-white/15 bg-card/[0.06] py-1.5 pr-3 pl-4 text-[13px] font-medium text-white/80 transition-colors hover:bg-card/10"
         >
           Now in private beta
           <ChevronRight aria-hidden="true" className="size-3.5 text-white/50 transition-transform group-hover:translate-x-0.5" />
@@ -214,7 +214,7 @@ export default function Hero() {
         </motion.p>
 
         <motion.div {...enter(4)} className="mt-9 flex flex-col items-center justify-center gap-5 sm:flex-row sm:gap-9">
-          <Link to={startTo} className="rounded-full bg-white px-8 py-3.5 text-[15px] font-semibold text-black transition-colors hover:bg-white/85">
+          <Link to={startTo} className="rounded-full bg-card px-8 py-3.5 text-[15px] font-semibold text-black transition-colors hover:bg-card/85">
             {signedIn ? "Open your workspace" : "Start creating for free"}
           </Link>
           <a href="#how" className="group inline-flex items-center gap-1 text-[15px] font-medium text-[#B4A9FF] transition-colors hover:text-white">

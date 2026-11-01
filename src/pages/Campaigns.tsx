@@ -76,7 +76,7 @@ export default function Campaigns() {
             <li key={campaign.id}>
               <Link
                 to={`/campaigns/${campaign.id}`}
-                className="flex min-w-0 items-center gap-4 rounded-xl border border-border bg-white p-4 transition-colors hover:border-muted-foreground/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                className="flex min-w-0 items-center gap-4 rounded-xl border border-border bg-card p-4 transition-colors hover:border-muted-foreground/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
               >
                 <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
                   <Megaphone aria-hidden="true" className="size-5" />

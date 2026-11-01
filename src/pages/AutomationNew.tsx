@@ -47,7 +47,7 @@ export default function AutomationNew() {
                 disabled={create.isPending}
                 onClick={() => (choice.preset ? start(choice.preset) : setChosen("create"))}
                 className={cn(
-                  "flex h-full w-full items-start gap-4 rounded-xl border bg-white p-5 text-left transition-colors focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-70",
+                  "flex h-full w-full items-start gap-4 rounded-xl border bg-card p-5 text-left transition-colors focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-70",
                   chosen === choice.id ? "border-primary bg-primary/5" : "border-border hover:border-primary/40",
                 )}
               >

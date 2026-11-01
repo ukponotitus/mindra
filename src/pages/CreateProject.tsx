@@ -34,10 +34,10 @@ const sourceTypes: { id: SourceType; label: string; icon: LucideIcon }[] = [
 const DEFAULT_PLATFORMS: Platform[] = ["instagram", "facebook", "whatsapp"];
 
 const inputClass =
-  "w-full rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-60";
+  "w-full rounded-lg border border-border bg-card px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-60";
 const invalidClass = "border-red-300 focus:border-red-600 focus:ring-red-600/20";
 // min-w-0: a fieldset is otherwise as wide as its widest content, which pushes the page sideways on phones.
-const cardClass = "min-w-0 rounded-xl border border-border bg-white p-5";
+const cardClass = "min-w-0 rounded-xl border border-border bg-card p-5";
 
 /** "sunday_service-march.mp4" → "sunday service march". */
 function nameFromFile(filename: string): string {

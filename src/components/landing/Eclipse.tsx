@@ -79,7 +79,7 @@ export default function Eclipse() {
 
       {/* The bright disc and its glow. The glow is a gradient, not a box-shadow: shadows this large render in visible tiles. */}
       <div className="absolute -inset-[6%] rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.95)_38%,rgba(236,232,255,0.55)_47%,rgba(226,220,255,0.18)_58%,transparent_70%)]" />
-      <div className="absolute inset-[16%] rounded-full bg-white shadow-[0_0_36px_8px_rgba(255,255,255,0.8)]" />
+      <div className="absolute inset-[16%] rounded-full bg-card shadow-[0_0_36px_8px_rgba(255,255,255,0.8)]" />
 
       {/* The moon, with a dusk landscape inside and a ribbon of sound across its sky */}
       <motion.div

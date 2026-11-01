@@ -19,8 +19,13 @@ import {
 import { cn } from "../lib/cn";
 import type { Platform } from "../lib/types";
 
+/** "Counted by Mindra" becomes "counted by Mindra": only the first letter, so names keep their capitals. */
+function lowerFirst(text: string) {
+  return text.charAt(0).toLowerCase() + text.slice(1);
+}
+
 const inputClass =
-  "w-full rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-hidden disabled:opacity-60 aria-invalid:border-red-300";
+  "w-full rounded-lg border border-border bg-card px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-hidden disabled:opacity-60 aria-invalid:border-red-300";
 const crumbLink = "rounded hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary";
 
 /** Where campaigns' posts can go. */
@@ -155,7 +160,7 @@ export default function CampaignEditor() {
         <h2 className="text-2xl font-semibold text-balance text-foreground">{campaignId ? "Change the campaign" : "New campaign"}</h2>
       </div>
 
-      <section className="space-y-4 rounded-xl border border-border bg-white p-5 sm:p-6">
+      <section className="space-y-4 rounded-xl border border-border bg-card p-5 sm:p-6">
         <Field id={`${ids}-name`} label="Name" error={fieldError("name")}>
           <input id={`${ids}-name`} value={form.name} maxLength={120} placeholder="e.g. November Sunscreen Push" onChange={(event) => set("name", event.target.value)} className={inputClass} />
         </Field>
@@ -241,7 +246,7 @@ export default function CampaignEditor() {
         </fieldset>
       </section>
 
-      <section aria-labelledby={`${ids}-targets`} className="space-y-4 rounded-xl border border-border bg-white p-5 sm:p-6">
+      <section aria-labelledby={`${ids}-targets`} className="space-y-4 rounded-xl border border-border bg-card p-5 sm:p-6">
         <div>
           <h3 id={`${ids}-targets`} className="text-base font-semibold text-foreground">
             Targets
@@ -269,7 +274,7 @@ export default function CampaignEditor() {
                       .filter((metric) => metric.id === target.metric || !used.has(metric.id))
                       .map((metric) => (
                         <option key={metric.id} value={metric.id}>
-                          {metric.label} ({SOURCE_LABELS[metric.source].toLowerCase()})
+                          {metric.label} ({lowerFirst(SOURCE_LABELS[metric.source])})
                         </option>
                       ))}
                   </select>

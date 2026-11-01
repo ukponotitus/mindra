@@ -107,7 +107,7 @@ function AddClips({ automation, adding, onAdd }: { automation: AutomationDetail;
                   aria-pressed={on}
                   onClick={() => toggle(clip.id)}
                   className={cn(
-                    "flex w-full items-center gap-3 rounded-lg border bg-white p-2 text-left focus-visible:outline-2 focus-visible:outline-primary",
+                    "flex w-full items-center gap-3 rounded-lg border bg-card p-2 text-left focus-visible:outline-2 focus-visible:outline-primary",
                     on ? "border-primary" : "border-border hover:border-muted-foreground/40",
                   )}
                 >
@@ -118,7 +118,7 @@ function AddClips({ automation, adding, onAdd }: { automation: AutomationDetail;
                       {clip.project_name} · {formatDuration(clip.duration)}
                     </span>
                   </span>
-                  <span className={cn("grid size-5 shrink-0 place-items-center rounded border", on ? "border-primary bg-primary text-white" : "border-border")}>
+                  <span className={cn("grid size-5 shrink-0 place-items-center rounded border", on ? "border-primary bg-primary text-primary-foreground" : "border-border")}>
                     {on && <Check aria-hidden="true" className="size-3.5" />}
                   </span>
                 </button>

@@ -198,7 +198,7 @@ export default function SuggestionsPanel({ pieceId, platform, body, tone, textar
     <section
       aria-labelledby={`${ids}-title`}
       aria-busy={suggest.isPending || undefined}
-      className="rounded-xl border border-border bg-white p-5"
+      className="rounded-xl border border-border bg-card p-5"
     >
       <div className="flex items-center justify-between gap-3">
         <h3 id={`${ids}-title`} className="text-sm font-semibold text-balance text-foreground">
@@ -290,7 +290,7 @@ export default function SuggestionsPanel({ pieceId, platform, body, tone, textar
                       <p
                         id={textId}
                         hidden={!open}
-                        className="mt-2 max-h-60 overflow-y-auto rounded-md bg-background p-2.5 text-sm leading-relaxed whitespace-pre-wrap text-gray-700"
+                        className="mt-2 max-h-60 overflow-y-auto rounded-md bg-background p-2.5 text-sm leading-relaxed whitespace-pre-wrap text-secondary-foreground"
                       >
                         {idea.body}
                       </p>
@@ -326,7 +326,7 @@ export default function SuggestionsPanel({ pieceId, platform, body, tone, textar
               <ul className="divide-y divide-border">
                 {suggestions.openers.map((opener, index) => (
                   <li key={index} className="flex items-start gap-3 py-2 first:pt-0 last:pb-0">
-                    <p id={`${ids}-opener-${index}`} className="min-w-0 flex-1 pt-1.5 text-sm text-pretty text-gray-700">
+                    <p id={`${ids}-opener-${index}`} className="min-w-0 flex-1 pt-1.5 text-sm text-pretty text-secondary-foreground">
                       {opener}
                     </p>
                     <button
@@ -349,7 +349,7 @@ export default function SuggestionsPanel({ pieceId, platform, body, tone, textar
               <ul className="divide-y divide-border">
                 {suggestions.ctas.map((cta, index) => (
                   <li key={index} className="flex items-start gap-3 py-2 first:pt-0 last:pb-0">
-                    <p id={`${ids}-cta-${index}`} className="min-w-0 flex-1 pt-1.5 text-sm text-pretty text-gray-700">
+                    <p id={`${ids}-cta-${index}`} className="min-w-0 flex-1 pt-1.5 text-sm text-pretty text-secondary-foreground">
                       {cta}
                     </p>
                     <button
@@ -393,7 +393,7 @@ export default function SuggestionsPanel({ pieceId, platform, body, tone, textar
                           "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-50",
                           on
                             ? "border-primary bg-primary/10 text-primary hover:bg-primary/15"
-                            : "border-border bg-white text-foreground hover:bg-secondary",
+                            : "border-border bg-card text-foreground hover:bg-secondary",
                         )}
                       >
                         {on && <Check aria-hidden="true" className="size-3.5" />}#{tag}

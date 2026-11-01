@@ -90,7 +90,7 @@ function Draft({ piece, approved }: { piece: ContentPiece; approved: boolean }) 
         </div>
       )}
       {piece.title && <p className="mb-1 truncate text-xs font-medium text-muted-foreground">{piece.title}</p>}
-      <p id={bodyId} className={cn("text-sm leading-relaxed whitespace-pre-wrap text-gray-700", !expanded && "line-clamp-5")}>
+      <p id={bodyId} className={cn("text-sm leading-relaxed whitespace-pre-wrap text-secondary-foreground", !expanded && "line-clamp-5")}>
         {piece.body}
       </p>
       {long && (
@@ -127,7 +127,7 @@ export default function EntryCard({ planId, entry, projects, projectsLoading, pl
   const pending = action.isPending ? action.variables?.action : undefined;
 
   return (
-    <article className="min-w-0 rounded-xl border border-border bg-white p-4 sm:p-5">
+    <article className="min-w-0 rounded-xl border border-border bg-card p-4 sm:p-5">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <span className="text-sm font-semibold text-foreground tabular-nums">
           {entry.scheduled_at ? formatTime(entry.scheduled_at) : "No time yet"}

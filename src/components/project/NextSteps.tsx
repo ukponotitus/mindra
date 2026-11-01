@@ -131,7 +131,7 @@ export default function NextSteps({ project, postsAvailable, postCount, onOpen }
         : recordingSteps(project, postsAvailable, postCount);
 
   return (
-    <section aria-labelledby="next-steps" className="mb-6 rounded-xl border border-border bg-white p-5">
+    <section aria-labelledby="next-steps" className="mb-6 rounded-xl border border-border bg-card p-5">
       <h3 id="next-steps" className="mb-4 font-semibold text-balance text-foreground">
         Next steps
       </h3>
@@ -145,7 +145,7 @@ export default function NextSteps({ project, postsAvailable, postCount, onOpen }
               key={step.title}
               className={cn(
                 "flex flex-col rounded-lg border p-4",
-                highlighted ? "border-primary bg-white" : soon ? "border-dashed border-border bg-background" : "border-border bg-white",
+                highlighted ? "border-primary bg-card" : soon ? "border-dashed border-border bg-background" : "border-border bg-card",
               )}
             >
               <div className="mb-2 flex items-center gap-3">
@@ -169,7 +169,7 @@ export default function NextSteps({ project, postsAvailable, postCount, onOpen }
                   <p className={cn("truncate font-medium", soon ? "text-muted-foreground" : "text-foreground")}>{step.title}</p>
                 </div>
                 {step.badge && (
-                  <span className="ml-auto rounded-full border border-border bg-white px-2 py-0.5 text-[11px] font-medium whitespace-nowrap text-muted-foreground">
+                  <span className="ml-auto rounded-full border border-border bg-card px-2 py-0.5 text-[11px] font-medium whitespace-nowrap text-muted-foreground">
                     {step.badge}
                   </span>
                 )}

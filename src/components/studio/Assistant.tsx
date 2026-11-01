@@ -215,7 +215,7 @@ export default function AssistantTab({ assistant, unavailable, selection, sugges
                     setDraft(suggestion)
                     field.current?.focus()
                   }}
-                  className="rounded-full border border-border bg-white px-2.5 py-1 text-left text-[11px] text-foreground transition-colors hover:border-primary/40 hover:bg-primary/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                  className="rounded-full border border-border bg-card px-2.5 py-1 text-left text-[11px] text-foreground transition-colors hover:border-primary/40 hover:bg-primary/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                 >
                   {suggestion}
                 </button>

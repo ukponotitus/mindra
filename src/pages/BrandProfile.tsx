@@ -23,8 +23,8 @@ import { TONES } from "../lib/content";
 import { useStudioAssets, useUploadAsset } from "../lib/studio";
 
 const inputClass =
-  "w-full rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-hidden disabled:opacity-60 aria-invalid:border-red-300";
-const cardClass = "rounded-xl border border-border bg-white p-5 sm:p-6";
+  "w-full rounded-lg border border-border bg-card px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-hidden disabled:opacity-60 aria-invalid:border-red-300";
+const cardClass = "rounded-xl border border-border bg-card p-5 sm:p-6";
 
 type Form = Omit<BrandProfile, "id" | "filled" | "updated_at">;
 
@@ -125,7 +125,7 @@ function ImageChooser({ chosen, onChange, most, label }: { chosen: BrandAsset[];
                 >
                   {asset.thumbnail_url && <img src={asset.thumbnail_url} alt="" className="size-full object-cover" />}
                   {on && (
-                    <span className="absolute top-0.5 right-0.5 grid size-4 place-items-center rounded-full bg-primary text-white">
+                    <span className="absolute top-0.5 right-0.5 grid size-4 place-items-center rounded-full bg-primary text-primary-foreground">
                       <Check aria-hidden="true" className="size-2.5" strokeWidth={3} />
                     </span>
                   )}
@@ -209,7 +209,7 @@ function FillPanel({ onApply, open }: { onApply: (suggestions: Partial<BrandSugg
         </button>
         {fill.isError && <p role="alert" className="text-sm text-pretty text-red-600">{fill.error.message}</p>}
         {found && (
-          <div className="rounded-lg border border-border bg-white p-4">
+          <div className="rounded-lg border border-border bg-card p-4">
             {rows.length === 0 ? (
               <p className="text-sm text-muted-foreground">Nothing to suggest from that. Try more words, or a different page.</p>
             ) : (
@@ -531,7 +531,7 @@ export default function BrandProfilePage() {
             <label htmlFor={`${ids}-colour`} className="sr-only">
               Pick a colour
             </label>
-            <input id={`${ids}-colour`} type="color" value={colour} onChange={(event) => setColour(event.target.value.toUpperCase())} className="h-9 w-12 cursor-pointer rounded-lg border border-border bg-white p-1" />
+            <input id={`${ids}-colour`} type="color" value={colour} onChange={(event) => setColour(event.target.value.toUpperCase())} className="h-9 w-12 cursor-pointer rounded-lg border border-border bg-card p-1" />
             <button
               type="button"
               disabled={form.colours.length >= MOST_COLOURS || form.colours.includes(colour)}
@@ -576,7 +576,7 @@ export default function BrandProfilePage() {
         </Field>
       </Section>
 
-      <div className="sticky bottom-0 z-10 -mx-4 flex flex-wrap items-center gap-3 border-t border-border bg-white/95 px-4 py-3 backdrop-blur sm:mx-0 sm:rounded-xl sm:border">
+      <div className="sticky bottom-0 z-10 -mx-4 flex flex-wrap items-center gap-3 border-t border-border bg-card/95 px-4 py-3 backdrop-blur sm:mx-0 sm:rounded-xl sm:border">
         <button type="submit" disabled={!dirty || save.isPending} className={buttonStyles()}>
           {save.isPending ? <LoaderCircle aria-hidden="true" className="size-4 animate-spin" /> : <Check aria-hidden="true" className="size-4" />}
           {save.isPending ? "Saving…" : "Save profile"}

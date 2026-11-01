@@ -38,7 +38,7 @@ export default function LegalLayout({ title, label, icon, children }: Props) {
   }, []);
 
   return (
-    <div className="min-h-dvh bg-white text-foreground antialiased">
+    <div className="min-h-dvh bg-card text-foreground antialiased">
       <header className="px-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:px-4">
         <nav
           aria-label="Main"
@@ -47,7 +47,7 @@ export default function LegalLayout({ title, label, icon, children }: Props) {
           <Logo onDark />
           <Link
             to={startTo}
-            className="group inline-flex h-10 items-center gap-1.5 rounded-full bg-white px-5 text-sm font-semibold text-foreground transition-colors hover:bg-white/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+            className="group inline-flex h-10 items-center gap-1.5 rounded-full bg-card px-5 text-sm font-semibold text-foreground transition-colors hover:bg-card/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
           >
             {signedIn ? "Open app" : "Start free"}
             <ArrowRight aria-hidden="true" className="size-4 transition-transform group-hover:translate-x-0.5" />

@@ -35,8 +35,8 @@ const clips = [
 function Clip({ caption, tint, focus = false }: { caption: string; tint: string; focus?: boolean }) {
   return (
     <div className={cn("relative h-[300px] w-[170px] overflow-hidden rounded-[1.6rem] shadow-2xl ring-1 ring-white/15 sm:h-[370px] sm:w-[210px]", tint)}>
-      <div className="absolute top-[22%] left-1/2 size-14 -translate-x-1/2 rounded-full bg-white/20" />
-      <div className="absolute top-[40%] left-1/2 h-24 w-28 -translate-x-1/2 rounded-t-[3rem] bg-white/10" />
+      <div className="absolute top-[22%] left-1/2 size-14 -translate-x-1/2 rounded-full bg-card/20" />
+      <div className="absolute top-[40%] left-1/2 h-24 w-28 -translate-x-1/2 rounded-t-[3rem] bg-card/10" />
       <div className="absolute right-2.5 bottom-24 flex flex-col items-center gap-3 text-white/80">
         <Heart className="size-4" />
         <MessageCircle className="size-4" />

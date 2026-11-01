@@ -89,8 +89,8 @@ export default function Processing() {
           <div className="h-6 w-64 max-w-full animate-pulse rounded bg-secondary" />
           <div className="h-4 w-48 max-w-full animate-pulse rounded bg-secondary" />
         </div>
-        <div className="mb-6 h-24 animate-pulse rounded-xl border border-border bg-white" />
-        <div className="h-72 animate-pulse rounded-xl border border-border bg-white" />
+        <div className="mb-6 h-24 animate-pulse rounded-xl border border-border bg-card" />
+        <div className="h-72 animate-pulse rounded-xl border border-border bg-card" />
       </div>
     );
   }
@@ -140,7 +140,7 @@ export default function Processing() {
         </p>
       </div>
 
-      <div className="mb-6 rounded-xl border border-border bg-white p-5 sm:p-6">
+      <div className="mb-6 rounded-xl border border-border bg-card p-5 sm:p-6">
         <div className="mb-3 flex items-center justify-between">
           <span id="overall-progress" className="text-sm font-medium text-foreground">
             Overall Progress
@@ -164,7 +164,7 @@ export default function Processing() {
         </div>
       </div>
 
-      <ol className="divide-y divide-border rounded-xl border border-border bg-white">
+      <ol className="divide-y divide-border rounded-xl border border-border bg-card">
         {steps.map((step, i) => {
           const isDone = i < active;
           const isFailed = failed && i === active;
@@ -250,9 +250,9 @@ export default function Processing() {
           {import.meta.env.DEV ? (
             <>
               Processing hasn't started yet. Is the background worker running? Restart the backend with{" "}
-              <code className="rounded bg-white/70 px-1.5 py-0.5 font-mono text-xs">python manage.py runserver</code>, which starts
+              <code className="rounded bg-card/70 px-1.5 py-0.5 font-mono text-xs">python manage.py runserver</code>, which starts
               the worker in development, or run{" "}
-              <code className="rounded bg-white/70 px-1.5 py-0.5 font-mono text-xs">python manage.py db_worker</code> next to it.
+              <code className="rounded bg-card/70 px-1.5 py-0.5 font-mono text-xs">python manage.py db_worker</code> next to it.
             </>
           ) : (
             "This is taking longer than usual to start. It will begin on its own, so you can leave this page and come back."

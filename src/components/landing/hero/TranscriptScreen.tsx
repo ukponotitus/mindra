@@ -28,7 +28,7 @@ export default function TranscriptScreen() {
         <span className="text-[13px] font-semibold">Transcript</span>
         <Share aria-hidden="true" className="size-4 text-white/80" />
       </div>
-      <div className="mx-4 mt-4 flex items-center gap-2 rounded-xl bg-white/[0.08] px-3 py-2 text-[11px] text-white/45">
+      <div className="mx-4 mt-4 flex items-center gap-2 rounded-xl bg-card/[0.08] px-3 py-2 text-[11px] text-white/45">
         <Search aria-hidden="true" className="size-3.5" />
         Search transcript
       </div>
@@ -37,7 +37,7 @@ export default function TranscriptScreen() {
         {lines.map(([time, text], i) => (
           <div key={time} className="relative flex gap-2.5 rounded-xl px-2.5 py-2">
             {i === active && (
-              <motion.span layoutId="transcript-highlight" transition={{ duration: 0.3, ease: "easeOut" }} className="absolute inset-0 rounded-xl bg-white/10" />
+              <motion.span layoutId="transcript-highlight" transition={{ duration: 0.3, ease: "easeOut" }} className="absolute inset-0 rounded-xl bg-card/10" />
             )}
             <span
               className={cn(
@@ -53,8 +53,8 @@ export default function TranscriptScreen() {
           </div>
         ))}
       </div>
-      <div className="mx-4 mb-9 rounded-2xl bg-white/[0.08] p-3">
-        <div className="h-1 overflow-hidden rounded-full bg-white/10">
+      <div className="mx-4 mb-9 rounded-2xl bg-card/[0.08] p-3">
+        <div className="h-1 overflow-hidden rounded-full bg-card/10">
           <motion.div
             className="h-full origin-left rounded-full bg-[#8B7CFF]"
             initial={false}
@@ -64,7 +64,7 @@ export default function TranscriptScreen() {
         </div>
         <div className="mt-2.5 flex items-center justify-between text-[10px] text-white/55">
           <span className="font-mono tabular-nums">{lines[active][0]}</span>
-          <span className="grid size-7 place-items-center rounded-full bg-white">
+          <span className="grid size-7 place-items-center rounded-full bg-card">
             <Play aria-hidden="true" className="size-3.5 translate-x-px fill-black text-black" />
           </span>
           <span className="font-mono tabular-nums">52:14</span>

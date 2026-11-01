@@ -61,7 +61,7 @@ function StepIcon({
     <span className="relative grid size-12 place-items-center">
       <span
         className={cn(
-          "grid size-10 place-items-center rounded-full bg-white shadow-sm ring-1 transition-colors duration-200",
+          "grid size-10 place-items-center rounded-full bg-card shadow-sm ring-1 transition-colors duration-200",
           active ? "ring-[#6D5EF5]/30" : "ring-black/5",
         )}
       >

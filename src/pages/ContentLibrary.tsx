@@ -12,12 +12,12 @@ import type { Platform } from "../lib/types";
 const PAGE_SIZE = 24;
 
 const fieldClass =
-  "h-10 rounded-lg border border-border bg-white px-3 text-sm text-foreground transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-hidden";
+  "h-10 rounded-lg border border-border bg-card px-3 text-sm text-foreground transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-hidden";
 
 /** A grey stand-in shaped like a post card, shown while posts load. */
 function PostSkeleton() {
   return (
-    <div className="flex h-64 flex-col rounded-xl border border-border bg-white p-5">
+    <div className="flex h-64 flex-col rounded-xl border border-border bg-card p-5">
       <div className="flex items-center gap-2">
         <div className="size-6 animate-pulse rounded-md bg-secondary" />
         <div className="h-3.5 w-24 animate-pulse rounded bg-secondary" />

@@ -38,7 +38,7 @@ export default function CalendarNotice({ notice, onDismiss }: { notice: Notice |
         }}
         className={cn(
           notice
-            ? "pointer-events-auto flex w-full max-w-lg items-center gap-2 rounded-xl border bg-white py-2 pr-2 pl-4 text-sm shadow-lg"
+            ? "pointer-events-auto flex w-full max-w-lg items-center gap-2 rounded-xl border bg-card py-2 pr-2 pl-4 text-sm shadow-lg"
             : "sr-only",
           notice?.error ? "border-red-200 text-red-700" : "border-border text-foreground",
         )}

@@ -262,7 +262,7 @@ function MediaTile({
     ? `It's used ${[uses.scenes ? `in ${uses.scenes} scene${uses.scenes > 1 ? "s" : ""}` : "", uses.overlays ? "as the logo" : "", uses.audio ? "as music" : ""].filter(Boolean).join(" and ")}. Those are taken out of the video too. The file stays in your earlier uploads.`
     : "It's taken out of this video's media. The file stays in your earlier uploads, so you can bring it back."
   return (
-    <li className="group relative flex min-w-0 flex-col overflow-hidden rounded-lg border border-border bg-white">
+    <li className="group relative flex min-w-0 flex-col overflow-hidden rounded-lg border border-border bg-card">
       <button
         type="button"
         disabled={!ready}
@@ -281,12 +281,12 @@ function MediaTile({
           <span className="absolute right-1 bottom-1 rounded bg-black/70 px-1 text-[10px] text-white tabular-nums">{formatSeconds(asset.duration)}</span>
         ) : null}
         {used > 0 && (
-          <span className="absolute top-1 left-1 grid size-4 place-items-center rounded-full bg-primary text-white" title="In the video">
+          <span className="absolute top-1 left-1 grid size-4 place-items-center rounded-full bg-primary text-primary-foreground" title="In the video">
             <Check aria-hidden="true" className="size-2.5" strokeWidth={3} />
           </span>
         )}
         {asset.status === "processing" && (
-          <span className="absolute inset-0 grid place-items-center bg-white/75 text-[11px] font-medium text-foreground">
+          <span className="absolute inset-0 grid place-items-center bg-card/75 text-[11px] font-medium text-foreground">
             <span className="flex items-center gap-1">
               <LoaderCircle aria-hidden="true" className="size-3.5 animate-spin" />
               Getting ready

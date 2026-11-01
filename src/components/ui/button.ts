@@ -5,10 +5,10 @@ type Size = "sm" | "md" | "lg" | "icon";
 
 const variants: Record<Variant, string> = {
   primary: "bg-primary text-primary-foreground hover:bg-primary/90",
-  secondary: "border border-border bg-white text-foreground hover:bg-secondary",
+  secondary: "border border-border bg-card text-foreground hover:bg-secondary",
   ghost: "text-muted-foreground hover:bg-secondary hover:text-foreground",
-  danger: "bg-red-600 text-white hover:bg-red-700",
-  "danger-outline": "border border-red-200 bg-white text-red-600 hover:bg-red-50",
+  danger: "bg-red-600 text-white hover:bg-red-600/90",
+  "danger-outline": "border border-red-200 bg-card text-red-600 hover:bg-red-50",
 };
 
 const sizes: Record<Size, string> = {

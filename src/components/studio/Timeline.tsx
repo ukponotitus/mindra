@@ -371,7 +371,7 @@ export default function Timeline(props: Props) {
                       {...grab("scene", scene.id, "end", [starts[index], starts[index] + scene.duration], most)}
                       title="Drag to change how long this clip lasts"
                       className={cn(
-                        "absolute inset-y-0 right-0 z-10 w-2.5 cursor-ew-resize touch-none rounded-r-md bg-white/70 hover:bg-primary",
+                        "absolute inset-y-0 right-0 z-10 w-2.5 cursor-ew-resize touch-none rounded-r-md bg-card/70 hover:bg-primary",
                         isSelected("scene", scene.id) ? "opacity-100" : "opacity-0 hover:opacity-100",
                       )}
                     />
@@ -384,7 +384,7 @@ export default function Timeline(props: Props) {
                         title={scene.transition.type === "none" ? "Add a transition" : "Change the transition"}
                         className={cn(
                           "absolute top-1/2 z-20 grid size-5 -translate-x-1/2 -translate-y-1/2 place-items-center rounded border text-[10px] font-bold shadow-sm focus-visible:outline-2 focus-visible:outline-primary",
-                          scene.transition.type === "none" ? "border-border bg-white text-muted-foreground hover:text-foreground" : "border-primary bg-primary text-white",
+                          scene.transition.type === "none" ? "border-border bg-card text-muted-foreground hover:text-foreground" : "border-primary bg-primary text-primary-foreground",
                         )}
                         style={{ left: -1 }}
                       >
@@ -458,7 +458,7 @@ export default function Timeline(props: Props) {
                       title={audioTrack.muted ? "The music is off" : "Mute the music"}
                       className={cn(
                         "absolute top-1/2 right-3 z-20 grid size-5 -translate-y-1/2 place-items-center rounded focus-visible:outline-2 focus-visible:outline-primary",
-                        audioTrack.muted ? "bg-red-600 text-white" : "bg-white/80 text-emerald-900 hover:bg-white",
+                        audioTrack.muted ? "bg-red-600 text-white" : "bg-card/80 text-emerald-900 hover:bg-card",
                       )}
                     >
                       {audioTrack.muted ? <VolumeX aria-hidden="true" className="size-3" /> : <Volume2 aria-hidden="true" className="size-3" />}

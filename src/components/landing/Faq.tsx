@@ -81,7 +81,7 @@ export default function Faq() {
   const [open, setOpen] = useState<number | null>(0);
 
   return (
-    <section id="faq" className="scroll-mt-16 bg-white px-6 py-24 lg:py-32">
+    <section id="faq" className="scroll-mt-16 bg-card px-6 py-24 lg:py-32">
       <div className="mx-auto grid max-w-7xl gap-12 lg:grid-cols-[0.8fr_1.2fr] lg:gap-20">
         <Reveal className="lg:sticky lg:top-28 lg:self-start">
           <SectionLabel icon={MessageCircleQuestion}>FAQ</SectionLabel>

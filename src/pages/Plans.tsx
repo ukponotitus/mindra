@@ -25,7 +25,7 @@ import { useUploadOptions } from "../lib/projects";
 import type { ContentPlan } from "../lib/types";
 
 const inputClass =
-  "w-full rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-60 aria-invalid:border-red-400";
+  "w-full rounded-lg border border-border bg-card px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-60 aria-invalid:border-red-400";
 
 const EXAMPLE = `Monday 9am, Instagram and LinkedIn: a quote from this week's episode
 Wednesday 6pm, WhatsApp: reminder about Thursday's live session, 7pm on Zoom
@@ -129,7 +129,7 @@ function NewPlan() {
   const FileIcon = kind ? FILE_ICONS[kind] : FileText;
 
   return (
-    <form onSubmit={submit} noValidate aria-busy={busy} className="min-w-0 space-y-5 rounded-xl border border-border bg-white p-5">
+    <form onSubmit={submit} noValidate aria-busy={busy} className="min-w-0 space-y-5 rounded-xl border border-border bg-card p-5">
       <fieldset>
         <legend className="text-sm font-medium text-foreground">Your plan</legend>
         <div role="group" className="mt-2 inline-flex rounded-lg bg-secondary p-1">
@@ -151,7 +151,7 @@ function NewPlan() {
               }}
               className={cn(
                 "rounded-md px-3.5 py-1.5 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-60",
-                mode === id ? "bg-white text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
+                mode === id ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
               )}
             >
               {label}
@@ -375,7 +375,7 @@ function PlanRow({ plan }: { plan: ContentPlan }) {
     <li>
       <Link
         to={`/plans/${plan.id}`}
-        className="flex min-w-0 items-center gap-4 rounded-xl border border-border bg-white p-4 transition-colors hover:border-muted-foreground/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        className="flex min-w-0 items-center gap-4 rounded-xl border border-border bg-card p-4 transition-colors hover:border-muted-foreground/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
       >
         <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
           {planBusy(plan) ? <LoaderCircle aria-hidden="true" className="size-5 animate-spin" /> : <ClipboardList aria-hidden="true" className="size-5" />}
@@ -430,7 +430,7 @@ export default function Plans() {
               Loading plans
             </p>
             {[0, 1, 2].map((item) => (
-              <div key={item} className="flex items-center gap-4 rounded-xl border border-border bg-white p-4">
+              <div key={item} className="flex items-center gap-4 rounded-xl border border-border bg-card p-4">
                 <div className="size-10 shrink-0 animate-pulse rounded-lg bg-secondary" />
                 <div className="flex-1 space-y-2">
                   <div className="h-3.5 w-1/2 animate-pulse rounded bg-secondary" />

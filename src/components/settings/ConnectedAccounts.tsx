@@ -31,7 +31,7 @@ type SignInService = Exclude<SocialServiceId, "wordpress">;
 
 const is404 = (error: unknown) => error instanceof ApiError && error.status === 404;
 const fieldClass =
-  "h-10 w-full min-w-0 rounded-lg border border-border bg-white px-3 text-sm text-foreground transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-hidden disabled:opacity-60 aria-invalid:border-red-400";
+  "h-10 w-full min-w-0 rounded-lg border border-border bg-card px-3 text-sm text-foreground transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-hidden disabled:opacity-60 aria-invalid:border-red-400";
 
 /** "a", "a and b", "a, b and c". */
 function listOf(items: string[]): string {
@@ -242,7 +242,7 @@ function PendingPanel({
             {pending.service_name} shared {count === 1 ? "this account" : "these accounts"}. Mindra saves{" "}
             {count === 1 ? "it" : "them"} and can post there once you connect.
           </p>
-          <ul className="mt-3 divide-y divide-border rounded-lg border border-border bg-white">
+          <ul className="mt-3 divide-y divide-border rounded-lg border border-border bg-card">
             {pending.accounts.map((account) => (
               <li key={`${account.kind}-${account.username}-${account.name}`} className="flex px-3 py-2.5">
                 <AccountSummary account={account} />
@@ -266,8 +266,8 @@ function PendingPanel({
           <p role="status" className="sr-only">
             Loading what was shared
           </p>
-          <div className="h-10 animate-pulse rounded-lg bg-white" />
-          <div className="h-10 animate-pulse rounded-lg bg-white" />
+          <div className="h-10 animate-pulse rounded-lg bg-card" />
+          <div className="h-10 animate-pulse rounded-lg bg-card" />
         </div>
       )}
       {error && (

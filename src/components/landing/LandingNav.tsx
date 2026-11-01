@@ -49,7 +49,7 @@ export default function LandingNav() {
             <a
               key={link.href}
               href={link.href}
-              className="rounded-full px-4 py-2 text-sm font-medium text-white/70 transition-colors hover:bg-white/5 hover:text-white"
+              className="rounded-full px-4 py-2 text-sm font-medium text-white/70 transition-colors hover:bg-card/5 hover:text-white"
             >
               {link.label}
             </a>
@@ -64,7 +64,7 @@ export default function LandingNav() {
           )}
           <Link
             to={startTo}
-            className="group inline-flex items-center gap-1.5 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-[#0B0B1A] transition-colors hover:bg-white/90"
+            className="group inline-flex items-center gap-1.5 rounded-full bg-card px-5 py-2.5 text-sm font-semibold text-[#0B0B1A] transition-colors hover:bg-card/90"
           >
             {signedIn ? "Open app" : "Start free"}
             <ArrowRight aria-hidden="true" className="size-4 transition-transform group-hover:translate-x-0.5" />
@@ -97,7 +97,7 @@ export default function LandingNav() {
                 key={link.href}
                 href={link.href}
                 onClick={() => setMenuOpen(false)}
-                className="block rounded-xl px-3 py-3 text-white/80 hover:bg-white/5"
+                className="block rounded-xl px-3 py-3 text-white/80 hover:bg-card/5"
               >
                 {link.label}
               </a>
@@ -111,7 +111,7 @@ export default function LandingNav() {
                   Log in
                 </Link>
               )}
-              <Link to={startTo} className="flex-1 rounded-full bg-white px-4 py-3 text-center text-sm font-semibold text-[#0B0B1A]">
+              <Link to={startTo} className="flex-1 rounded-full bg-card px-4 py-3 text-center text-sm font-semibold text-[#0B0B1A]">
                 {signedIn ? "Open app" : "Start free"}
               </Link>
             </div>
