@@ -23,6 +23,7 @@ export type PricingPlan = {
   posts_per_month: number | null;
   clips_per_month: number | null;
   picture_projects_per_month: number | null;
+  ai_images_per_month: number | null;
   /** Who the plan is for, under its name. */
   tagline: string;
   /** What the card lists after the recording time; `soon` for what isn't built yet, `included` false for what the
@@ -87,6 +88,8 @@ export type BillingOverview = PlanList & {
     clips_limit: number | null;
     picture_projects_used: number;
     picture_projects_limit: number | null;
+    ai_images_used: number;
+    ai_images_limit: number | null;
   };
   payments: {
     /** Paying online is switched on (the API has Paystack's key). */
@@ -128,11 +131,13 @@ export const BUILT_IN_PLANS: PricingPlan[] = [
     posts_per_month: 15,
     clips_per_month: 2,
     picture_projects_per_month: 3,
+    ai_images_per_month: 5,
     tagline: "Explore AI content creation",
     features: [
       { text: "15 AI-generated posts", soon: false, included: true },
       { text: "2 watermarked video clips", soon: false, included: true },
       { text: "3 image or flyer projects", soon: false, included: true },
+      { text: "5 AI images", soon: false, included: true },
       { text: "1 brand profile", soon: false, included: true },
       { text: "Content library", soon: false, included: true },
       { text: "Manual downloads and sharing", soon: false, included: true },
@@ -153,11 +158,13 @@ export const BUILT_IN_PLANS: PricingPlan[] = [
     posts_per_month: 100,
     clips_per_month: 15,
     picture_projects_per_month: 25,
+    ai_images_per_month: 40,
     tagline: "Create and publish consistently",
     features: [
       { text: "100 AI-generated posts", soon: false, included: true },
       { text: "15 watermark-free clips", soon: false, included: true },
       { text: "25 image or flyer projects", soon: false, included: true },
+      { text: "40 AI images", soon: false, included: true },
       { text: "3 connected social accounts", soon: false, included: true },
       { text: "Automatic post publishing", soon: false, included: true },
       { text: "Content calendar and scheduling", soon: false, included: true },
@@ -178,11 +185,13 @@ export const BUILT_IN_PLANS: PricingPlan[] = [
     posts_per_month: 300,
     clips_per_month: 50,
     picture_projects_per_month: 100,
+    ai_images_per_month: 150,
     tagline: "Automate your content workflow",
     features: [
       { text: "300 AI-generated posts", soon: false, included: true },
       { text: "50 watermark-free clips", soon: false, included: true },
       { text: "100 image or flyer projects", soon: false, included: true },
+      { text: "150 AI images", soon: false, included: true },
       { text: "10 connected social accounts", soon: false, included: true },
       { text: "Automatic multi-platform publishing", soon: false, included: true },
       { text: "Content plans", soon: false, included: true },
@@ -204,11 +213,13 @@ export const BUILT_IN_PLANS: PricingPlan[] = [
     posts_per_month: 750,
     clips_per_month: 100,
     picture_projects_per_month: 200,
+    ai_images_per_month: 400,
     tagline: "Manage content across your organisation",
     features: [
       { text: "750 AI-generated posts", soon: false, included: true },
       { text: "100 watermark-free clips", soon: false, included: true },
       { text: "200 image or flyer projects", soon: false, included: true },
+      { text: "400 AI images", soon: false, included: true },
       { text: "20 connected social accounts", soon: false, included: true },
       { text: "Automatic multi-platform publishing", soon: false, included: true },
       { text: "Multiple brand profiles", soon: true, included: true },

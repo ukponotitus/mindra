@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { Dialog } from "@base-ui/react/dialog";
-import { Check, Film, ImagePlus, LoaderCircle, Trash2, Upload, X } from "lucide-react";
+import { Check, Film, ImagePlus, LoaderCircle, Sparkles, Trash2, Upload, X } from "lucide-react";
 import { backdropClass, popupClass } from "../calendar/dialogStyles";
 import ConfirmDialog from "../ui/ConfirmDialog";
 import { buttonStyles } from "../ui/button";
@@ -9,8 +9,9 @@ import { cn } from "../../lib/cn";
 import { useSetPostMedia } from "../../lib/content";
 import { formatDuration } from "../../lib/format";
 import { postPhotoFiles } from "../../lib/photos";
-import { useStudioAssets, useUploadAsset, type StudioAsset } from "../../lib/studio";
-import type { ContentPiece } from "../../lib/types";
+import { useStudioAssets, useUploadAsset, type ImageAspect, type StudioAsset } from "../../lib/studio";
+import type { ContentPiece, Platform } from "../../lib/types";
+import AiImageForm from "./AiImageForm";
 import { PostPhotos } from "./ContentCard";
 import ShareButton from "./ShareButton";
 
@@ -18,6 +19,13 @@ const MAX_PHOTOS = 10;
 const ACCEPT = "image/jpeg,image/png,image/webp,image/heic,.heic,.heif,video/mp4,video/quicktime,video/webm,.m4v,.mov";
 
 type Sending = { id: string; name: string; fraction: number; error: string };
+
+/** The shape an AI picture starts on for the post's platform. */
+function aspectFor(platform: Platform): ImageAspect {
+  if (platform === "tiktok" || platform === "youtube_shorts") return "9:16";
+  if (platform === "youtube" || platform === "blog") return "16:9";
+  return "4:5";
+}
 
 /**
  * Choose the post's photos (up to 10) or one video from the workspace's uploads, or upload new ones here. A video is
@@ -31,6 +39,7 @@ function MediaPicker({ open, onOpenChange, piece }: { open: boolean; onOpenChang
   // Each choice keeps its kind, so one made as an upload arrives (before the list has it) still counts as a photo.
   const [chosen, setChosen] = useState<{ id: string; kind: StudioAsset["kind"] }[]>([]);
   const [sending, setSending] = useState<Sending[]>([]);
+  const [creating, setCreating] = useState(false);
   const all = (assets.data?.results ?? []).filter((asset) => (asset.kind === "image" || asset.kind === "video") && asset.status !== "failed" && !asset.library);
   const chosenIds = chosen.map((item) => item.id);
   const picked = chosenIds.map((id) => all.find((asset) => asset.id === id)).filter((asset): asset is StudioAsset => Boolean(asset));
@@ -72,6 +81,7 @@ function MediaPicker({ open, onOpenChange, piece }: { open: boolean; onOpenChang
       onOpenChange={(next) => {
         if (!next) {
           setChosen([]);
+          setCreating(false);
           setMedia.reset();
         }
         onOpenChange(next);
@@ -106,10 +116,26 @@ function MediaPicker({ open, onOpenChange, piece }: { open: boolean; onOpenChang
               event.target.value = "";
             }}
           />
-          <button type="button" onClick={() => file.current?.click()} className={buttonStyles({ variant: "secondary" })}>
-            <Upload aria-hidden="true" className="size-4" />
-            Upload photos or a video
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" onClick={() => file.current?.click()} className={buttonStyles({ variant: "secondary" })}>
+              <Upload aria-hidden="true" className="size-4" />
+              Upload photos or a video
+            </button>
+            <button type="button" aria-expanded={creating} onClick={() => setCreating((open) => !open)} className={buttonStyles({ variant: creating ? "primary" : "secondary" })}>
+              <Sparkles aria-hidden="true" className="size-4" />
+              Create a picture with AI
+            </button>
+          </div>
+          {creating && (
+            <div className="mt-3 rounded-lg border border-border p-4">
+              <AiImageForm
+                aspect={aspectFor(piece.platform)}
+                onMade={(asset) => {
+                  if (!chosen.some((item) => item.id === asset.id)) toggle(asset);
+                }}
+              />
+            </div>
+          )}
           {sending.length > 0 && (
             <ul className="mt-3 space-y-1.5">
               {sending.map((item) => (

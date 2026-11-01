@@ -112,6 +112,19 @@ export type AudioTrack = {
   loop: boolean
 }
 
+/** Every spoken word with its time from the start of the video (what an automation's narration makes), shown a line
+ * at a time. */
+export type Captions = {
+  words: [number, number, string][]
+  /** "highlight": the word being said in the highlight colour; "plain": the whole line alike. */
+  style: "highlight" | "plain"
+  position: "bottom" | "middle"
+  color: string
+  highlight: string
+  /** A share of the canvas height. */
+  size: number
+}
+
 export type Composition = {
   version: 1
   canvas: {
@@ -126,6 +139,8 @@ export type Composition = {
   overlays: Overlay[]
   audio: AudioTrack[]
   export: { quality: Quality }
+  /** Only in compositions that have them (the backend leaves the key out otherwise). */
+  captions?: Captions
 }
 
 export const ASPECTS: {
@@ -285,12 +300,59 @@ export const LIMITS = {
   texts: 60,
   overlays: 8,
   audio: 4,
-  seconds: 300,
+  seconds: 600,
   sceneSeconds: [0.5, 60] as const,
   transitionSeconds: [0.2, 2] as const,
   animationSeconds: [0.1, 3] as const,
   textCharacters: 200,
   textLines: 4,
+}
+
+// Caption lines, as the renderer groups them (studio/composition.py, caption_lines): a line ends at a pause, at the end
+// of a sentence, or when the next word won't fit, and shows until a moment after its last word or the next line.
+const CAPTION_LINE_CHARACTERS: Record<string, number> = { "16:9": 40, "9:16": 22, "1:1": 28 }
+const CAPTION_GAP = 0.7
+const CAPTION_HOLD = 0.5
+/** Where a caption line sits, down the canvas (studio/render.py, CAPTION_Y). */
+export const CAPTION_Y: Record<Captions["position"], Record<string, number>> = {
+  bottom: { "16:9": 0.88, "9:16": 0.72, "1:1": 0.86 },
+  middle: { "16:9": 0.5, "9:16": 0.5, "1:1": 0.5 },
+}
+
+export type CaptionLine = { start: number; end: number; words: [number, number, string][] }
+
+export function captionLines(captions: Captions, aspect: string): CaptionLine[] {
+  const limit = CAPTION_LINE_CHARACTERS[aspect] ?? 28
+  const lines: [number, number, string][][] = []
+  let current: [number, number, string][] = []
+  let size = 0
+  for (const word of captions.words) {
+    const last = current[current.length - 1]
+    if (last && (word[0] - last[1] > CAPTION_GAP || /[.!?]$/.test(last[2]) || size + 1 + word[2].length > limit)) {
+      lines.push(current)
+      current = []
+      size = 0
+    }
+    size += word[2].length + (current.length ? 1 : 0)
+    current.push(word)
+  }
+  if (current.length) lines.push(current)
+  return lines.map((line, index) => {
+    let end = line[line.length - 1][1] + CAPTION_HOLD
+    if (index + 1 < lines.length) end = Math.min(end, lines[index + 1][0][0])
+    return { start: line[0][0], end: Math.max(end, line[line.length - 1][1]), words: line }
+  })
+}
+
+/** The caption line showing at `time`, and which of its words is being said (-1 before the first). */
+export function captionAt(lines: CaptionLine[], time: number): { line: CaptionLine; word: number } | null {
+  const line = lines.find((item) => time >= item.start && time < item.end)
+  if (!line) return null
+  let word = -1
+  line.words.forEach((item, index) => {
+    if (time >= (index === 0 ? line.start : item[0])) word = index
+  })
+  return { line, word }
 }
 
 /** libass draws a size-N Inter text as wide as CSS draws it at about 0.867 N (measured against a render). */
@@ -396,6 +458,8 @@ export type StudioAsset = {
   source: string
   /** The music's page where it came from. */
   source_url: string
+  /** An AI image's description: what it was asked to show. */
+  description: string
   /** The rendition: what the editor shows and plays. */
   url: string | null
   thumbnail_url: string | null
@@ -780,6 +844,31 @@ export function useUploadAsset() {
       )
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: assetsKey }),
+  })
+}
+
+/** The shapes an AI image can be made in (studio/imagine.py). */
+export const IMAGE_ASPECTS = [
+  { id: "4:5", label: "Portrait", hint: "Instagram and Facebook posts" },
+  { id: "1:1", label: "Square", hint: "Any feed" },
+  { id: "9:16", label: "Tall", hint: "Stories, reels and TikTok" },
+  { id: "16:9", label: "Landscape", hint: "YouTube, websites and X" },
+] as const
+
+export type ImageAspect = (typeof IMAGE_ASPECTS)[number]["id"]
+
+/** Ask for an AI image: it comes back "processing" and is made on the server (the uploads list polls until it's
+ * ready or failed), counted against the plan's AI images. `references`: up to 3 of the workspace's photos whose
+ * subject it keeps. */
+export function useImagine() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (body: { prompt: string; aspect: ImageAspect; references?: string[]; project?: string }) =>
+      apiRequest<StudioAsset>("/api/studio/assets/imagine/", { method: "POST", body }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: assetsKey })
+      queryClient.invalidateQueries({ queryKey: ["billing"] })
+    },
   })
 }
 

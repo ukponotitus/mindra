@@ -1,6 +1,6 @@
-import { useId, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from "react";
 import { ArrowLeft, Check, ExternalLink, Film, FolderOpen, LoaderCircle, Music, Plus, Sparkles, Upload, X } from "lucide-react";
-import { Link, useNavigate } from "react-router";
+import { Link, useNavigate, useSearchParams } from "react-router";
 import EarlierUploads from "../components/studio/EarlierUploads";
 import MusicSearch, { PlayIcon, playLabel, usePreviewPlayer } from "../components/studio/MusicSearch";
 import { areaClass, fieldClass, labelClass, panelClass } from "../components/studio/styles";
@@ -25,16 +25,21 @@ import {
 const EXAMPLE =
   "Create a 45-second Sunday service recap using these photos and clips. Start with 'Sunday Service Highlights', use smooth transitions, add uplifting music, show our logo, and end with 'Join us next Sunday at 8 AM'.";
 
-/** Create with AI: the media, the description and the choices; Mindra writes a draft that opens in the editor. */
+/** Create with AI: the media, the description and the choices; Mindra writes a draft that opens in the editor. A link
+ * can start it with media, a name, a description and a type (`?assets=<id>,<id>&name=&prompt=&type=`), as a
+ * campaign's "Make a video from its pictures" does. */
 export default function StudioCreate() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const assets = useStudioAssets();
   const upload = useUploadAsset();
   const create = useCreateWithAi();
   const ids = { name: useId(), prompt: useId(), type: useId(), style: useId(), music: useId() };
-  const [name, setName] = useState("");
-  const [prompt, setPrompt] = useState("");
-  const [videoType, setVideoType] = useState<VideoType>("church_recap");
+  const [name, setName] = useState(() => searchParams.get("name") ?? "");
+  const [prompt, setPrompt] = useState(() => searchParams.get("prompt") ?? "");
+  const [videoType, setVideoType] = useState<VideoType>(
+    () => VIDEO_TYPES.find((item) => item.id === searchParams.get("type"))?.id ?? "church_recap",
+  );
   const [duration, setDuration] = useState<(typeof VIDEO_LENGTHS)[number]>(45);
   const [aspect, setAspect] = useState<Aspect>("9:16");
   const [style, setStyle] = useState<VideoStyle>("inspirational");
@@ -71,6 +76,19 @@ export default function StudioCreate() {
     const audio = fresh.find((asset) => asset.kind === "audio");
     if (audio) setMusic(audio.id);
   };
+
+  // The media the link started it with, added once the uploads list is fresh (one kept from an earlier page may not
+  // have pictures made since).
+  const wanted = useRef((searchParams.get("assets") ?? "").split(",").filter(Boolean));
+  useEffect(() => {
+    const list = assets.data?.results;
+    if (!list || assets.isFetching || !wanted.current.length) return;
+    const found = wanted.current
+      .map((id) => list.find((asset) => asset.id === id && asset.kind !== "audio"))
+      .filter((asset): asset is StudioAsset => Boolean(asset));
+    wanted.current = [];
+    if (found.length) add(found);
+  }, [assets.data, assets.isFetching]);
 
   const send = async (files: FileList | null) => {
     if (!files) return;

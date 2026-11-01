@@ -456,6 +456,12 @@ export default function Billing() {
             limit={usage.picture_projects_limit}
             detail="Photo and flyer posts started this month. Adding pictures to one doesn't count."
           />
+          <Meter
+            label="AI images this month"
+            used={usage.ai_images_used}
+            limit={usage.ai_images_limit}
+            detail="Pictures Mindra makes for posts and campaigns. One that couldn't be made doesn't count."
+          />
         </div>
       </section>
 

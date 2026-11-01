@@ -429,6 +429,8 @@ export type BrandVoice = {
 export type AiStatus = {
   provider: AiProvider;
   model: string;
+  /** AI images are switched on (Gemini's image model). */
+  images?: boolean;
 };
 
 /** One way to improve a post, with the whole post rewritten to apply it. */
@@ -480,8 +482,55 @@ export type PlanEntry = {
   approved: boolean;
   /** Posted (or being posted): it can't change any more. */
   gone_out: boolean;
+  /** A campaign post: what its picture should show ("" for a post better as text alone). */
+  picture: string;
+  /** The AI image made for it: being made, made (and on the post once it's written), or failed with why. */
+  picture_asset: PictureAsset | null;
   created_at: string;
   updated_at: string;
+};
+
+export type PictureAsset = {
+  id: string;
+  status: "processing" | "ready" | "failed";
+  error: string;
+  url: string | null;
+  thumbnail_url: string | null;
+  width: number | null;
+  height: number | null;
+};
+
+export type CampaignGoal = "sales" | "awareness" | "event" | "followers" | "traffic";
+
+/** How a campaign is doing, from its own posts (planner/results.py). Views and the rest are null where the platform
+ * doesn't share them or Mindra doesn't follow the post. */
+export type CampaignResults = {
+  totals: {
+    posts: number;
+    written: number;
+    scheduled: number;
+    out: number;
+    clicks: number;
+    /** Posts whose views and likes Mindra reads. */
+    followed: number;
+    views: number;
+    likes: number;
+    comments: number;
+    shares: number;
+  };
+  platforms: Partial<Record<Platform, { posts: number; out: number; clicks: number; views: number }>>;
+  best: {
+    id: string;
+    platform: Platform;
+    text: string;
+    out: boolean;
+    url: string;
+    clicks: number;
+    views: number | null;
+    likes: number | null;
+    comments: number | null;
+    shares: number | null;
+  }[];
 };
 
 export type ContentPlanStatus = "reading" | "ready" | "failed";
@@ -490,12 +539,26 @@ export type ContentPlanStatus = "reading" | "ready" | "failed";
 export type ContentPlan = {
   id: string;
   name: string;
+  /** "campaign": planned by the AI from a brief; "plan": someone's own plan, read. */
+  kind: "plan" | "campaign";
   status: ContentPlanStatus;
   error: string;
   starts_on: string | null;
+  /** A campaign's last day. */
+  ends_on: string | null;
   time_zone: string;
   source_filename: string;
   has_picture: boolean;
+  /** A campaign's brief: "" and empty for a plan. */
+  goal: CampaignGoal | "";
+  promoting: string;
+  link: string;
+  platforms: Platform[];
+  posts_per_week: number;
+  /** Its posts get AI images. */
+  pictures: boolean;
+  /** The workspace's own photos its pictures are made from. */
+  photos: string[];
   counts: { total: number; written: number; approved: number; needs: number; writing: number };
   first_at: string | null;
   last_at: string | null;
@@ -509,4 +572,6 @@ export type ContentPlanDetail = ContentPlan & {
   entries: PlanEntry[];
   /** After approving: the posts that couldn't be approved, and why. */
   skipped?: { id: string; problem: string }[];
+  /** A campaign's results; null for a plan. */
+  results: CampaignResults | null;
 };
