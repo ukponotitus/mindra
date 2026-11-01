@@ -41,7 +41,7 @@ const questions = [
   },
   {
     q: "Does Mindra support my brand voice?",
-    a: "Yes. In Brand Voice you set your tone, your audience, the words you use and avoid, and sample posts. Everything Mindra writes follows them.",
+    a: "Yes. In your Brand profile you set what you offer and at what price, your audience, your tone, the words you use and avoid, and sample posts. Everything Mindra writes follows them.",
   },
   {
     q: "Can I import an existing content calendar?",

@@ -15,7 +15,10 @@ import AutomationSetup from "./pages/AutomationSetup";
 import Billing from "./pages/Billing";
 import AuthPage from "./pages/Auth";
 import CalendarPage from "./pages/Calendar";
-import BrandVoice from "./pages/BrandVoice";
+import BrandProfile from "./pages/BrandProfile";
+import CampaignDetail from "./pages/CampaignDetail";
+import CampaignEditor from "./pages/CampaignEditor";
+import Campaigns from "./pages/Campaigns";
 import ContentEditor from "./pages/ContentEditor";
 import Clips from "./pages/Clips";
 import PlanDetail from "./pages/PlanDetail";
@@ -99,7 +102,12 @@ export default function App() {
                 <Route path="/automations/:automationId" element={<AutomationDetail />} />
                 <Route path="/automations/:automationId/setup" element={<AutomationSetup />} />
                 <Route path="/plans/:planId" element={<PlanDetail />} />
-                <Route path="/brand-voice" element={<BrandVoice />} />
+                <Route path="/brand" element={<BrandProfile />} />
+                <Route path="/brand-voice" element={<Navigate to="/brand" replace />} />
+                <Route path="/campaigns" element={<Campaigns />} />
+                <Route path="/campaigns/new" element={<CampaignEditor />} />
+                <Route path="/campaigns/:campaignId" element={<CampaignDetail />} />
+                <Route path="/campaigns/:campaignId/edit" element={<CampaignEditor key="edit" />} />
                 <Route path="/billing" element={<Billing />} />
                 <Route path="/settings" element={<Settings />} />
               </Route>

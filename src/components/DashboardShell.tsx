@@ -31,7 +31,11 @@ const pageTitles: [pattern: string, title: string][] = [
   ["/automations/:automationId/setup", "Set Up Automation"],
   ["/automations/:automationId", "Automation"],
   ["/automations", "Automations"],
-  ["/brand-voice", "Brand Voice"],
+  ["/brand", "Brand Profile"],
+  ["/campaigns/new", "New Campaign"],
+  ["/campaigns/:campaignId/edit", "Change Campaign"],
+  ["/campaigns/:campaignId", "Campaign"],
+  ["/campaigns", "Campaigns"],
   ["/billing", "Billing"],
   ["/settings", "Settings"],
 ];

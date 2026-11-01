@@ -16,6 +16,7 @@ import {
   Library,
   Link2,
   LogOut,
+  Megaphone,
   Palette,
   PenLine,
   Plus,
@@ -68,7 +69,7 @@ const nav: (NavLeaf | NavGroup)[] = [
     label: "Brand",
     icon: Palette,
     items: [
-      { label: "Brand Voice", to: "/brand-voice", icon: AudioLines },
+      { label: "Brand profile", to: "/brand", icon: AudioLines },
       {
         label: "Connected accounts",
         to: "/settings#accounts",
@@ -77,7 +78,15 @@ const nav: (NavLeaf | NavGroup)[] = [
       },
     ],
   },
-  { id: "plan", label: "Plan", icon: ClipboardList, items: [{ label: "Content Plans", to: "/plans", icon: ClipboardList }] },
+  {
+    id: "plan",
+    label: "Plan",
+    icon: ClipboardList,
+    items: [
+      { label: "Campaigns", to: "/campaigns", icon: Megaphone },
+      { label: "Content Plans", to: "/plans", icon: ClipboardList },
+    ],
+  },
   {
     id: "create",
     label: "Create",

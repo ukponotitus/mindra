@@ -23,7 +23,8 @@ test("the sidebar groups related pages, and each page opens", async ({ page }) =
 
   // Each group opens and closes; its pages open with their own title.
   const pages: [group: string, link: string, title: string][] = [
-    ["Brand", "Brand Voice", "Brand Voice"],
+    ["Brand", "Brand profile", "Brand Profile"],
+    ["Plan", "Campaigns", "Campaigns"],
     ["Plan", "Content Plans", "Content Plans"],
     ["Create", "Projects", "Projects"],
     ["Create", "AI Studio", "AI Studio"],

@@ -1,10 +1,11 @@
-import { AudioLines, Clock, FileText, FolderOpen, Hourglass, PenLine, Video, type LucideIcon } from "lucide-react";
+import { ArrowRight, AudioLines, Clock, FileText, FolderOpen, Hourglass, Palette, PenLine, Video, type LucideIcon } from "lucide-react";
 import { Link } from "react-router";
 import { displayName, useAuth } from "../auth/context";
 import ComingUp from "../components/calendar/ComingUp";
 import EmptyState from "../components/EmptyState";
 import StatusBadge from "../components/StatusBadge";
 import { buttonStyles } from "../components/ui/button";
+import { useBrandProfile } from "../lib/brand";
 import { formatDate, formatExtensions, formatMegabytes } from "../lib/format";
 import { projectLength, projectPath, SOURCE_ICONS, useProjects, useProjectSummary, useUploadOptions } from "../lib/projects";
 import type { SourceType } from "../lib/types";
@@ -19,6 +20,32 @@ function greeting(): string {
 
 function plural(count: number, word: string): string {
   return `${count} ${word}${count === 1 ? "" : "s"}`;
+}
+
+/** Until the brand profile says who the workspace is, Home asks for it first: everything Mindra writes uses it. */
+function BrandSetup() {
+  const brand = useBrandProfile().data;
+  if (!brand || brand.filled.basics) return null;
+  return (
+    <section aria-labelledby="brand-setup" className="flex flex-col gap-4 rounded-xl border border-primary/30 bg-primary/5 p-5 sm:flex-row sm:items-center">
+      <span className="grid size-11 shrink-0 place-items-center rounded-lg bg-primary text-white">
+        <Palette aria-hidden="true" className="size-5" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <h3 id="brand-setup" className="text-base font-semibold text-foreground">
+          Set up your brand profile
+        </h3>
+        <p className="mt-0.5 text-sm text-pretty text-muted-foreground">
+          Tell Mindra who you are and what you offer, once. It writes, plans and creates with it, so you never explain your
+          business twice. It takes a few minutes, or paste your bio and let Mindra fill it in.
+        </p>
+      </div>
+      <Link to="/brand" className={buttonStyles({ className: "shrink-0" })}>
+        Set it up
+        <ArrowRight aria-hidden="true" className="size-4" />
+      </Link>
+    </section>
+  );
 }
 
 export default function Dashboard() {
@@ -75,6 +102,8 @@ export default function Dashboard() {
         </h2>
         <p className="mt-1 text-sm text-pretty text-muted-foreground">{subtitle}</p>
       </div>
+
+      <BrandSetup />
 
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4" aria-busy={summary.isPending}>
         {stats.map((stat) => (
