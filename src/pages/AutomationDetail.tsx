@@ -1,19 +1,20 @@
-import { useState } from "react";
-import { ArrowLeft, Check, CircleAlert, CircleDashed, Copy, LoaderCircle, Pause, Pencil, Play, TestTube, Trash2, X } from "lucide-react";
-import { Link, Navigate, useNavigate, useParams } from "react-router";
-import { ErrorNote, Panel, RunRow, StatusPill } from "../components/automations/parts";
+import { useEffect, useState } from "react";
+import { ArrowLeft, CircleAlert, Copy, LoaderCircle, Pause, Pencil, Play, Sparkles, Trash2 } from "lucide-react";
+import { Link, Navigate, useLocation, useNavigate, useParams } from "react-router";
+import Timeline from "../components/automations/Timeline";
+import { ErrorNote, Panel, PlatformMarks, RunRow, StatTile, StatusPill } from "../components/automations/parts";
 import ConfirmDialog from "../components/ui/ConfirmDialog";
 import { buttonStyles } from "../components/ui/button";
 import { ApiError } from "../lib/api";
 import {
   AUTOMATION_STATUS,
-  EFFECTS,
+  KINDS,
   LANGUAGES,
+  MODES,
+  PLATFORM_LABELS,
   PRIVACY,
+  runStatus,
   scheduleSummary,
-  STEPS,
-  TRANSITIONS,
-  TRANSLATIONS,
   useAutomation,
   useAutomationAction,
   useAutomationsEnabled,
@@ -21,94 +22,101 @@ import {
   useRun,
   useStartRun,
   type AutomationDetail as Detail,
-  type StepStatus,
+  type RunStatus,
 } from "../lib/automations";
 import { formatScheduled } from "../lib/calendar";
 import { cn } from "../lib/cn";
-
-// Where each step's settings are changed in the setup.
-const SETUP_FOR: Record<string, string | null> = {
-  trigger: "schedule",
-  topic: "script",
-  script: "script",
-  voice: "voice",
-  music: "look",
-  visuals: "look",
-  render: "look",
-  details: "basics",
-  thumbnail: "look",
-  review: null,
-  upload: "schedule",
-  monitor: null,
-};
-
-/** What each step is set to, in a line or two. */
-function stepSettings(name: string, automation: Detail): string[] {
-  const config = automation.config;
-  switch (name) {
-    case "trigger":
-      return [scheduleSummary(automation), automation.time_zone.replace(/_/g, " ")];
-    case "topic": {
-      const waiting = automation.topics.filter((topic) => !topic.used_at).length;
-      const source = { list: "From your list", both: "Your list, then AI ideas", ai: "AI ideas" }[config.topics.source];
-      return [`${source}: ${waiting} topics waiting`, `A topic can come back after ${config.topics.repeat_after_days} days`];
-    }
-    case "script":
-      return [
-        `${config.content.minutes} minutes, ${config.content.tone}, ${LANGUAGES[config.content.language] ?? config.content.language}`,
-        `${config.script.approve_first ? "You approve it before the voice-over" : "Not approved separately"}${config.script.scripture ? `; Scripture from the ${TRANSLATIONS[config.script.translation]}` : ""}`,
-      ];
-    case "voice":
-      return [config.voice.voice_name || "No voice chosen yet", `Speed ${config.voice.speed.toFixed(2)}×, ${config.voice.pronunciations.length} pronunciations`];
-    case "music":
-      return [`${config.music.tracks.length} ${config.music.tracks.length === 1 ? "track" : "tracks"}`, `${Math.round(config.music.volume * 100)}% under the voice${config.music.fade ? ", faded" : ""}`];
-    case "visuals":
-      return [
-        config.visuals.use_all ? "All your photos and clips" : `${config.visuals.assets.length} photos and clips`,
-        `${TRANSITIONS[config.visuals.transition]} transitions, ${EFFECTS[config.visuals.effect].toLowerCase()} filter`,
-      ];
-    case "render":
-      return [`${config.content.shape === "16:9" ? "Landscape 16:9" : "Vertical 9:16"}, 1080p`, `Captions ${config.captions.on ? "on" : "off"}, ${config.branding.logo ? "with your logo" : "no logo"}`];
-    case "details":
-      return ["Title, description and tags written for each video", "The music's credit goes in the description"];
-    case "thumbnail":
-      return [config.thumbnail.on ? "Made for each video" : "YouTube picks one"];
-    case "review":
-      return [automation.mode === "automatic" ? "Posts on its own when every check passes" : "Waits for your approval"];
-    case "upload":
-      return [automation.account?.name ?? "No channel chosen", PRIVACY[config.publishing.privacy]];
-    case "monitor":
-      return ["Checks it went out, then Analytics follows it"];
-    default:
-      return [];
-  }
-}
-
-const STEP_ICON: Record<StepStatus, { icon: typeof Check; tone: string; label: string }> = {
-  pending: { icon: CircleDashed, tone: "text-muted-foreground", label: "Not reached" },
-  running: { icon: LoaderCircle, tone: "text-primary animate-spin", label: "Working" },
-  waiting: { icon: CircleDashed, tone: "text-amber-700", label: "Waiting" },
-  done: { icon: Check, tone: "text-emerald-700", label: "Done" },
-  skipped: { icon: X, tone: "text-muted-foreground", label: "Skipped" },
-  failed: { icon: CircleAlert, tone: "text-red-700", label: "Stopped" },
-};
 
 function errorText(error: unknown) {
   return error instanceof ApiError ? error.message : error ? "That didn't go through. Try again." : "";
 }
 
+/** What the automation does, in five plain lines, each with where to change it. */
+function Summary({ automation }: { automation: Detail }) {
+  const config = automation.config;
+  const create = automation.kind === "create";
+  const waiting = automation.topics.filter((item) => !item.used_at);
+  const rows = [
+    {
+      step: "content",
+      title: "What it makes",
+      text: create
+        ? `A ${config.content.minutes}-minute ${config.content.tone} video in ${LANGUAGES[config.content.language] ?? config.content.language} on ${
+            config.topics.source === "ai" ? "a new AI topic each time" : `the next of ${waiting.length} topics${config.topics.source === "both" ? ", then AI ideas" : ""}`
+          }.`
+        : automation.kind === "repurpose"
+          ? config.source.clips === "newest"
+            ? "Your newest made clip each time, with a title and caption written for it."
+            : `The next of ${waiting.length} clips you chose, with a title and caption written for each.`
+          : `The next of ${waiting.length} videos on its list, with a title and caption written for each.`,
+    },
+    {
+      step: "video",
+      title: "How it's put together",
+      text: create
+        ? `${config.voice.voice_name || "No voice chosen"} reads the script over ${config.visuals.use_all ? "all your photos and clips" : `${config.visuals.assets.length} photos and clips`}${
+            config.music.tracks.length ? ", with music" : ""
+          }${config.captions.on ? " and captions" : ""}, ${config.content.shape === "16:9" ? "landscape" : "vertical"}, in Motion Studio.`
+        : "Posted as it is.",
+    },
+    {
+      step: "platforms",
+      title: "Where it goes",
+      text: config.publishing.platforms.length
+        ? config.publishing.platforms
+            .map((platform) => {
+              const account = platform === "youtube" ? automation.account : automation.tiktok_account;
+              return `${PLATFORM_LABELS[platform]} (${account ? account.name : "no account chosen"}${platform === "youtube" ? `, ${PRIVACY[config.publishing.privacy].toLowerCase()}` : ""})`;
+            })
+            .join(" and ") + ", and the Content Library."
+        : "No platform chosen.",
+    },
+    { step: "schedule", title: "When", text: `${scheduleSummary(automation)}, ${automation.time_zone.replace(/_/g, " ")}.` },
+    { step: "schedule", title: "Approval", text: MODES[automation.mode].description },
+  ];
+  return (
+    <section className="divide-y divide-border rounded-xl border border-border bg-white">
+      {rows.map((row) => (
+        <div key={row.title} className="flex items-start gap-4 px-4 py-3">
+          <div className="min-w-0 flex-1">
+            <h3 className="text-xs font-medium text-muted-foreground">{row.title}</h3>
+            <p className="mt-0.5 text-sm text-pretty text-foreground">{row.text}</p>
+          </div>
+          <Link to={`/automations/${automation.id}/setup?step=${row.step}`} className={buttonStyles({ variant: "ghost", size: "sm" })}>
+            Change
+          </Link>
+        </div>
+      ))}
+    </section>
+  );
+}
+
 function AutomaticPosting({ automation }: { automation: Detail }) {
   const action = useAutomationAction(automation.id);
   const on = automation.mode === "automatic";
+  const tiktok = automation.config.publishing.platforms.includes("tiktok");
+  if (automation.mode === "draft") {
+    return (
+      <section className="rounded-xl border border-border bg-white p-4">
+        <h3 className="text-sm font-semibold text-foreground">Posting</h3>
+        <p className="mt-1 text-sm text-pretty text-muted-foreground">Each video is saved in your Content Library as a draft. Nothing is posted until you post it.</p>
+        <Link to={`/automations/${automation.id}/setup?step=schedule`} className={buttonStyles({ variant: "secondary", size: "sm", className: "mt-3" })}>
+          Change
+        </Link>
+      </section>
+    );
+  }
   return (
     <section className="rounded-xl border border-border bg-white p-4">
       <h3 className="text-sm font-semibold text-foreground">Posting</h3>
       <p className="mt-1 text-sm text-pretty text-muted-foreground">
         {on
-          ? `Videos go out on their own when every check passes. Any that doesn't pass waits for you. On since ${automation.automatic_since ? formatScheduled(automation.automatic_since) : "recently"}.`
+          ? `Videos go out at their time when every check passes; one that doesn't waits for you${tiktok ? ", and TikTok posts always wait for your approval" : ""}. On since ${
+              automation.automatic_since ? formatScheduled(automation.automatic_since) : "recently"
+            }.`
           : automation.approved_once
-            ? "You approve each video. You can let it post on its own now that you've approved one."
-            : "You approve each video. Once you've approved one, you can let it post on its own."}
+            ? "You approve each video. Now that you've approved one, it can post on its own."
+            : "You approve each video. Once you've approved one, it can post on its own."}
       </p>
       <div className="mt-3">
         {on ? (
@@ -119,23 +127,35 @@ function AutomaticPosting({ automation }: { automation: Detail }) {
           <ConfirmDialog
             tone="primary"
             trigger={
-              <button type="button" disabled={!automation.approved_once || action.isPending} className={buttonStyles({ variant: "secondary", size: "sm" })}>
+              <button type="button" disabled={!automation.approved_once || !automation.can_post_automatically || action.isPending} className={buttonStyles({ variant: "secondary", size: "sm" })}>
                 Post automatically
               </button>
             }
             title="Post without your approval?"
-            description="Videos will go to YouTube at their time without you seeing them first, as long as every quality check passes. One that doesn't pass still waits for you. You can switch back at any time."
+            description={`Videos will go to ${tiktok ? "YouTube" : automation.config.publishing.platforms.map((platform) => PLATFORM_LABELS[platform]).join(" and ")} at their time without you seeing them first, as long as every quality check passes. One that doesn't pass still waits for you.${tiktok ? " TikTok posts still wait for your approval." : ""} You can switch back at any time.`}
             confirmLabel="Post automatically"
             onConfirm={() => action.mutate({ action: "automatic", body: { on: true, confirm: true } })}
           />
         )}
+        {!on && !automation.can_post_automatically && <p className="mt-2 text-xs text-muted-foreground">Only the workspace&apos;s owner or an admin can turn this on.</p>}
       </div>
-      {action.error && <p role="alert" className="mt-2 text-sm text-red-700">{errorText(action.error)}</p>}
+      {action.error && (
+        <p role="alert" className="mt-2 text-sm text-red-700">
+          {errorText(action.error)}
+        </p>
+      )}
     </section>
   );
 }
 
-/** One automation: its twelve steps and their settings, what's in the way, what's coming, and its runs. */
+const FILTERS: { id: string; label: string; statuses: RunStatus[] }[] = [
+  { id: "all", label: "All", statuses: [] },
+  { id: "waiting", label: "Waiting for you", statuses: ["waiting"] },
+  { id: "posted", label: "Posted", statuses: ["published", "scheduled"] },
+  { id: "stopped", label: "Stopped", statuses: ["failed"] },
+];
+
+/** One automation: what it does, the latest video's progress, what's coming, and every video it made. */
 export default function AutomationDetail() {
   const enabled = useAutomationsEnabled();
   const { automationId = "" } = useParams();
@@ -144,9 +164,14 @@ export default function AutomationDetail() {
   const action = useAutomationAction(automationId);
   const start = useStartRun(automationId);
   const remove = useDeleteAutomation();
-  const lastRunId = automation.data?.runs[0]?.id;
-  const lastRun = useRun(lastRunId);
-  const [chosen, setChosen] = useState("trigger");
+  const latest = useRun(automation.data?.runs[0]?.id);
+  const [filter, setFilter] = useState("all");
+  const { hash } = useLocation();
+  const loaded = Boolean(automation.data);
+  // "History" on the Automations page links here; the section is only there once the automation has loaded.
+  useEffect(() => {
+    if (loaded && hash === "#history") document.getElementById("history")?.scrollIntoView({ block: "start" });
+  }, [loaded, hash]);
 
   if (!enabled) return <Navigate to="/dashboard" replace />;
   if (automation.isPending) {
@@ -164,14 +189,13 @@ export default function AutomationDetail() {
 
   const data = automation.data;
   const status = AUTOMATION_STATUS[data.status];
-  const stepStatus = new Map((lastRun.data?.steps ?? []).map((step) => [step.name, step.status]));
-  const selected = STEPS.find((step) => step.name === chosen) ?? STEPS[0];
-  const setupStep = SETUP_FOR[selected.name];
   const working = data.runs.some((run) => run.status === "queued" || run.status === "working");
   const problem = errorText(action.error || start.error || remove.error);
-
-  const test = () => start.mutate("test", { onSuccess: (run) => navigate(`/automations/runs/${run.id}`) });
-  const runNow = () => start.mutate("run-now", { onSuccess: (run) => navigate(`/automations/runs/${run.id}`) });
+  const shown = FILTERS.find((item) => item.id === filter) ?? FILTERS[0];
+  const runs = shown.statuses.length ? data.runs.filter((run) => shown.statuses.includes(run.status)) : data.runs;
+  const goTo = (run: { id: string }) => navigate(`/automations/runs/${run.id}`);
+  const sample = () => start.mutate({ kind: "test", length: data.kind === "create" ? "short" : "full" }, { onSuccess: goTo });
+  const runNow = () => start.mutate({ kind: "run-now" }, { onSuccess: goTo });
   const duplicate = () => action.mutate({ action: "duplicate" }, { onSuccess: (copy) => navigate(`/automations/${copy.id}/setup`) });
 
   return (
@@ -188,24 +212,33 @@ export default function AutomationDetail() {
             <StatusPill {...status} />
             {data.mode === "automatic" && <StatusPill label="Posts automatically" tone="bg-primary/10 text-primary" />}
           </div>
-          <p className="mt-1 text-sm text-muted-foreground tabular-nums">
-            {data.account?.name ?? "No channel chosen"} · {scheduleSummary(data)}
-            {data.status === "active" && data.next_slot ? ` · Next: ${formatScheduled(data.next_slot)}` : ""}
+          <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground tabular-nums">
+            <span>{KINDS[data.kind].label}</span>
+            <span aria-hidden="true">·</span>
+            <PlatformMarks platforms={data.platforms} drafts={data.mode === "draft"} />
+            <span aria-hidden="true">·</span>
+            <span>{scheduleSummary(data)}</span>
+            {data.status === "active" && data.next_slot && (
+              <>
+                <span aria-hidden="true">·</span>
+                <span>Next: {formatScheduled(data.next_slot)}</span>
+              </>
+            )}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Link to={`/automations/${data.id}/setup`} className={buttonStyles({ variant: "secondary", size: "sm" })}>
             <Pencil aria-hidden="true" className="size-4" />
-            Edit settings
+            Edit
           </Link>
-          <button type="button" onClick={test} disabled={start.isPending || working || data.test_problems.length > 0} className={buttonStyles({ variant: "secondary", size: "sm" })}>
-            <TestTube aria-hidden="true" className="size-4" />
-            Make a test video
+          <button type="button" onClick={sample} disabled={start.isPending || working || data.test_problems.length > 0} className={buttonStyles({ variant: "secondary", size: "sm" })}>
+            <Sparkles aria-hidden="true" className="size-4" />
+            Make a sample
           </button>
           {data.status === "active" ? (
             <>
               <button type="button" onClick={runNow} disabled={start.isPending || working} className={buttonStyles({ variant: "secondary", size: "sm" })}>
-                Make one now
+                Run now
               </button>
               <button type="button" onClick={() => action.mutate({ action: "pause" })} disabled={action.isPending} className={buttonStyles({ variant: "secondary", size: "sm" })}>
                 <Pause aria-hidden="true" className="size-4" />
@@ -215,101 +248,72 @@ export default function AutomationDetail() {
           ) : (
             <button type="button" onClick={() => action.mutate({ action: "activate" })} disabled={action.isPending || data.problems.length > 0} className={buttonStyles({ variant: "primary", size: "sm" })}>
               {action.isPending ? <LoaderCircle aria-hidden="true" className="size-4 animate-spin" /> : <Play aria-hidden="true" className="size-4" />}
-              {data.status === "paused" ? "Switch back on" : "Switch on"}
+              {data.status === "paused" ? "Resume" : "Switch on"}
             </button>
           )}
         </div>
       </div>
 
       {problem && <ErrorNote>{problem}</ErrorNote>}
-      {data.status !== "active" && data.problems.length > 0 && (
+      {data.problems.length > 0 && (
         <section className="space-y-2 rounded-xl border border-amber-200 bg-amber-50 p-4">
-          <h3 className="text-sm font-semibold text-amber-900">Before it can be switched on</h3>
+          <h3 className="text-sm font-semibold text-amber-900">{data.status === "active" ? "This needs sorting out, or its next video will stop" : "Before it can be switched on"}</h3>
           <ul className="space-y-1.5">
             {data.problems.map((item) => (
               <li key={`${item.field}-${item.message}`} className="flex gap-2 text-sm text-pretty text-amber-900">
                 <CircleAlert aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
-                {item.message}
+                <span>
+                  {item.message}{" "}
+                  {item.field && (
+                    <Link to={`/automations/${data.id}/setup?step=${item.field}`} className="font-medium underline underline-offset-2">
+                      Fix it
+                    </Link>
+                  )}
+                </span>
               </li>
             ))}
           </ul>
         </section>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
-        <section aria-labelledby="steps" className="min-w-0 space-y-3">
-          <div className="flex items-baseline justify-between gap-3">
-            <h3 id="steps" className="text-lg font-semibold text-foreground">
-              Steps
-            </h3>
-            {lastRun.data && (
-              <Link to={`/automations/runs/${lastRun.data.id}`} className="text-xs text-muted-foreground hover:text-foreground">
-                Showing the last run
-              </Link>
-            )}
-          </div>
-          <ol className="rounded-xl border border-border bg-white p-2">
-            {STEPS.map((step, index) => {
-              const state = stepStatus.get(step.name);
-              const look = state ? STEP_ICON[state] : null;
-              const Icon = look?.icon;
-              return (
-                <li key={step.name} className="relative">
-                  {index < STEPS.length - 1 && <span aria-hidden="true" className="absolute top-11 bottom-0 left-[1.6rem] w-px bg-border" />}
-                  <button
-                    type="button"
-                    onClick={() => setChosen(step.name)}
-                    aria-pressed={chosen === step.name}
-                    className={cn(
-                      "relative flex w-full items-start gap-3 rounded-lg px-2.5 py-2.5 text-left transition-colors focus-visible:outline-2 focus-visible:outline-primary",
-                      chosen === step.name ? "bg-primary/5" : "hover:bg-secondary",
-                    )}
-                  >
-                    <span className={cn("grid size-7 shrink-0 place-items-center rounded-full border bg-white text-xs font-semibold tabular-nums", chosen === step.name ? "border-primary text-primary" : "border-border text-muted-foreground")}>
-                      {index + 1}
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-sm font-medium text-foreground">{step.label}</span>
-                      <span className="block truncate text-xs text-muted-foreground">{stepSettings(step.name, data)[0]}</span>
-                    </span>
-                    {look && Icon && (
-                      <span className="mt-1 flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
-                        <Icon aria-hidden="true" className={cn("size-4", look.tone)} />
-                        <span className="sr-only sm:not-sr-only">{look.label}</span>
-                      </span>
-                    )}
-                  </button>
-                </li>
-              );
-            })}
-          </ol>
-        </section>
+      <div className="grid gap-3 sm:grid-cols-4">
+        <StatTile label="Videos made" value={data.made} hint="Saved in the Content Library" />
+        <StatTile label="Posted" value={data.posted} />
+        <StatTile label="Waiting for you" value={data.waiting} />
+        <StatTile label="Stopped" value={data.failed} hint={data.failed ? "Open one to try again" : undefined} />
+      </div>
 
-        <div className="space-y-4">
-          <section aria-live="polite" className="rounded-xl border border-border bg-white p-4">
-            <p className="text-xs font-medium text-muted-foreground tabular-nums">
-              Step {STEPS.indexOf(selected) + 1} of {STEPS.length}
-            </p>
-            <h3 className="mt-0.5 font-semibold text-foreground">{selected.label}</h3>
-            <p className="mt-1 text-sm text-pretty text-muted-foreground">{selected.description}</p>
-            <ul className="mt-3 space-y-1 border-t border-border pt-3">
-              {stepSettings(selected.name, data).map((line) => (
-                <li key={line} className="text-sm text-foreground">
-                  {line}
-                </li>
-              ))}
-            </ul>
-            {setupStep && (
-              <Link to={`/automations/${data.id}/setup?step=${setupStep}`} className={buttonStyles({ variant: "secondary", size: "sm", className: "mt-4" })}>
-                Change
-              </Link>
-            )}
-            {lastRun.data?.steps.find((step) => step.name === selected.name)?.error && (
-              <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-pretty text-red-800">
-                Last run: {lastRun.data.steps.find((step) => step.name === selected.name)?.error}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
+        <div className="min-w-0 space-y-6">
+          <Summary automation={data} />
+          <section aria-labelledby="latest" className="space-y-3">
+            <div className="flex items-baseline justify-between gap-3">
+              <h3 id="latest" className="text-lg font-semibold text-foreground">
+                Latest video
+              </h3>
+              {latest.data && (
+                <Link to={`/automations/runs/${latest.data.id}`} className="text-sm font-medium text-primary underline-offset-2 hover:underline">
+                  Open
+                </Link>
+              )}
+            </div>
+            {latest.data ? (
+              <div className="space-y-3 rounded-xl border border-border bg-white p-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">{latest.data.title || latest.data.topic || "Choosing what to make"}</p>
+                  <StatusPill {...runStatus(latest.data)} />
+                </div>
+                <Timeline run={latest.data} />
+              </div>
+            ) : (
+              <p className="rounded-xl border border-dashed border-border bg-white px-4 py-6 text-sm text-pretty text-muted-foreground">
+                No videos yet. Make a sample to see what this automation makes; it isn&apos;t saved or posted.
               </p>
             )}
           </section>
+        </div>
+
+        <div className="space-y-4">
           <AutomaticPosting automation={data} />
           {data.status === "active" && (
             <Panel title="Coming up">
@@ -330,18 +334,36 @@ export default function AutomationDetail() {
       </div>
 
       <section aria-labelledby="history" className="space-y-3">
-        <h3 id="history" className="text-lg font-semibold text-foreground">
-          Runs
-        </h3>
-        {data.runs.length ? (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h3 id="history" className="text-lg font-semibold text-foreground">
+            History
+          </h3>
+          <div role="group" aria-label="Show" className="flex flex-wrap gap-1">
+            {FILTERS.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                aria-pressed={filter === item.id}
+                onClick={() => setFilter(item.id)}
+                className={cn(
+                  "rounded-full px-3 py-1 text-xs font-medium focus-visible:outline-2 focus-visible:outline-primary",
+                  filter === item.id ? "bg-foreground text-background" : "bg-secondary text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        {runs.length ? (
           <ul className="rounded-xl border border-border bg-white p-2">
-            {data.runs.map((run) => (
+            {runs.map((run) => (
               <RunRow key={run.id} run={run} showAutomation={false} />
             ))}
           </ul>
         ) : (
           <p className="rounded-xl border border-dashed border-border bg-white px-4 py-6 text-sm text-pretty text-muted-foreground">
-            No videos yet. Make a test video to see what this automation makes; it waits for your approval and isn&apos;t posted.
+            {data.runs.length ? "None of its recent videos are here." : "No videos yet."}
           </p>
         )}
       </section>
@@ -359,7 +381,7 @@ export default function AutomationDetail() {
             </button>
           }
           title={`Delete ${data.name}?`}
-          description="No more videos will be made. Videos it already made stay in Motion Studio, and posts already scheduled still go out."
+          description="No more videos will be made. Videos it already made stay in Motion Studio and the Content Library, and posts already scheduled still go out."
           confirmLabel="Delete automation"
           onConfirm={() => remove.mutate(data.id, { onSuccess: () => navigate("/automations") })}
         />

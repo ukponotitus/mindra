@@ -1,6 +1,7 @@
 import {
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
   type CSSProperties,
@@ -11,8 +12,12 @@ import {
 } from "react"
 import { cn } from "../../lib/cn"
 import {
+  CAPTION_Y,
   TEXT_SIZE_TO_CSS,
+  captionAt,
+  captionLines,
   fontFor,
+  type Captions,
   type Composition,
   type Overlay,
   type Scene,
@@ -504,6 +509,57 @@ function Placeable({
   )
 }
 
+/** An automation's captions: the line being said, the current word in the highlight colour, drawn as the renderer
+ * draws them (Inter ExtraBold with a black outline, in the middle across). */
+function CaptionLayer({
+  captions,
+  aspect,
+  canvasHeight,
+  stage,
+  time,
+}: {
+  captions: Captions
+  aspect: string
+  canvasHeight: number
+  stage: { width: number; height: number }
+  time: number
+}) {
+  const lines = useMemo(() => captionLines(captions, aspect), [captions, aspect])
+  const shown = captionAt(lines, time)
+  if (!shown) return null
+  const toStage = stage.height / canvasHeight
+  const canvasSize = Math.max(Math.round(captions.size * canvasHeight), 8)
+  const fontPx = canvasSize * toStage * TEXT_SIZE_TO_CSS
+  const borderPx = Math.max(Math.round(canvasSize * 0.09), 2) * toStage
+  return (
+    <div
+      aria-hidden="true"
+      className="pointer-events-none absolute inset-x-0 text-center"
+      style={{
+        top: `${(CAPTION_Y[captions.position][aspect] ?? 0.86) * 100}%`,
+        transform: "translateY(-50%)",
+        zIndex: 210,
+        fontFamily: '"Inter", sans-serif',
+        fontWeight: 800,
+        fontSize: `${fontPx}px`,
+        lineHeight: 1.21,
+        whiteSpace: "nowrap",
+        textShadow: outlineShadow(borderPx),
+      }}
+    >
+      {shown.line.words.map((word, index) => (
+        <span
+          key={`${word[0]}-${index}`}
+          style={{ color: captions.style === "highlight" && index === shown.word ? captions.highlight : captions.color }}
+        >
+          {index ? " " : ""}
+          {word[2]}
+        </span>
+      ))}
+    </div>
+  )
+}
+
 /** The ring of shadows that stands in for libass's outline. */
 function outlineShadow(px: number) {
   if (px <= 0) return undefined
@@ -861,6 +917,16 @@ export default function Preview({
             />
           ) : null
         })}
+
+        {composition.captions ? (
+          <CaptionLayer
+            captions={composition.captions}
+            aspect={composition.canvas.aspect}
+            canvasHeight={canvasHeight}
+            stage={stageSize}
+            time={time}
+          />
+        ) : null}
 
         {composition.scenes.length === 0 ? (
           <div

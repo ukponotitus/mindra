@@ -31,8 +31,11 @@ export default function MediaPicker({
   const hintId = useId();
   const [progress, setProgress] = useState<number | null>(null);
   const [problem, setProblem] = useState("");
-  const usable = (assets.data?.results ?? []).filter((asset) => kinds.includes(asset.kind) && asset.status !== "failed");
   const chosen = new Set(selected);
+  // Automations' own narrations are the workspace's audio too, but never someone's music.
+  const usable = (assets.data?.results ?? []).filter(
+    (asset) => kinds.includes(asset.kind) && asset.status !== "failed" && (asset.source !== "elevenlabs" || chosen.has(asset.id)),
+  );
 
   const toggle = (asset: StudioAsset) => {
     if (single) onChange(chosen.has(asset.id) ? [] : [asset.id]);

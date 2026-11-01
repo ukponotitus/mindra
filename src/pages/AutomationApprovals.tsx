@@ -3,10 +3,10 @@ import { Link, Navigate } from "react-router";
 import EmptyState from "../components/EmptyState";
 import { ErrorNote } from "../components/automations/parts";
 import { buttonStyles } from "../components/ui/button";
-import { useAutomationsEnabled, useRuns } from "../lib/automations";
+import { runStatus, useAutomationsEnabled, useRuns } from "../lib/automations";
 import { formatScheduled } from "../lib/calendar";
 
-/** Every script and video waiting for the person's approval, oldest slot first. */
+/** Every script, video and TikTok post waiting for the person's approval, oldest slot first. */
 export default function AutomationApprovals() {
   const enabled = useAutomationsEnabled();
   const runs = useRuns({ status: ["waiting"] });
@@ -22,8 +22,8 @@ export default function AutomationApprovals() {
       <div>
         <h2 className="text-2xl font-semibold text-balance text-foreground">Waiting for approval</h2>
         <p className="mt-1 text-sm text-pretty text-muted-foreground">
-          Scripts to read before they&apos;re voiced, and videos to check before they go out. One left unapproved for a week
-          is set aside, and its topic goes back on the list.
+          Scripts to read before they&apos;re narrated, videos to check before they go out, and TikTok posts, which TikTok asks
+          you to approve each time. One left unapproved for a week is set aside, and its topic goes back on the list.
         </p>
       </div>
       {runs.isPending ? (
@@ -35,7 +35,7 @@ export default function AutomationApprovals() {
       ) : runs.isError ? (
         <ErrorNote>{runs.error.message}</ErrorNote>
       ) : list.length === 0 ? (
-        <EmptyState icon={Inbox} title="Nothing to approve" description="When an automation has a script or a video for you to check, it appears here." />
+        <EmptyState icon={Inbox} title="Nothing to approve" description="When an automation has a script, a video or a TikTok post for you to check, it appears here." />
       ) : (
         <ul className="space-y-3">
           {list.map((run) => (
@@ -50,11 +50,11 @@ export default function AutomationApprovals() {
                 )}
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block text-xs font-medium text-amber-800">{run.waiting_for === "script" ? "Script to approve" : "Video to approve"}</span>
+                <span className="block text-xs font-medium text-amber-800">{runStatus(run).label}</span>
                 <span className="block truncate font-medium text-foreground">{run.title || run.topic}</span>
                 <span className="block truncate text-xs text-muted-foreground tabular-nums">
                   {run.automation_name}
-                  {run.slot ? ` · for ${formatScheduled(run.slot)}` : run.trigger === "test" ? " · Test" : ""}
+                  {run.slot ? ` · for ${formatScheduled(run.slot)}` : ""}
                 </span>
               </span>
               <Link to={`/automations/runs/${run.id}`} className={buttonStyles({ variant: "primary", size: "sm" })}>
