@@ -287,7 +287,7 @@ function ScheduleForm({ piece, day, onDone }: { piece: ContentPiece; day?: strin
       <div className="space-y-3 text-sm text-pretty text-muted-foreground">
         <p id="schedule-zone">
           Times are in {timeZoneName(when ?? today)}.
-          {when && !problem && <span className="tabular-nums"> This goes on the calendar for {formatScheduled(when)}.</span>}
+          {when && !problem && <span className="tabular-nums"> This goes in the Planner for {formatScheduled(when)}.</span>}
         </p>
         {offerAuto && account && (
           <AutoPostChoice
@@ -424,8 +424,8 @@ export default function ScheduleDialog({ piece, trigger, open, onOpenChange, day
     setOpen(false);
     // Where nothing else reports the change (cards, the editor), say it for screen readers.
     if (onDone) onDone(saved, piece.scheduled_at);
-    else if (saved.posted_at && !piece.posted_at) setAnnouncement("Marked as posted. It's on today's calendar.");
-    else if (!saved.scheduled_at) setAnnouncement("Taken off the calendar.");
+    else if (saved.posted_at && !piece.posted_at) setAnnouncement("Marked as posted. It's in today's Planner.");
+    else if (!saved.scheduled_at) setAnnouncement("Taken off the Planner.");
     else
       setAnnouncement(
         `${piece.scheduled_at ? "Moved to" : "Scheduled for"} ${formatScheduled(saved.scheduled_at)}.${saved.publish_to ? " Mindra posts it then." : ""}`,

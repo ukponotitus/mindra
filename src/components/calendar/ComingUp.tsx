@@ -20,8 +20,8 @@ export default function ComingUp() {
           Coming up
         </h3>
         {!empty && (
-          <Link to="/calendar" className={linkClass}>
-            Open calendar
+          <Link to="/planner" className={linkClass}>
+            Open Planner
           </Link>
         )}
       </div>
@@ -48,8 +48,8 @@ export default function ComingUp() {
           <p className="mx-auto mt-1 max-w-xs text-sm text-pretty text-muted-foreground">
             Plan when each post goes out, and get a reminder at that time.
           </p>
-          <Link to="/calendar" className={buttonStyles({ variant: "secondary", size: "sm", className: "mt-4" })}>
-            Open the calendar
+          <Link to="/planner" className={buttonStyles({ variant: "secondary", size: "sm", className: "mt-4" })}>
+            Open the Planner
           </Link>
         </div>
       ) : (
@@ -60,7 +60,7 @@ export default function ComingUp() {
             return (
               <li key={piece.id}>
                 <Link
-                  to={`/calendar?date=${dayKey(new Date(piece.scheduled_at!))}&post=${piece.id}`}
+                  to={`/planner?date=${dayKey(new Date(piece.scheduled_at!))}&post=${piece.id}`}
                   className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-background focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary"
                 >
                   <PlatformBadge platform={piece.platform} withLabel={false} />

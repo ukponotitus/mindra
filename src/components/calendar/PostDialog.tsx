@@ -120,7 +120,7 @@ function PostBody({ piece, onRescheduled }: { piece: ContentPiece; onRescheduled
         </div>
       )}
       {isPosted && (
-        <p className="mt-3 text-sm text-pretty text-muted-foreground">Marked as posted. The calendar shows it in green.</p>
+        <p className="mt-3 text-sm text-pretty text-muted-foreground">Marked as posted. The Planner shows it in green.</p>
       )}
       {error && (
         <p role="alert" className="mt-3 text-sm text-pretty text-red-600">
@@ -148,7 +148,7 @@ export default function PostDialog({ piece, open, onOpenChange, error, onResched
               {piece && (
                 <Dialog.Description>
                   <ScheduleChip piece={piece} />
-                  {!piece.scheduled_at && <span className="text-sm text-muted-foreground">Not on the calendar</span>}
+                  {!piece.scheduled_at && <span className="text-sm text-muted-foreground">Not in the Planner</span>}
                 </Dialog.Description>
               )}
             </div>

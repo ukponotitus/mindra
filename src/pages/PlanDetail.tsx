@@ -258,8 +258,8 @@ function PlanActions({ plan, onSkipped }: { plan: ContentPlanDetail; onSkipped: 
       </div>
       <p className="mt-3 text-xs text-pretty text-muted-foreground">
         Approved posts go on your{" "}
-        <Link to="/calendar" className="rounded font-medium text-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
-          calendar
+        <Link to="/planner" className="rounded font-medium text-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+          Planner
         </Link>
         . Facebook and Instagram posts go out by themselves when that account is connected in{" "}
         <Link to="/settings#accounts" className="rounded font-medium text-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
@@ -366,7 +366,7 @@ export default function PlanDetail() {
               </button>
             }
             title={`Delete "${plan.name}"?`}
-            description="The plan and the posts it wrote are deleted, and they come off your calendar. Posts that already went out stay in your Content Library. This can't be undone."
+            description="The plan and the posts it wrote are deleted, and they come out of your Planner. Posts that already went out stay in your Content Library. This can't be undone."
             confirmLabel="Delete plan"
             onConfirm={() => remove.mutate(plan.id, { onSuccess: () => navigate("/plans", { replace: true }) })}
           />

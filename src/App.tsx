@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Navigate, Route, Routes } from "react-router";
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router";
 import AuthProvider from "./auth/AuthProvider";
 import RequireAuth from "./auth/RequireAuth";
 import DashboardShell from "./components/DashboardShell";
@@ -50,6 +50,12 @@ const queryClient = new QueryClient({
 // Vite's base can be a full URL on hosted previews; the router only needs its path.
 const basename = new URL(import.meta.env.BASE_URL, window.location.origin).pathname.replace(/\/$/, "") || "/";
 
+/** The Calendar is now the Planner: old links (reminder emails, bookmarks) still open it, with their day and post. */
+function ToPlanner() {
+  const { search } = useLocation();
+  return <Navigate to={`/planner${search}`} replace />;
+}
+
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -81,7 +87,8 @@ export default function App() {
                 <Route path="/studio" element={<Studio />} />
                 <Route path="/studio/new" element={<StudioCreate />} />
                 <Route path="/studio/:projectId" element={<StudioEditor />} />
-                <Route path="/calendar" element={<CalendarPage />} />
+                <Route path="/planner" element={<CalendarPage />} />
+                <Route path="/calendar" element={<ToPlanner />} />
                 <Route path="/analytics" element={<Analytics />} />
                 <Route path="/results" element={<Navigate to="/analytics" replace />} />
                 <Route path="/plans" element={<Plans />} />

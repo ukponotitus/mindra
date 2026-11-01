@@ -411,7 +411,7 @@ export default function Plans() {
         <h2 className="text-2xl font-semibold text-balance text-foreground">Content Plans</h2>
         <p className="mt-1 max-w-3xl text-sm text-pretty text-muted-foreground">
           Give Mindra your content plan. It finds every post in it and writes each one from your recordings, clips,
-          flyers or the plan&apos;s own words. You check them, and the ones you approve go on your calendar to go out at their
+          flyers or the plan&apos;s own words. You check them, and the ones you approve go in your Planner to go out at their
           time.
         </p>
       </div>

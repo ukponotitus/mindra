@@ -94,10 +94,11 @@ export default function TermsPage() {
 
       <h2>AI-written content</h2>
       <p>
-        Mindra’s transcripts, summaries, posts and clip suggestions are made by software, including AI models, and they can be
-        wrong: a misheard word, a quote that’s slightly off, a reference that isn’t in the recording. Review everything before
-        you publish it, including posts you schedule to go out automatically, which Mindra posts without asking again. You
-        decide what to post, and you’re responsible for what you publish.
+        Mindra’s transcripts, summaries, posts, clip suggestions, video drafts, pictures and voice-overs are made by software,
+        including AI models, and they can be wrong: a misheard word, a quote that’s slightly off, a reference that isn’t in
+        the recording, a picture that doesn’t show your product exactly. Review everything before you publish it, including
+        posts you schedule to go out automatically, which Mindra posts without asking again. You decide what to post, and
+        you’re responsible for what you publish. AI pictures carry Google’s invisible SynthID watermark.
       </p>
 
       <h2>Posting to Facebook and Instagram</h2>

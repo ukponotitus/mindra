@@ -145,7 +145,7 @@ const settingsLinkClass =
 
 /** The first line of Post now when Mindra can't post it here itself: why, and that it gets it ready to share instead. */
 function sharingIntro(auto: AutoPost, platformLabel: string): ReactNode {
-  const ready = "Mindra gets the post ready so you can post it yourself in a tap, then puts it on today's calendar as posted.";
+  const ready = "Mindra gets the post ready so you can post it yourself in a tap, then puts it in today's Planner as posted.";
   const accounts = (
     <Link to="/settings#accounts" className={settingsLinkClass}>
       Settings → Connected accounts
@@ -153,7 +153,7 @@ function sharingIntro(auto: AutoPost, platformLabel: string): ReactNode {
   );
   switch (auto.state) {
     case "unsupported":
-      return `Mindra can't post on ${platformLabel} for you yet. It gets the post ready so you can post it yourself in a tap, then puts it on today's calendar as posted.`;
+      return `Mindra can't post on ${platformLabel} for you yet. It gets the post ready so you can post it yourself in a tap, then puts it in today's Planner as posted.`;
     case "not-set-up":
       return `Automatic posting to ${platformLabel} isn't switched on for Mindra yet. ${ready}`;
     case "needs-media":
@@ -307,7 +307,7 @@ function PostToAccount({
       )}
       <p role="status" className={cn("text-sm text-pretty text-muted-foreground", phase !== "publishing" && "sr-only")}>
         {phase === "publishing" &&
-          `${postMedia(piece) === "video" ? "A video can take a few minutes. " : ""}You can close this: the calendar shows it once it's out.`}
+          `${postMedia(piece) === "video" ? "A video can take a few minutes. " : ""}You can close this: the Planner shows it once it's out.`}
       </p>
       {phase === "idle" && piece.schedule_status === "failed" && piece.publish_error && (
         <p className="text-sm text-pretty text-muted-foreground">At its time, Mindra couldn't post it: {piece.publish_error}</p>
@@ -460,7 +460,7 @@ export default function PostNow({ piece, onPosted }: { piece: ContentPiece; onPo
             {shared ? (
               <p className="mb-3 text-sm font-medium text-foreground">Posted it on {info.label}?</p>
             ) : (
-              <p className="mb-3 text-sm text-pretty text-muted-foreground">Already posted it? Mark it so the calendar shows it.</p>
+              <p className="mb-3 text-sm text-pretty text-muted-foreground">Already posted it? Mark it so the Planner shows it.</p>
             )}
             {markPosted.isError && (
               <p role="alert" className="mb-3 text-sm text-pretty text-red-600">

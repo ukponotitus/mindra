@@ -72,7 +72,7 @@ function flyerSteps(project: Project, postCount: number): Step[] {
       title: postCount > 0 ? `${postCount} posts written` : "Write posts",
       detail:
         postCount > 0
-          ? "Share them with the flyer, plan them on the calendar, or write more for other platforms."
+          ? "Share them with the flyer, plan them in the Planner, or write more for other platforms."
           : "An announcement for each platform, written from what the flyer says, in your brand voice.",
       state: postCount > 0 ? "done" : added && read ? "ready" : "todo",
       action: { label: postCount > 0 ? "See posts" : "Write posts", tab: "posts" },

@@ -26,9 +26,9 @@ export default function ReminderBanner({ piece, text, onClose }: Props) {
 
   let note = "Share it, then come back and mark it as posted.";
   if (published || status === "publishing") note = "";
-  else if (isPosted) note = "Marked as posted. The calendar shows it in green.";
+  else if (isPosted) note = "Marked as posted. The Planner shows it in green.";
   else if (status === "failed") note = "Share it yourself, then mark it as posted.";
-  else if (!piece.scheduled_at) note = "This post isn't on the calendar any more, but you can still share it.";
+  else if (!piece.scheduled_at) note = "This post isn't in the Planner any more, but you can still share it.";
   else if (status === "missed") note = `It was planned for ${formatScheduled(piece.scheduled_at)}. Share it now, then mark it as posted.`;
 
   return (

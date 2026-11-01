@@ -60,7 +60,7 @@ function formatWeek(start: Date, end: Date) {
 }
 
 /**
- * The content calendar: a month, a week or an agenda of scheduled posts, with the posts that aren't scheduled yet
+ * The Planner: a month, a week or an agenda of scheduled posts, with the posts that aren't scheduled yet
  * beside it. The view, the day and the open post live in the address (?view=week&date=2026-10-26&post=<id>), so the
  * dashboard can link to a post and the back button leaves the page.
  */
@@ -155,7 +155,7 @@ export default function Calendar() {
   const restore = (piece: ContentPiece, previous: string | null) =>
     schedule
       .mutateAsync({ id: piece.id, scheduled_at: previous })
-      .then(() => setNotice({ text: previous ? `Moved back to ${formatScheduled(previous)}.` : "Taken off the calendar." }))
+      .then(() => setNotice({ text: previous ? `Moved back to ${formatScheduled(previous)}.` : "Taken off the Planner." }))
       .catch((error: Error) => setNotice({ error: true, text: `Couldn't undo: ${error.message}` }));
 
   /** Post now, undone: not posted, so off the calendar again. */
@@ -168,10 +168,10 @@ export default function Calendar() {
   /** After the schedule dialog or a post's dialog changed a post. */
   const changed = (saved: ContentPiece, previous: string | null) => {
     if (saved.posted_at && !previous && saved.scheduled_at === saved.posted_at) {
-      setNotice({ text: "Marked as posted. It's on today's calendar.", undo: () => unpost(saved) });
+      setNotice({ text: "Marked as posted. It's in today's Planner.", undo: () => unpost(saved) });
     } else if (!saved.scheduled_at) {
       setParam({ post: null });
-      setNotice({ text: "Taken off the calendar. It's back in Ready to schedule.", undo: () => restore(saved, previous) });
+      setNotice({ text: "Taken off the Planner. It's back in Ready to schedule.", undo: () => restore(saved, previous) });
     } else if (!previous) {
       setNotice({ text: `Scheduled for ${formatScheduled(saved.scheduled_at)}.`, undo: () => restore(saved, null) });
     } else if (saved.scheduled_at !== previous) {
@@ -299,7 +299,7 @@ export default function Calendar() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="min-w-0">
-          <h2 className="text-2xl font-semibold text-balance text-foreground">Content Calendar</h2>
+          <h2 className="text-2xl font-semibold text-balance text-foreground">Planner</h2>
           <p className="mt-1 text-sm text-pretty text-muted-foreground tabular-nums">
             {scheduled.isPending ? "Loading your posts…" : subtitle}
           </p>

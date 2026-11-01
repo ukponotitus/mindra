@@ -821,7 +821,7 @@ export default function Analytics() {
         title="No analytics yet"
         description="Analytics come from the posts Mindra posts, posts you share and mark as posted (Mindra finds them on your connected YouTube, Instagram and Facebook), and clicks on Mindra links in any post."
         action={
-          <Link to="/calendar" className={buttonStyles()}>
+          <Link to="/planner" className={buttonStyles()}>
             <Send aria-hidden="true" className="size-4" />
             Plan your posts
           </Link>

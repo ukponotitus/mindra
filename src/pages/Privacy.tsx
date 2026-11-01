@@ -80,9 +80,10 @@ export default function PrivacyPage() {
       </ul>
       <p>
         We don’t sell your data or share it with advertisers, and Mindra itself doesn’t use your recordings or posts to train
-        AI models. During the private beta, the AI writing runs on Google’s free Gemini service, whose terms let Google use
-        what it’s sent to improve its products. We’ll move to Google’s paid service, where that doesn’t happen, before Mindra
-        charges for plans.
+        AI models. Mindra’s AI writing runs on Anthropic’s Claude API or Google’s Gemini API. Under Anthropic’s commercial
+        terms, what Mindra sends to Claude isn’t used to train its models. During the private beta, Gemini runs on Google’s
+        free tier, whose terms let Google use what it’s sent to improve its products; we’ll move to Google’s paid service,
+        where that doesn’t happen, before Mindra charges for plans.
       </p>
 
       <h2 id="facebook-instagram">Connected Facebook and Instagram accounts</h2>
@@ -153,10 +154,20 @@ export default function PrivacyPage() {
           recordings to improve its models.
         </li>
         <li>
-          <strong>Google</strong> (the Gemini API) reads your transcripts, photos and brand voice to write the analysis, posts,
-          suggestions and clip ideas. During the beta this is Google’s free tier (see above). This website also loads its font
-          from Google Fonts, so your browser connects to Google
-          when it opens a page.
+          <strong>Anthropic</strong> (the Claude API) reads your transcripts, photos, plans and brand voice to write the
+          analysis, posts, suggestions, clip ideas and video drafts.
+        </li>
+        <li>
+          <strong>Google</strong> (the Gemini API) does the same writing work where Mindra uses it instead of Claude (see
+          above), and makes AI pictures from the descriptions you write and the photos you choose for them. This website also
+          loads its font from Google Fonts, so your browser connects to Google when it opens a page.
+        </li>
+        <li>
+          <strong>ElevenLabs</strong> turns a video’s script into a voice-over, when you choose a voice for it.
+        </li>
+        <li>
+          <strong>Jamendo</strong> provides the music you search for and choose for your videos. It receives your searches,
+          not your content.
         </li>
         <li>
           <strong>Meta</strong> (Facebook and Instagram) handles the sign-in when you connect a Page or Instagram account,
@@ -166,6 +177,13 @@ export default function PrivacyPage() {
             Meta’s Privacy Policy
           </a>
           , and you manage it there.
+        </li>
+        <li>
+          <strong>YouTube, LinkedIn, TikTok and X</strong> handle the sign-in when you connect an account there, and receive
+          the posts you choose to publish, with their video or photos. Mindra uses the YouTube API Services, so for YouTube{" "}
+          <a href="https://www.youtube.com/t/terms">YouTube’s Terms of Service</a> and{" "}
+          <a href="https://policies.google.com/privacy">Google’s Privacy Policy</a> also apply. Once a post is published, you
+          manage it on that platform.
         </li>
         <li>
           <strong>Paystack</strong> takes payments for paid plans. It receives your email address and the plan you pay for,

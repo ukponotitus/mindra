@@ -66,11 +66,11 @@ export default function PostSchedule({ piece }: { piece: ContentPiece }) {
             </div>
           )}
           <Link
-            to={`/calendar?date=${dayKey(new Date(piece.scheduled_at))}&post=${piece.id}`}
+            to={`/planner?date=${dayKey(new Date(piece.scheduled_at))}&post=${piece.id}`}
             className="mt-3 inline-flex items-center gap-1.5 rounded text-sm font-medium text-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           >
             <CalendarDays aria-hidden="true" className="size-4" />
-            See it on the calendar
+            See it in the Planner
           </Link>
         </>
       ) : (

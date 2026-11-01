@@ -252,7 +252,7 @@ export default function EntryCard({ planId, entry, projects, projectsLoading, pl
                 title="Remove this post?"
                 description={
                   entry.approved
-                    ? "It comes off the plan and off your calendar, and its draft is deleted. This can't be undone."
+                    ? "It comes off the plan and out of your Planner, and its draft is deleted. This can't be undone."
                     : entry.piece
                       ? "It comes off the plan, and its draft is deleted. This can't be undone."
                       : "It comes off the plan. This can't be undone."

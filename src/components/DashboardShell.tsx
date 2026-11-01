@@ -21,7 +21,7 @@ const pageTitles: [pattern: string, title: string][] = [
   ["/studio/new", "Create with AI"],
   ["/studio/:projectId", "Video Editor"],
   ["/studio", "Motion Studio"],
-  ["/calendar", "Content Calendar"],
+  ["/planner", "Planner"],
   ["/analytics", "Analytics"],
   ["/plans/:planId", "Content Plan"],
   ["/plans", "Content Plans"],

@@ -168,7 +168,7 @@ export default function EntryForm({ planId, entry, projects, projectsLoading = f
 
       {approved && (
         <p className="rounded-lg bg-background px-3.5 py-2.5 text-xs text-pretty text-muted-foreground">
-          This post is approved, so only its time can change here (it moves on the calendar too). To change what it
+          This post is approved, so only its time can change here (it moves in the Planner too). To change what it
           says, unapprove it first.
         </p>
       )}
