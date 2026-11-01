@@ -6,6 +6,7 @@ import EmptyState from "../components/EmptyState";
 import StatusBadge from "../components/StatusBadge";
 import { buttonStyles } from "../components/ui/button";
 import { useBrandProfile } from "../lib/brand";
+import { useWaiting } from "../lib/calendars";
 import { formatDate, formatExtensions, formatMegabytes } from "../lib/format";
 import { projectLength, projectPath, SOURCE_ICONS, useProjects, useProjectSummary, useUploadOptions } from "../lib/projects";
 import type { SourceType } from "../lib/types";
@@ -23,6 +24,49 @@ function plural(count: number, word: string): string {
 }
 
 /** Until the brand profile says who the workspace is, Home asks for it first: everything Mindra writes uses it. */
+/** What waits for a decision across calendars, plans and the Content Studio, and planning next month. */
+function WaitingForYou() {
+  const waiting = useWaiting().data;
+  if (!waiting) return null;
+  const rows: { text: string; to: string }[] = [
+    ...waiting.drafts.map((draft) => ({ text: `${draft.name}: version ${draft.version} is a draft to approve`, to: `/content-calendar/${draft.calendar}` })),
+    ...waiting.plans.map((plan) => ({ text: `${plan.name}: briefs to approve`, to: `/content-calendar/${plan.calendar}/plan` })),
+  ];
+  if (waiting.posts_to_review) rows.push({ text: `${waiting.posts_to_review} post${waiting.posts_to_review === 1 ? "" : "s"} ready for review`, to: "/content-studio" });
+  if (waiting.posts_to_make) rows.push({ text: `${waiting.posts_to_make} approved brief${waiting.posts_to_make === 1 ? "" : "s"} to make into posts`, to: "/content-studio" });
+  if (waiting.posts_in_production) rows.push({ text: `${waiting.posts_in_production} post${waiting.posts_in_production === 1 ? "" : "s"} waiting for photos or a video`, to: "/content-studio" });
+  return (
+    <section aria-labelledby="waiting" className="grid gap-4 lg:grid-cols-[2fr_1fr]">
+      <div className="rounded-xl border border-border bg-card p-5">
+        <h2 id="waiting" className="font-semibold text-foreground">
+          Waiting for you
+        </h2>
+        {rows.length === 0 ? (
+          <p className="mt-1 text-sm text-muted-foreground">Nothing waits for a decision. Plan what&apos;s next when you&apos;re ready.</p>
+        ) : (
+          <ul className="mt-2 divide-y divide-border">
+            {rows.map((row) => (
+              <li key={row.text}>
+                <Link to={row.to} className="flex items-center justify-between gap-3 py-2.5 text-sm text-foreground hover:text-primary">
+                  {row.text}
+                  <ArrowRight aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+      <div className="rounded-xl border border-border bg-card p-5">
+        <h2 className="font-semibold text-foreground">Next month</h2>
+        <p className="mt-1 text-sm text-pretty text-muted-foreground">Draft next month&apos;s calendar from your brand profile and what worked in the last 28 days.</p>
+        <Link to="/content-calendar/new?next=1" className={buttonStyles({ size: "sm", className: "mt-3" })}>
+          Plan next month
+        </Link>
+      </div>
+    </section>
+  );
+}
+
 function BrandSetup() {
   const brand = useBrandProfile().data;
   if (!brand || brand.filled.basics) return null;
@@ -104,6 +148,7 @@ export default function Dashboard() {
       </div>
 
       <BrandSetup />
+      <WaitingForYou />
 
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4" aria-busy={summary.isPending}>
         {stats.map((stat) => (

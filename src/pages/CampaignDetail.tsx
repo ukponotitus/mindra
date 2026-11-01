@@ -1,11 +1,12 @@
-import { ChevronRight, Link2, Megaphone, PenLine, Target, Trash2 } from "lucide-react";
+import { ChevronRight, Link2, Megaphone, PenLine, Trash2 } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router";
+import CampaignResults from "../components/campaigns/CampaignResults";
 import EmptyState from "../components/EmptyState";
 import PlatformBadge from "../components/content/PlatformBadge";
 import ConfirmDialog from "../components/ui/ConfirmDialog";
 import { buttonStyles } from "../components/ui/button";
 import { ApiError } from "../lib/api";
-import { SOURCE_LABELS, objectiveLabel, useCampaign, useCampaignMetrics, useDeleteCampaign } from "../lib/campaigns";
+import { objectiveLabel, useCampaign, useCampaignMetrics, useDeleteCampaign } from "../lib/campaigns";
 import { shortAddress } from "../lib/results";
 import { StatusChip, campaignDays } from "./Campaigns";
 
@@ -128,37 +129,16 @@ export default function CampaignDetail() {
         </div>
       </section>
 
-      <section aria-labelledby="campaign-targets" className="rounded-xl border border-border bg-card p-5 sm:p-6">
-        <h3 id="campaign-targets" className="flex items-center gap-2 text-base font-semibold text-foreground">
-          <Target aria-hidden="true" className="size-4 text-primary" />
-          Targets
-        </h3>
-        {campaign.targets.length === 0 ? (
-          <p className="mt-2 text-sm text-muted-foreground">No targets yet. Add them so you can tell whether it worked.</p>
-        ) : (
-          <ul className="mt-3 divide-y divide-border">
-            {campaign.targets.map((target) => {
-              const metric = metrics.find((item) => item.id === target.metric);
-              return (
-                <li key={target.metric} className="flex items-center justify-between gap-3 py-2.5">
-                  <span className="min-w-0">
-                    <span className="block text-sm font-medium text-foreground">{metric?.label ?? target.metric}</span>
-                    {metric && <span className="block text-xs text-muted-foreground">{SOURCE_LABELS[metric.source]}</span>}
-                  </span>
-                  <span className="text-sm font-semibold text-foreground tabular-nums">{target.value.toLocaleString()}</span>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-        <p className="mt-3 text-xs text-pretty text-muted-foreground">
-          Progress against these targets shows here once the campaign has posts and results.
-        </p>
-      </section>
+      <CampaignResults campaignId={campaign.id} metrics={metrics} />
 
-      <section className="rounded-xl border border-dashed border-border p-5 text-sm text-pretty text-muted-foreground">
-        Planning this campaign&apos;s posts comes with the Content calendar: you&apos;ll ask the assistant for a calendar for it, and
-        each post will carry this campaign&apos;s name.
+      <section className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card p-5">
+        <p className="min-w-0 text-sm text-pretty text-muted-foreground">
+          Plan this campaign&apos;s posts in a content calendar: its items carry the campaign&apos;s name, its posts get counting links, and their
+          numbers show here.
+        </p>
+        <Link to={`/content-calendar/new?campaign=${campaign.id}`} className={buttonStyles({ variant: "secondary", size: "sm" })}>
+          Plan its posts
+        </Link>
       </section>
     </div>
   );

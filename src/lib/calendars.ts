@@ -35,6 +35,8 @@ export type ContentCalendar = {
   /** Posts a week on each platform. */
   cadence: Partial<Record<Platform, number>>;
   instructions: string;
+  /** Planned from how recent posts did (Phase 7). */
+  from_results: boolean;
   campaign: string | null;
   campaign_name: string;
   versions: CalendarVersion[];
@@ -136,7 +138,21 @@ export function usePlannedItems(start: Date, end: Date) {
   });
 }
 
-export type NewCalendar = Pick<ContentCalendar, "name" | "starts_on" | "ends_on" | "cadence" | "instructions" | "campaign">;
+export type NewCalendar = Pick<ContentCalendar, "name" | "starts_on" | "ends_on" | "cadence" | "instructions" | "campaign" | "from_results">;
+
+/** What waits for the person across calendars, plans and the Content Studio (Home's "Waiting for you"). */
+export type Waiting = {
+  drafts: { calendar: string; name: string; version: number }[];
+  plans: { calendar: string; name: string }[];
+  briefs_to_write: number;
+  posts_to_make: number;
+  posts_in_production: number;
+  posts_to_review: number;
+};
+
+export function useWaiting() {
+  return useQuery({ queryKey: ["calendars", "waiting"], queryFn: () => apiRequest<Waiting>("/api/calendars/waiting/") });
+}
 
 export function useCreateCalendar() {
   const queryClient = useQueryClient();

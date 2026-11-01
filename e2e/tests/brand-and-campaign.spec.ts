@@ -90,6 +90,12 @@ test("plan a campaign with targets, change it and delete it", async ({ page }) =
   await expect(targets).toContainText("Sales");
   await expect(targets).toContainText("Reported by you");
 
+  // Phase 6: a result the owner records shows against its target.
+  await targets.getByLabel("What").selectOption({ label: "Sales" });
+  await targets.getByLabel("How many").fill("12");
+  await targets.getByRole("button", { name: "Record" }).click();
+  await expect(targets).toContainText("12 of 60");
+
   // Changed, then deleted.
   await main.getByRole("link", { name: "Change" }).click();
   await main.getByLabel("Name").fill("November Sunscreen Launch");

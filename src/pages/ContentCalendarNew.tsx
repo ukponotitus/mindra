@@ -44,13 +44,16 @@ export default function ContentCalendarNew() {
   const campaigns = useCampaigns();
   const create = useCreateCalendar();
   const month = nextMonth();
+  // From Home's "Plan next month": the whole of next month, planned from what worked.
+  const nextMonthPlan = params.get("next") === "1";
   const [form, setForm] = useState<NewCalendar>({
     name: month.first.toLocaleDateString(undefined, { month: "long", year: "numeric" }),
-    starts_on: dayKey(addDays(new Date(), 1)),
+    starts_on: nextMonthPlan ? dayKey(month.first) : dayKey(addDays(new Date(), 1)),
     ends_on: dayKey(month.last),
     cadence: { instagram: 3 },
     instructions: "",
     campaign: params.get("campaign"),
+    from_results: nextMonthPlan,
   });
   const [errors, setErrors] = useState<Record<string, string[]>>({});
   const set = <K extends keyof NewCalendar>(key: K, value: NewCalendar[K]) => setForm((current) => ({ ...current, [key]: value }));
@@ -175,6 +178,19 @@ export default function ContentCalendarNew() {
             })}
           </ul>
         </fieldset>
+
+        <label className="flex items-start gap-2.5 text-sm text-foreground">
+          <input
+            type="checkbox"
+            checked={form.from_results}
+            onChange={(event) => set("from_results", event.target.checked)}
+            className="mt-0.5 size-4 shrink-0 accent-primary"
+          />
+          <span>
+            Plan from what worked
+            <span className="block text-xs text-muted-foreground">Mindra looks at how your posts did in the last 28 days and plans more of what worked.</span>
+          </span>
+        </label>
 
         <Field
           id="calendar-instructions"

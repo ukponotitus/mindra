@@ -126,3 +126,49 @@ export function useDeleteCampaign() {
     },
   });
 }
+
+// A campaign's results (Phase 6, the backend's campaigns/results.py): each target's number from its own source.
+export type TargetResult = {
+  metric: string;
+  label: string;
+  source: MetricSource;
+  target: number;
+  /** null: no number yet (a platform that doesn't share it, or nothing recorded). */
+  actual: number | null;
+  progress: number | null;
+  cost_per_result?: number;
+};
+
+export type CampaignReport = { id: number; metric: string; label: string; value: number; note: string; reported_on: string };
+
+export type CampaignResults = {
+  posts: { planned: number; made: number; out: number; followed: number; links: number };
+  targets: TargetResult[];
+  reports: CampaignReport[];
+  summary: string;
+};
+
+export function useCampaignResults(id: string | undefined) {
+  return useQuery({
+    queryKey: ["campaigns", "results", id ?? ""],
+    queryFn: () => apiRequest<CampaignResults>(`/api/campaigns/${id}/results/`),
+    enabled: Boolean(id),
+  });
+}
+
+export function useRecordResult(id: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (report: { metric: string; value: number; note?: string; reported_on?: string }) =>
+      apiRequest<CampaignResults>(`/api/campaigns/${id}/reports/`, { method: "POST", body: report }),
+    onSuccess: (data) => queryClient.setQueryData(["campaigns", "results", id], data),
+  });
+}
+
+export function useDeleteResult(id: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (reportId: number) => apiRequest<CampaignResults>(`/api/campaigns/${id}/reports/${reportId}/`, { method: "DELETE" }),
+    onSuccess: (data) => queryClient.setQueryData(["campaigns", "results", id], data),
+  });
+}

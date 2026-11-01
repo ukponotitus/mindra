@@ -55,4 +55,11 @@ test("draft a content calendar, change an item, approve it and see it planned", 
   const card = main.getByRole("listitem").filter({ hasText: "Why sunscreen every day" });
   await card.getByRole("button", { name: "Make the post" }).click();
   await expect(main.getByRole("heading", { name: /Ready for review|In production/ }).first()).toBeVisible({ timeout: 30_000 });
+
+  // Phase 7: Home says what waits, and plans next month from results.
+  await page.goto("/dashboard");
+  await expect(main.getByRole("heading", { name: "Waiting for you" })).toBeVisible();
+  await expect(main.getByRole("link", { name: /ready for review|waiting for photos/ })).toBeVisible();
+  await main.getByRole("link", { name: "Plan next month" }).click();
+  await expect(main.getByRole("checkbox", { name: /Plan from what worked/ })).toBeChecked();
 });
