@@ -74,8 +74,21 @@ export type Project = {
   flyer_text: string;
   /** For the project that carries a Motion Studio video into the Content Library: that video, edited in Motion Studio. */
   studio_project: string | null;
+  /** Photo posts with audio: the video of the photos with the audio as its sound; null when none was asked for. */
+  video: ProjectVideo | null;
   created_at: string;
   updated_at: string;
+};
+
+/** A photo post's video with its audio, made by the server (the backend's projects/slideshow.py). */
+export type ProjectVideo = {
+  /** Its Motion Studio project, once it's put together (it waits for the audio to be transcribed). */
+  studio_project: string | null;
+  /** Its newest render's state. */
+  render_status: "queued" | "rendering" | "ready" | "failed" | null;
+  progress: number;
+  /** Why it couldn't be made, or "". */
+  error: string;
 };
 
 /** One picture of a photos project (GET /api/projects/<id>/photos/), in posting order. */

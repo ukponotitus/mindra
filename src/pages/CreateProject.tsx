@@ -86,6 +86,11 @@ export default function CreateProject() {
   // project).
   const [note, setNote] = useState("");
   const [linked, setLinked] = useState("");
+  // A photo post's audio (optional): uploaded as a recording of its own and connected to the post, so its captions use
+  // what's said, and the server makes a video of the photos with it.
+  const [audio, setAudio] = useState<File | null>(null);
+  const [audioProject, setAudioProject] = useState<Project | null>(null);
+  const [audioProgress, setAudioProgress] = useState<number | null>(null);
   const [created, setCreated] = useState<Project | null>(null);
   const uploadedOrder = useRef<string[]>([]);
   const photoQueue = usePhotoQueue({ onUploaded: (photo) => uploadedOrder.current.push(photo.id) });
@@ -160,17 +165,57 @@ export default function CreateProject() {
   };
 
   /** Make the photo or flyer post (JSON); its pictures are uploaded into it next. */
-  const createPhotosProject = () =>
+  const createPhotosProject = (recording: string) =>
     apiRequest<Project>("/api/projects/", {
       method: "POST",
       body: {
         name: name.trim(),
         source_type: sourceType,
         ...(note.trim() ? { note: note.trim() } : {}),
-        ...(linked ? { linked_recording: linked } : {}),
+        ...(recording ? { linked_recording: recording } : {}),
         target_platforms: platforms.filter((platform) => PHOTO_PLATFORMS.includes(platform)),
       },
     });
+
+  /** Upload a photo post's audio as a recording of its own (transcribed like any other). */
+  const uploadAudio = async (media: File) => {
+    setAudioProgress(0);
+    const recordingName = `${name.trim()} (audio)`.slice(0, 200);
+    try {
+      const live = await queryClient.ensureQueryData(uploadOptionsQuery).catch(() => options);
+      if (live?.direct_upload) {
+        const upload = new DirectUpload(media, { sourceType: "audio", onProgress: (progress) => setAudioProgress(progress.loaded / progress.total) });
+        directUpload.current = upload;
+        let key: string;
+        try {
+          ({ key } = await upload.start());
+        } finally {
+          directUpload.current = null;
+        }
+        return await apiRequest<Project>("/api/projects/", {
+          method: "POST",
+          body: { name: recordingName, source_type: "audio", source_key: key, language: spokenLanguage },
+        });
+      }
+      const form = new FormData();
+      form.append("name", recordingName);
+      form.append("source_type", "audio");
+      form.append("source_file", media);
+      form.append("language", spokenLanguage);
+      return await uploadWithProgress<Project>("/api/projects/", form, setAudioProgress);
+    } finally {
+      setAudioProgress(null);
+    }
+  };
+
+  /** Ask for the photo post's video with its audio; the post's page follows it (and offers it again if this fails). */
+  const askForVideo = async (projectId: string) => {
+    try {
+      await apiRequest(`/api/projects/${projectId}/video/`, { method: "POST" });
+    } catch {
+      // The post's page has "Make the video".
+    }
+  };
 
   /** A failed photo that was tried again lands at the end on the server: put them back in the order chosen here. */
   const keepChosenOrder = async (projectId: string) => {
@@ -249,7 +294,13 @@ export default function CreateProject() {
     try {
       let project: Project;
       if (isPhotos) {
-        project = created ?? (await createPhotosProject());
+        let recording = linked;
+        if (audio && !isFlyer && !created) {
+          const uploaded = audioProject ?? (await uploadAudio(audio));
+          setAudioProject(uploaded);
+          recording = uploaded.id;
+        }
+        project = created ?? (await createPhotosProject(recording));
         const retrying = Boolean(created);
         setCreated(project);
         // One at a time, in order; a dropped connection waits for the connection to come back.
@@ -260,6 +311,7 @@ export default function CreateProject() {
           return;
         }
         await keepChosenOrder(project.id);
+        if (audioProject || (audio && !isFlyer)) await askForVideo(project.id);
       } else if (isMedia && file) {
         setUploadProgress(0);
         // The options shown first are placeholders; ask the server whether it takes direct uploads.
@@ -699,6 +751,43 @@ export default function CreateProject() {
                   <FieldError id="photo-note-error" message={fieldErrors.note?.[0]} />
                 </div>
 
+                {!isFlyer && (
+                  <div>
+                    <label htmlFor="photo-audio" className="mb-2 block text-sm font-medium text-foreground">
+                      Add audio <span className="font-normal text-muted-foreground">(optional)</span>
+                    </label>
+                    {audio ? (
+                      <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border px-3 py-2.5 text-sm sm:max-w-md">
+                        <AudioLines aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
+                        <span className="min-w-0 flex-1 truncate text-foreground">{audio.name}</span>
+                        <span className="text-xs text-muted-foreground tabular-nums">
+                          {audioProgress != null ? `Uploading ${Math.round(audioProgress * 100)}%` : formatFileSize(audio.size)}
+                        </span>
+                        {!locked && (
+                          <button type="button" onClick={() => setAudio(null)} className="text-xs font-medium text-primary hover:underline">
+                            Remove
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      <input
+                        id="photo-audio"
+                        type="file"
+                        accept={(options?.extensions.audio ?? [".mp3", ".m4a", ".wav", ".aac", ".flac"]).join(",")}
+                        disabled={locked}
+                        onChange={(event) => setAudio(event.target.files?.[0] ?? null)}
+                        aria-describedby="photo-audio-hint"
+                        className="block w-full text-sm text-muted-foreground file:mr-3 file:rounded-lg file:border file:border-border file:bg-card file:px-3 file:py-2 file:text-sm file:font-medium file:text-foreground hover:file:bg-secondary sm:max-w-md"
+                      />
+                    )}
+                    <p id="photo-audio-hint" className="mt-2 text-xs text-pretty text-muted-foreground">
+                      A song, a voice note or part of a talk. Mindra makes a vertical video of the photos with it, and the captions use what&apos;s
+                      said. Leave it out to post the photos on their own.
+                    </p>
+                  </div>
+                )}
+
+                {!audio && (
                 <div>
                   <label htmlFor="linked-recording" className="mb-2 block text-sm font-medium text-foreground">
                     Connect to a recording
@@ -719,6 +808,7 @@ export default function CreateProject() {
                   </p>
                   <FieldError id="linked-recording-error" message={fieldErrors.linked_recording?.[0]} />
                 </div>
+                )}
               </div>
             )}
 

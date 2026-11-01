@@ -4,6 +4,7 @@ import { Link } from "react-router";
 import EmptyState from "../EmptyState";
 import ConfirmDialog from "../ui/ConfirmDialog";
 import { buttonStyles } from "../ui/button";
+import PhotoPostVideo from "./PhotoPostVideo";
 import { cn } from "../../lib/cn";
 import { formatDate } from "../../lib/format";
 import {
@@ -654,6 +655,7 @@ export default function ProjectPhotos({ project }: { project: Project }) {
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
       <div className="min-w-0 space-y-6">
+        {!isFlyer && <PhotoPostVideo project={project} />}
         <section
           aria-labelledby={`${inputId}-title`}
           onDragOver={(event) => {

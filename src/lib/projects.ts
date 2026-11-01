@@ -2,7 +2,7 @@ import { keepPreviousData, queryOptions, useMutation, useQuery, useQueryClient }
 import { AudioLines, CalendarRange, ClipboardList, FileText, Images, Megaphone, Video, type LucideIcon } from "lucide-react";
 import { apiRequest } from "./api";
 import { formatDuration } from "./format";
-import type { Paginated, Platform, Project, ProjectStatus, ProjectSummary, SourceType, Transcript, UploadOptions } from "./types";
+import type { Paginated, Platform, Project, ProjectStatus, ProjectSummary, ProjectVideo, SourceType, Transcript, UploadOptions } from "./types";
 
 export const PAGE_SIZE = 20;
 
@@ -111,7 +111,27 @@ export function useProject(id: string | undefined) {
     queryKey: ["projects", "detail", id],
     queryFn: () => apiRequest<Project>(`/api/projects/${id}/`),
     enabled: Boolean(id),
-    refetchInterval: (query) => (query.state.data && isInProgress(query.state.data.status) ? 2000 : false),
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      if (!data) return false;
+      if (isInProgress(data.status)) return 2000;
+      // A photo post's video being made.
+      return videoInProgress(data.video) ? 3000 : false;
+    },
+  });
+}
+
+/** Whether a photo post's video is still being put together or made. */
+export function videoInProgress(video: ProjectVideo | null) {
+  return Boolean(video && !video.error && video.render_status !== "ready" && video.render_status !== "failed");
+}
+
+/** Make a photo post's video with its audio (again). */
+export function useMakeVideo(projectId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => apiRequest<Project>(`/api/projects/${projectId}/video/`, { method: "POST" }),
+    onSuccess: (project) => queryClient.setQueryData(["projects", "detail", projectId], project),
   });
 }
 
