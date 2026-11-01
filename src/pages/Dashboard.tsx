@@ -141,6 +141,7 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8">
+      <AccessBanner />
       <div>
         <h2 className="text-2xl font-semibold text-balance text-foreground">
           {greeting()}
@@ -164,7 +165,6 @@ export default function Dashboard() {
         ))}
       </div>
 
-      <AccessBanner />
       <BrandSetup />
       <WaitingForYou />
 
