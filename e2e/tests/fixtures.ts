@@ -26,6 +26,7 @@ export async function signUp(page: Page, person: ReturnType<typeof newPerson>) {
   await page.getByLabel("Full name").fill(person.name);
   await page.getByLabel("Email address").fill(person.email);
   await page.getByLabel("Password", { exact: true }).fill(person.password);
+  await page.getByRole("checkbox", { name: /I'm 18 or older/ }).check();
   await page.getByRole("button", { name: "Create Account" }).click();
   await page.waitForURL(/\/dashboard/);
 }

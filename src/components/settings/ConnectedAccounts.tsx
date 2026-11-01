@@ -176,7 +176,7 @@ function AccountRow({
               </button>
             }
             title={`Disconnect ${accountName(account)}?`}
-            description="Mindra stops posting to this account. Scheduled posts set to post here go back to reminders."
+            description="Mindra stops posting to this account and deletes its access. Scheduled posts set to post here go back to reminders, and the views, likes and comments Mindra read through it are deleted from Analytics."
             confirmLabel="Disconnect"
             onConfirm={() => disconnect.mutate(account.id)}
           />

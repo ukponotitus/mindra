@@ -1,7 +1,35 @@
+import type { ReactNode } from "react";
 import { ShieldCheck } from "lucide-react";
 import { Link } from "react-router";
 import LegalLayout from "../components/landing/LegalLayout";
 import { COMPANY_NAME, CONTACT_EMAIL } from "../lib/legal";
+
+function Table({ head, rows }: { head: string[]; rows: ReactNode[][] }) {
+  return (
+    <div className="mt-4 overflow-x-auto">
+      <table>
+        <thead>
+          <tr>
+            {head.map((cell) => (
+              <th key={cell} scope="col">
+                {cell}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, index) => (
+            <tr key={index}>
+              {row.map((cell, column) => (
+                <td key={column}>{cell}</td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
 
 export default function PrivacyPage() {
   const email = <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>;
@@ -9,59 +37,72 @@ export default function PrivacyPage() {
   return (
     <LegalLayout title="Privacy Policy" label="Privacy" icon={ShieldCheck}>
       <p>
-        Mindra turns recordings of sermons, podcasts and classes into transcripts, written posts and short video clips, and
-        can post them to the Facebook Pages and Instagram accounts you connect. This policy explains what Mindra collects to
-        do that, who helps us run it, how long we keep it and what you can ask us to do. Mindra is run by {COMPANY_NAME}
-        (“we”).
+        Mindra helps organisations and creators turn their recordings, photos, flyers and plans into posts, clips and short
+        videos, plan when they go out, post them to the accounts they connect, and see how they did. This policy explains what
+        Mindra collects, why, who helps us run it, where it goes, how long we keep it, and your rights. {COMPANY_NAME} runs
+        Mindra (“we”).
       </p>
       <p>
-        Mindra is new, and this policy will change as Mindra does. When it changes, we’ll update the date above,
-        and we’ll email you before an important change applies.
+        Mindra is new, and this policy will change as Mindra does. When it changes, we’ll update the date above, and we’ll
+        email you before an important change applies.
       </p>
 
       <h2>What we collect</h2>
       <ul>
         <li>
-          <strong>Your account:</strong> your name, email address and password. Passwords are stored as a one-way hash, so
-          nobody at Mindra can read them.
+          <strong>Your account:</strong> your name, email address and password, and when you confirmed you’re 18 or older.
+          Passwords are stored as a one-way hash, so nobody at Mindra can read them.
         </li>
         <li>
-          <strong>What you upload:</strong> video and audio recordings, transcripts you paste in, and photos. Photos are
-          shrunk before they’re stored, and the hidden details cameras add to them, such as the location, are removed.
+          <strong>What you upload:</strong> video and audio recordings, photos, flyers, content plans (pasted or as a file),
+          logos, the music you choose, and text you paste in. Photos are made smaller and the details cameras add, such as the
+          location, are removed. Video and audio are kept as you upload them, with any details your device added; the clips
+          and videos Mindra makes from them don’t carry those details.
         </li>
         <li>
-          <strong>What Mindra makes from them:</strong> transcripts with timestamps, summaries, quotes, written posts and video
-          clips, and the changes you make to them.
+          <strong>What Mindra makes from them:</strong> transcripts with timestamps, summaries, quotes, the text read from
+          flyers, written posts, clips and videos, and the changes you make to them.
         </li>
         <li>
-          <strong>Your brand voice:</strong> your brand name, audience, tone, words to use or avoid, and any sample posts you
-          add.
+          <strong>Your brand profile:</strong> what kind of organisation you are, what you offer and at what price, your
+          audience, voice, content pillars, links, logo, colours and photos. If you ask Mindra to fill it in from your
+          website, it reads that site’s main page.
         </li>
         <li>
-          <strong>Facebook Pages and Instagram accounts you connect:</strong> the name, id and picture of each Page and
-          Instagram account, the Instagram username, the id of the Facebook account that connected them, and the access
-          tokens Meta gives Mindra to post for you. See{" "}
-          <a href="#facebook-instagram">Connected Facebook and Instagram accounts</a> below.
+          <strong>Campaigns:</strong> their goals, dates, platforms, budget (for your own reporting) and targets.
         </li>
         <li>
-          <strong>Post results:</strong> for a post Mindra posts to one of your connected accounts, or one whose link you
-          paste in, the number of views, likes, comments and shares the platform reports, read for a month after the post
-          goes out. Mindra reads the numbers only, not the comments themselves or who left them.
+          <strong>Conversations with the assistant:</strong> what you ask, its answers, the page you asked from, and what
+          you applied or discarded from its suggestions.
+        </li>
+        <li>
+          <strong>Accounts you connect:</strong> each account’s name, id and picture, and the access tokens the service gives
+          Mindra to post for you. See <a href="#connected-accounts">Connected accounts</a> below.
+        </li>
+        <li>
+          <strong>Post results:</strong> the views, likes, comments and shares the platform reports for a post Mindra
+          posted, one you shared yourself that Mindra found on your connected account, or one whose link you pasted in,
+          read for a month after it goes out. Mindra reads the numbers only, not the comments or who left them.
         </li>
         <li>
           <strong>Clicks on Mindra links:</strong> when you choose to count the clicks on a web address in a post, Mindra
-          puts a short link (mindra.online/l/…) in its place. When someone clicks it, Mindra counts the click, by day and
-          by the country Cloudflare says it came from, then sends them on. It doesn’t keep the IP address, browser or any
-          cookie of the person who clicked, and link previews (WhatsApp, Facebook and the like) aren’t counted.
+          puts a short link (mindra.online/l/…) in its place. When someone clicks it, Mindra counts the click by day and hour,
+          by the country Cloudflare says it came from, by the kind of device (phone, tablet or computer) and by where it came
+          from (such as an app or a search engine), then sends them on. It doesn’t keep the person’s IP address, their
+          browser’s details or any cookie, and link previews (WhatsApp, Facebook and the like) aren’t counted.
         </li>
         <li>
-          <strong>Payments, if you pay for a plan:</strong> the plan, the amounts and dates, each payment’s reference, how it
-          was paid, and the card’s brand and last four digits, which Paystack tells us. Your full card number never reaches
-          Mindra: you enter it on Paystack’s page.
+          <strong>Reminders:</strong> if you turn on phone notifications, your browser’s push address for that device.
+          Reminder emails include the post’s text.
         </li>
         <li>
-          <strong>Usage records:</strong> how much AI writing each workspace uses, so we can keep costs under control. These
-          records hold amounts, not your content.
+          <strong>Payments, if you pay for a plan:</strong> the plan, amounts and dates, each payment’s reference, how it
+          was paid, the card’s brand and last four digits, and Paystack’s customer and subscription codes. Your full card
+          number never reaches Mindra: you enter it on Paystack’s page.
+        </li>
+        <li>
+          <strong>Usage records:</strong> how much each workspace uses (AI writing, assistant messages, recording hours),
+          so we can apply plan limits and keep costs in check. These records hold amounts, not your content.
         </li>
         <li>
           <strong>Technical logs:</strong> like most websites, our servers keep short-lived logs, such as IP addresses and the
@@ -69,198 +110,187 @@ export default function PrivacyPage() {
         </li>
       </ul>
 
-      <h2>How we use it</h2>
-      <ul>
-        <li>To run Mindra for you: signing you in, transcribing your recordings, and writing the analysis, posts and clips you ask for.</li>
-        <li>To publish the posts you choose to the Facebook Pages and Instagram accounts you connect.</li>
-        <li>To show you how your posts did: their views, likes, comments and shares, and the clicks on their links.</li>
-        <li>To take payments for paid plans, and keep a record of them.</li>
-        <li>To email you about your account, such as password reset links and a renewal that wasn’t paid, and about important changes to Mindra.</li>
-        <li>To keep Mindra secure, fix problems and keep costs in check.</li>
-      </ul>
-      <p>
-        We don’t sell your data or share it with advertisers, and Mindra itself doesn’t use your recordings or posts to train
-        AI models. Mindra’s AI writing runs on Anthropic’s Claude API or Google’s Gemini API. Under Anthropic’s commercial
-        terms, what Mindra sends to Claude isn’t used to train its models. Google’s terms depend on the service: on Gemini’s
-        free tier, Google may use what it’s sent to improve its products; on its paid service, it doesn’t.
-      </p>
+      <h2>Why we use it</h2>
+      <p>The law requires a reason for each use (the Nigeria Data Protection Act 2023, section 25). Ours are:</p>
+      <Table
+        head={["What we do", "Why we may"]}
+        rows={[
+          ["Run Mindra for you: your account, uploads, transcripts, posts, clips, the assistant, posting and results", "Our agreement with you"],
+          ["Take payments and keep their records", "Our agreement with you, and our legal duty to keep records"],
+          ["Keep Mindra secure, prevent misuse, fix problems and keep costs in check", "Our legitimate interests"],
+          ["Count clicks on Mindra short links", "Our and your legitimate interest in knowing which posts work, without keeping who clicked"],
+          ["Connect your social accounts and send phone notifications", "Your consent, which you withdraw by disconnecting or turning them off"],
+          ["Email you about your account and important changes", "Our agreement with you"],
+        ]}
+      />
 
-      <h2 id="facebook-instagram">Connected Facebook and Instagram accounts</h2>
+      <h2 id="ai">AI</h2>
       <p>
-        You can connect Facebook Pages you manage, and the Instagram business or creator accounts linked to them, by
-        signing in with Facebook. You choose which Pages Mindra may use. Connecting is optional: without it, Mindra reminds
-        you when it’s time to post instead.
+        Mindra uses AI to write summaries, posts, plans and video drafts, to read flyers and plans, to make AI pictures, and
+        for the assistant. Mindra itself doesn’t train AI models on your content. AI makes drafts for you to check; it doesn’t
+        make decisions about you or anyone else.
       </p>
-      <p>When you connect an account, Meta sends Mindra:</p>
       <ul>
-        <li>the name, id and profile picture of each Page you choose, and an access token for posting to it;</li>
-        <li>the username, id and profile picture of the Instagram account linked to each Page, if it has one;</li>
-        <li>the id of your Facebook account, so we can act on a deletion request Meta sends us for you.</li>
+        <li>
+          <strong>Writing and reading</strong> run on Google’s Gemini API. For now Mindra uses Gemini’s free tier, under
+          which Google may use what it receives to improve its products, and people at Google may read it after it’s
+          separated from your account. On Google’s paid service, it isn’t used that way.
+        </li>
+        <li>
+          <strong>AI pictures</strong> are made with Google’s Gemini API on its paid service, from the description you
+          write and up to three photos you choose. Google marks each picture with its invisible SynthID watermark.
+        </li>
+        <li>
+          <strong>The assistant</strong> runs on Anthropic’s Claude API. Under Anthropic’s commercial terms, what Mindra
+          sends it isn’t used to train its models. It sees your brand profile, campaigns, Planner, results and the page you
+          ask from, and reads more only when your question needs it.
+        </li>
+        <li>
+          <strong>Transcription</strong> is done by Deepgram. We ask Deepgram not to use your recordings to improve its
+          models.
+        </li>
       </ul>
+      <p>Each provider may keep requests for a limited time to detect misuse, under its own terms.</p>
+
+      <h2 id="connected-accounts">Connected accounts</h2>
       <p>
-        Access tokens are encrypted before they’re stored, are never shown in Mindra, and are only ever sent back to Meta.
+        Connecting an account is optional. Without one, Mindra reminds you when it’s time to post. You can connect YouTube
+        channels and LinkedIn profiles; Facebook Pages, Instagram professional accounts, TikTok and X are coming, and this
+        section applies to them once they’re available.
       </p>
-      <p>What Mindra does with a connected account:</p>
       <ul>
         <li>
-          It posts only the posts you choose: a post you schedule to go out automatically, at the time you set, or a post you
-          tell Mindra to post now. It sends Meta the post’s text and its photos or video.
+          <strong>What Mindra keeps:</strong> each account’s name, id and picture; for Facebook, the id of the Facebook account
+          that connected it, so we can act on Meta’s deletion requests; and the access token, plus a refresh token where the
+          service gives one, encrypted. A LinkedIn connection ends after 60 days unless you reconnect.
         </li>
         <li>
-          After posting, it keeps the post’s id and its link on Facebook or Instagram, so you can open it from Mindra, or the
-          reason Meta gave if the post couldn’t go out.
+          <strong>What Mindra does with it:</strong> it posts only what you choose, at the time you set or when you say “post
+          now”, sending the post’s text and its photos or video. It keeps the post’s id and link. For 30 days it reads the
+          post’s views, likes, comments and shares. When you mark a post as posted yourself, it looks through the account’s
+          recent posts for about a day to find it, comparing titles and captions, and keeps only the match. It doesn’t read
+          your messages, comments or followers, and never posts to a personal Facebook profile.
         </li>
         <li>
-          For a month after a post goes out, it reads how many likes (reactions), comments and shares the post has, to show
-          you how it did. It reads only those numbers.
+          <strong>YouTube:</strong> Mindra uses the YouTube API Services. By connecting a channel you agree to{" "}
+          <a href="https://www.youtube.com/t/terms">YouTube’s Terms of Service</a>, and{" "}
+          <a href="https://policies.google.com/privacy">Google’s Privacy Policy</a> applies. Mindra reads the channel’s id,
+          name and picture, the statistics of videos it posts or finds, and the channel’s recent uploads when looking for a
+          post. You can remove Mindra’s access in Mindra or in{" "}
+          <a href="https://security.google.com/settings/security/permissions">Google’s security settings</a>. If Mindra can
+          no longer use a channel’s access, the numbers read through it are deleted after 30 days.
         </li>
         <li>
-          It doesn’t read your messages, comments or followers, doesn’t post to your personal Facebook profile, and doesn’t
-          post anything you haven’t chosen.
-        </li>
-      </ul>
-      <p>To disconnect an account:</p>
-      <ul>
-        <li>
-          In Mindra, go to <strong>Settings → Connected accounts</strong> and choose Disconnect. This deletes the connection
-          and its access token straight away, and posts scheduled to go out there go back to being reminders.
-        </li>
-        <li>
-          In Facebook, remove Mindra in your{" "}
-          <a href="https://www.facebook.com/settings/?tab=business_tools">
-            Business integrations settings
-          </a>
-          . Its access tokens stop working at once, so Mindra can’t post to those accounts any more. If you ask Facebook to
-          delete your data when you remove it, Meta sends us a deletion request and we delete the connections too.
+          <strong>Disconnecting:</strong> Settings, then Connected accounts, then Disconnect deletes the connection and its
+          tokens at once, deletes the numbers Mindra read through it, asks Google, X and TikTok to cancel Mindra’s access, and
+          turns posts scheduled to go out there back into reminders. Posts already published stay on the platform, under its
+          own privacy policy.
         </li>
       </ul>
       <p>
-        The <Link to="/data-deletion">Data Deletion</Link> page explains what happens when Meta sends us a deletion
-        request.
+        The <Link to="/data-deletion">Data Deletion page</Link> explains how to remove Mindra at each service, and what
+        happens when Meta sends us a deletion request.
       </p>
 
       <h2>Who helps us run Mindra</h2>
-      <p>We use these companies to provide Mindra, and send each of them only what it needs for its part of the work:</p>
-      <ul>
-        <li>
-          <strong>Render</strong> hosts the Mindra servers and database, in Frankfurt, Germany.
-        </li>
-        <li>
-          <strong>Cloudflare</strong> stores your recordings, clips and thumbnails (Cloudflare R2) and serves this website.
-        </li>
-        <li>
-          <strong>Deepgram</strong> turns the audio of your recordings into transcripts. We ask Deepgram not to use your
-          recordings to improve its models.
-        </li>
-        <li>
-          <strong>Anthropic</strong> (the Claude API) reads your transcripts, photos, plans and brand voice to write the
-          analysis, posts, suggestions, clip ideas and video drafts.
-        </li>
-        <li>
-          <strong>Google</strong> (the Gemini API) does the same writing work where Mindra uses it instead of Claude (see
-          above), and makes AI pictures from the descriptions you write and the photos you choose for them. This website also
-          loads its font from Google Fonts, so your browser connects to Google when it opens a page.
-        </li>
-        <li>
-          <strong>ElevenLabs</strong> turns a video’s script into a voice-over, when you choose a voice for it.
-        </li>
-        <li>
-          <strong>Jamendo</strong> provides the music you search for and choose for your videos. It receives your searches,
-          not your content.
-        </li>
-        <li>
-          <strong>Meta</strong> (Facebook and Instagram) handles the sign-in when you connect a Page or Instagram account,
-          and receives the posts you choose to publish there, with their photos or video. Once a post is published, it’s
-          on Facebook or Instagram under{" "}
-          <a href="https://www.facebook.com/privacy/policy/">
-            Meta’s Privacy Policy
-          </a>
-          , and you manage it there.
-        </li>
-        <li>
-          <strong>YouTube, LinkedIn, TikTok and X</strong> handle the sign-in when you connect an account there, and receive
-          the posts you choose to publish, with their video or photos. Mindra uses the YouTube API Services, so for YouTube{" "}
-          <a href="https://www.youtube.com/t/terms">YouTube’s Terms of Service</a> and{" "}
-          <a href="https://policies.google.com/privacy">Google’s Privacy Policy</a> also apply. Once a post is published, you
-          manage it on that platform.
-        </li>
-        <li>
-          <strong>Paystack</strong> takes payments for paid plans. It receives your email address and the plan you pay for,
-          and handles your card or bank details under{" "}
-          <a href="https://paystack.com/privacy">Paystack’s Privacy Policy</a>.
-        </li>
-        <li>
-          <strong>Sentry</strong> receives technical reports when something goes wrong, so we can fix it.
-        </li>
-        <li>
-          <strong>Our email provider</strong> sends account emails, such as password reset links.
-        </li>
-      </ul>
-      <p>Some of these companies process data outside your country, including in the European Union and the United States.</p>
+      <p>We send each of these companies only what its part of the work needs:</p>
+      <Table
+        head={["Company", "What it does for Mindra", "What it receives", "Based in"]}
+        rows={[
+          ["Render", "Hosts our servers and database, in Frankfurt, Germany", "Everything stored in Mindra", "United States"],
+          ["Cloudflare", "Serves the website and short links; stores files (R2)", "Files; visitors’ IP address and browser details", "United States"],
+          ["Google", "AI writing and reading, AI pictures, the website’s font, YouTube", "Transcripts, photos, flyers, plans, brand profile; picture descriptions; visitors’ IP address; YouTube posts", "United States"],
+          ["Anthropic", "The assistant", "Your questions, brand profile, campaigns, Planner, results and what it reads to answer", "United States"],
+          ["Deepgram", "Transcription", "The audio of your recordings", "United States"],
+          ["ElevenLabs", "Voice-overs in Automations, if you use them", "The script", "United States"],
+          ["Jamendo", "Music search and previews", "Your searches; listeners’ IP address", "Luxembourg"],
+          ["LinkedIn, and Meta, TikTok and X once available", "Sign-in and publishing", "The posts you publish, with their photos or video", "United States, or as each platform states"],
+          ["Paystack", "Payments", "Your email address, the plan, amount, a reference and your workspace’s number", "Nigeria"],
+          ["Resend", "Account and reminder emails", "Your email address; reminder emails include the post’s text", "United States"],
+          ["Sentry", "Error reports", "Technical details of what went wrong, not your content", "United States"],
+          ["Your browser maker’s push service", "Phone notifications, if you turn them on", "Reminders, encrypted so it can’t read them", "Google, Mozilla, Apple or Microsoft"],
+        ]}
+      />
 
-      <h2>Recordings of other people</h2>
+      <h2>Sending data outside Nigeria</h2>
       <p>
-        Recordings often include more than one voice: a guest speaker, a choir, an interviewee, people in a congregation. Only
-        upload a recording if you have the right to, and the permission of the people in it where that’s needed. We process
-        those recordings on your behalf, and you’re responsible for having that permission. The same goes for photos: only
-        upload photos of people, especially children, with their permission (for a child, a parent’s or guardian’s). The{" "}
-        <Link to="/terms">Terms of Service</Link> say more.
+        Most of the companies above are based outside Nigeria, mainly in Germany and the United States. We send each only
+        what its part needs, under its terms for protecting the data it receives. The exception is Gemini’s free tier,
+        described under <a href="#ai">AI</a> above.
+      </p>
+
+      <h2>People in recordings and photos</h2>
+      <p>
+        Recordings often include more than one voice: a guest speaker, a choir, an interviewee, an audience. Only upload a
+        recording if you have the right to, and the permission of the people in it where that’s needed. The same goes for
+        photos: only upload photos of people, especially children, with their permission (for a child, a parent’s or
+        guardian’s). Recordings can reveal what people believe or details of their health; Mindra uses them only to do what you
+        ask with them. The <Link to="/terms">Terms of Service</Link> say more.
+      </p>
+      <p>
+        If you’re in a recording or photo someone uploaded, or you clicked a Mindra short link, and want to ask about your data,
+        email {email}. For recordings and photos, the organisation or person who uploaded them decides about their content, so
+        we’ll usually pass your request to them, and act ourselves where the law requires.
       </p>
 
       <h2>How long we keep it</h2>
-      <ul>
-        <li>Your recordings and everything made from them stay in your workspace until you delete them.</li>
-        <li>
-          Deleting a project deletes its recording, transcript, analysis, posts and clips, including their files in storage.
-        </li>
-        <li>
-          A connected Facebook Page or Instagram account, and its access token, stays until you disconnect it, or until Meta
-          sends us a deletion request for the Facebook account that connected it.
-        </li>
-        <li>
-          A post’s results stay until the post is deleted. A Mindra short link keeps working, and counting, after its post is
-          deleted, since it may still be shared somewhere; its counts are deleted with the workspace.
-        </li>
-        <li>
-          Deleting a workspace deletes Mindra’s record of its payments too. Paystack keeps its own records of payments, under
-          its privacy policy.
-        </li>
-        <li>Copies can remain in our database backups until those backups are replaced.</li>
-        <li>Your account stays until you ask us to delete it.</li>
-      </ul>
+      <Table
+        head={["What", "Kept until"]}
+        rows={[
+          ["Your account", "You delete it (Settings, then Account)"],
+          ["Recordings, photos, transcripts, posts, clips, videos and plans", "You delete them, or their workspace. Deleting a project deletes its recording, transcript, posts and clips, with their files"],
+          ["A connected account and its tokens", "You disconnect it, or Meta sends a deletion request for it"],
+          ["A post’s results", "The post is deleted or the account it was read through is disconnected; 30 days after Mindra can no longer use that account’s access"],
+          ["Counts for a Mindra short link", "The workspace is deleted. The link keeps working after its post is deleted, since it may still be shared"],
+          ["Conversations with the assistant", "You delete them, or your account"],
+          ["Payment records", "The workspace is deleted. Paystack keeps its own records, under its privacy policy"],
+          ["Database backups", "Up to 7 days after the data is deleted"],
+          ["Server logs", "A short time, set by our hosting providers"],
+        ]}
+      />
 
       <h2>Your choices and rights</h2>
       <p>
-        You can see, edit and delete your projects and posts in Mindra at any time, and disconnect your Facebook and
-        Instagram accounts in Settings. The <Link to="/data-deletion">Data Deletion</Link> page explains each way to delete
-        your data. For anything else, email us at {email}. You can ask us to:
+        You can see, change and delete your projects, posts and clips at any time, disconnect accounts, download a copy of
+        your data and delete your account in Settings. The <Link to="/data-deletion">Data Deletion page</Link> explains each
+        way to delete your data. You can also ask us to:
       </p>
       <ul>
-        <li>send you a copy of the personal data we hold about you;</li>
-        <li>correct it;</li>
-        <li>delete your account, your workspace and everything in it (there’s no button for this in Mindra yet);</li>
-        <li>stop using your data for a particular purpose.</li>
+        <li>give you a copy of the personal data we hold about you, in a format you can reuse;</li>
+        <li>correct it, or delete it;</li>
+        <li>stop or limit using it, or stop using it for a particular purpose;</li>
+        <li>review anything you think was decided about you by AI alone.</li>
       </ul>
       <p>
-        We’ll reply within 30 days. If you’re unhappy with our answer, you can complain to the data protection authority in
-        your country.
+        Where you gave consent, you can withdraw it at any time. Email {email} and we’ll reply within 30 days. If you’re not
+        satisfied, you can complain to the <a href="https://ndpc.gov.ng">Nigeria Data Protection Commission</a>, or to the
+        data protection authority where you live.
       </p>
 
       <h2>Cookies and storage in your browser</h2>
       <p>
-        Mindra keeps your sign-in in your browser’s local storage, so you stay signed in until you log out, and remembers an
-        unfinished upload there so it can continue where it stopped. We don’t use advertising or analytics cookies.
+        Mindra keeps your sign-in in your browser’s local storage, so you stay signed in until you log out, and remembers there
+        an unfinished upload (so it can continue), your light or dark choice, which sidebar groups are open, and whether the
+        assistant’s panel is open with which conversation. We don’t use advertising or analytics cookies. Your browser
+        connects to Google Fonts for the website’s font, and to Jamendo when you preview a song.
       </p>
 
-      <h2>Security</h2>
+      <h2>Security and breaches</h2>
       <p>
-        Mindra is served over HTTPS. Your files are kept in private storage, and the links that play or download them expire
-        after a short time. Access tokens for connected Facebook and Instagram accounts are encrypted in our database. No
-        system is perfectly secure; if a problem affects your data, we’ll tell you promptly.
+        Mindra is served over HTTPS. Passwords are stored as a one-way hash. Your files are kept in private storage, and the
+        links that play or download them expire within 6 hours. The tokens for every connected account are encrypted in our
+        database. Our staff open a workspace’s content only to help when you ask, to keep Mindra secure, or when the law
+        requires it. No system is perfectly secure. If a breach puts your data at risk, we tell the Nigeria Data Protection
+        Commission within 72 hours of learning of it, and when the risk to you is high we tell you straight away, with what
+        you can do.
       </p>
 
       <h2>Children</h2>
-      <p>Mindra is for adults. You must be at least 18 to create an account.</p>
+      <p>
+        Mindra is for adults: you must be 18 or older to create an account, and you confirm it when you sign up. If you upload
+        photos or recordings of children, you need a parent’s or guardian’s permission. To report a child’s data uploaded
+        without it, email {email} and we’ll remove it.
+      </p>
 
       <h2>Contact</h2>
       <p>

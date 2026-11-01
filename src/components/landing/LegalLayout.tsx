@@ -16,11 +16,16 @@ interface Props {
   children: ReactNode;
 }
 
-// The pages write plain h2, p, ul and a elements; these classes style them like the landing page's text.
+// The pages write plain h2, h3, p, ul, ol, table and a elements (a table inside a div.overflow-x-auto, for phones); these
+// classes style them like the landing page's text.
 const prose = cn(
   "mt-10 text-[15.5px] leading-relaxed text-pretty text-[#52525B]",
   "[&_h2]:mt-12 [&_h2]:text-2xl [&_h2]:leading-tight [&_h2]:font-semibold [&_h2]:text-balance [&_h2]:text-foreground",
   "[&_p]:mt-4 [&_ul]:mt-4 [&_ul]:list-disc [&_ul]:space-y-2 [&_ul]:pl-5 [&_ul]:marker:text-[#A3A3AB]",
+  "[&_h3]:mt-8 [&_h3]:text-lg [&_h3]:font-semibold [&_h3]:text-foreground",
+  "[&_ol]:mt-4 [&_ol]:list-decimal [&_ol]:space-y-2 [&_ol]:pl-5",
+  "[&_table]:w-full [&_table]:border-collapse [&_table]:text-sm [&_th]:border-b [&_th]:border-[#E4E4E7] [&_th]:py-2 [&_th]:pr-4 [&_th]:text-left [&_th]:align-bottom [&_th]:font-semibold [&_th]:text-foreground",
+  "[&_td]:border-b [&_td]:border-[#F4F4F5] [&_td]:py-2.5 [&_td]:pr-4 [&_td]:align-top",
   "[&_strong]:font-semibold [&_strong]:text-foreground",
   "[&_a]:rounded-sm [&_a]:font-medium [&_a]:wrap-anywhere [&_a]:text-primary [&_a]:underline [&_a]:underline-offset-2",
   "[&_a]:focus-visible:outline-2 [&_a]:focus-visible:outline-offset-2 [&_a]:focus-visible:outline-primary",

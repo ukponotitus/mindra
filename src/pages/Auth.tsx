@@ -109,6 +109,7 @@ export default function AuthPage({ mode }: Props) {
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [resetSentTo, setResetSentTo] = useState("");
+  const [adult, setAdult] = useState(false);
   const [inviteCode, setInviteCode] = useState("");
   const [inviteAsked, setInviteAsked] = useState(false);
 
@@ -144,6 +145,12 @@ export default function AuthPage({ mode }: Props) {
     setError("");
     setFieldErrors({});
 
+    // Mindra is for adults: asked here, and checked again by the API.
+    if (mode === "signup" && !adult) {
+      setFieldErrors({ confirms_age: ["Confirm that you're 18 or older."] });
+      return;
+    }
+
     if (mode === "reset" && password !== confirmPassword) {
       setFieldErrors({ confirm_password: ["The two passwords don't match."] });
       return;
@@ -160,7 +167,7 @@ export default function AuthPage({ mode }: Props) {
       } else if (mode === "signup") {
         const [firstName = "", ...rest] = name.trim().split(/\s+/);
         const invite = askInviteCode ? { invite_code: inviteCode.trim() } : {};
-        const body = { email, password, first_name: firstName, last_name: rest.join(" "), ...invite };
+        const body = { email, password, first_name: firstName, last_name: rest.join(" "), confirms_age: adult, ...invite };
         signIn(await apiRequest<AuthResponse>("/api/auth/register/", { method: "POST", body }));
         navigate("/dashboard", { replace: true });
       } else {
@@ -171,7 +178,7 @@ export default function AuthPage({ mode }: Props) {
       const apiError = caught instanceof ApiError ? caught : new ApiError(0, "Something went wrong.");
       setFieldErrors(apiError.fieldErrors);
       if (apiError.fieldErrors.invite_code) setInviteAsked(true);
-      const shownBelowFields = ["email", "password", "first_name", "invite_code"].some((field) => apiError.fieldErrors[field]);
+      const shownBelowFields = ["email", "password", "first_name", "invite_code", "confirms_age"].some((field) => apiError.fieldErrors[field]);
       if (!shownBelowFields) setError(apiError.message);
     } finally {
       setSubmitting(false);
@@ -260,6 +267,11 @@ export default function AuthPage({ mode }: Props) {
             </p>
           ) : (
             <form onSubmit={submit} noValidate aria-busy={submitting}>
+              {mode === "login" && searchParams.get("account") === "deleted" && !error && (
+                <p role="status" className="mb-5 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-pretty text-emerald-800">
+                  Your account was deleted, with everything that was only yours. We’ve emailed you to confirm.
+                </p>
+              )}
               {error && (
                 <p role="alert" className="mb-5 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-pretty text-red-800">
                   {error}
@@ -360,23 +372,40 @@ export default function AuthPage({ mode }: Props) {
                 )}
               </div>
 
+              {mode === "signup" && (
+                <div className="mb-5">
+                  <label className="flex items-start gap-2.5 text-sm text-pretty text-muted-foreground">
+                    <input
+                      type="checkbox"
+                      checked={adult}
+                      onChange={(event) => setAdult(event.target.checked)}
+                      aria-invalid={Boolean(fieldError("confirms_age")) || undefined}
+                      aria-describedby={fieldError("confirms_age") ? "auth-age-error" : undefined}
+                      className="mt-0.5 size-4 shrink-0 accent-primary"
+                    />
+                    <span>
+                      I'm 18 or older, and I agree to the{" "}
+                      <Link to="/terms" target="_blank" className={linkClass}>
+                        Terms<span className="sr-only"> (opens in a new tab)</span>
+                      </Link>{" "}
+                      and the{" "}
+                      <Link to="/privacy" target="_blank" className={linkClass}>
+                        Privacy Policy<span className="sr-only"> (opens in a new tab)</span>
+                      </Link>
+                      .
+                    </span>
+                  </label>
+                  {fieldError("confirms_age") && (
+                    <p id="auth-age-error" role="alert" className="mt-1.5 text-sm text-red-600">
+                      {fieldError("confirms_age")}
+                    </p>
+                  )}
+                </div>
+              )}
+
               <button type="submit" disabled={submitting} className={buttonStyles({ size: "lg", className: "w-full" })}>
                 {submitting ? "Please wait…" : submitLabel}
               </button>
-
-              {mode === "signup" && (
-                <p className="mt-4 text-center text-xs text-pretty text-muted-foreground">
-                  By creating an account you agree to the{" "}
-                  <Link to="/terms" target="_blank" className={linkClass}>
-                    Terms<span className="sr-only"> (opens in a new tab)</span>
-                  </Link>{" "}
-                  and the{" "}
-                  <Link to="/privacy" target="_blank" className={linkClass}>
-                    Privacy Policy<span className="sr-only"> (opens in a new tab)</span>
-                  </Link>
-                  .
-                </p>
-              )}
             </form>
           )}
 

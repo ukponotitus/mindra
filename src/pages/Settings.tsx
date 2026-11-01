@@ -2,11 +2,12 @@ import { useId, useState, type ReactNode } from "react";
 import { Radio } from "@base-ui/react/radio";
 import { RadioGroup } from "@base-ui/react/radio-group";
 import { Tabs } from "@base-ui/react/tabs";
-import { BellRing, KeyRound, Link2, LogOut, Monitor, Moon, Palette, Sun, UserRound, Users, type LucideIcon } from "lucide-react";
+import { BellRing, Database, KeyRound, Link2, LogOut, Monitor, Moon, Palette, Sun, UserRound, Users, type LucideIcon } from "lucide-react";
 import { useLocation, useNavigate } from "react-router";
 import { fullName, useAuth } from "../auth/context";
 import ReminderSettings from "../components/calendar/ReminderSettings";
 import ConnectedAccounts from "../components/settings/ConnectedAccounts";
+import YourData from "../components/settings/YourData";
 import { buttonStyles } from "../components/ui/button";
 import { ApiError, apiRequest } from "../lib/api";
 import { cn } from "../lib/cn";
@@ -168,6 +169,10 @@ export default function Settings() {
                 {resetError}
               </p>
             )}
+          </Card>
+
+          <Card icon={Database} title="Your data">
+            <YourData />
           </Card>
 
           <button type="button" onClick={logOut} className={buttonStyles({ variant: "secondary" })}>
