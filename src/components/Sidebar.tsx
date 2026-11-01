@@ -22,7 +22,6 @@ import {
   Plus,
   RectangleVertical,
   Settings,
-  Sparkles,
   TrendingUp,
   Users,
   Workflow,
@@ -93,7 +92,6 @@ const nav: (NavLeaf | NavGroup)[] = [
     icon: PenLine,
     items: [
       { label: "Projects", to: "/projects", icon: FolderOpen },
-      { label: "AI Studio", to: "/ai-studio", icon: Sparkles },
       { label: "Clips", to: "/clips", icon: Clapperboard },
       { label: "Vertical Videos", to: "/vertical", icon: RectangleVertical },
       { label: "Motion Studio", to: "/studio", icon: Film },

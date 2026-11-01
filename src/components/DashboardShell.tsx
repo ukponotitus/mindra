@@ -13,7 +13,6 @@ const pageTitles: [pattern: string, title: string][] = [
   ["/projects/:projectId/processing", "Processing"],
   ["/projects/:projectId", "Project Details"],
   ["/projects", "Projects"],
-  ["/ai-studio", "AI Studio"],
   ["/library/:pieceId", "Edit Post"],
   ["/library", "Content Library"],
   ["/clips", "Clips"],

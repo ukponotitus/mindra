@@ -62,7 +62,7 @@ export default function ReadyTray({ posts, total, loading, error, onRetry, onSho
           <p className="mx-auto mt-1 max-w-xs text-sm text-pretty text-muted-foreground">
             Posts you write show up here, ready to plan.
           </p>
-          <Link to="/ai-studio" className={buttonStyles({ variant: "secondary", size: "sm", className: "mt-4" })}>
+          <Link to="/projects" className={buttonStyles({ variant: "secondary", size: "sm", className: "mt-4" })}>
             Write posts
           </Link>
         </div>

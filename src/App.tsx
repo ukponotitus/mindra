@@ -4,7 +4,6 @@ import AuthProvider from "./auth/AuthProvider";
 import RequireAuth from "./auth/RequireAuth";
 import DashboardShell from "./components/DashboardShell";
 import { ApiError } from "./lib/api";
-import AIStudio from "./pages/AIStudio";
 import Analytics from "./pages/Analytics";
 import AutomationApprovals from "./pages/AutomationApprovals";
 import AutomationDetail from "./pages/AutomationDetail";
@@ -59,6 +58,13 @@ function ToPlanner() {
   return <Navigate to={`/planner${search}`} replace />;
 }
 
+/** AI Studio was taken out (the same posts are in the Content Library, and on each project's page): old links open
+ * the recording's posts, or the Library. */
+function FromAIStudio() {
+  const project = new URLSearchParams(useLocation().search).get("project");
+  return <Navigate to={project ? `/projects/${project}?tab=posts` : "/library"} replace />;
+}
+
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -82,7 +88,7 @@ export default function App() {
                 <Route path="/projects/new" element={<CreateProject />} />
                 <Route path="/projects/:projectId" element={<ProjectDetails />} />
                 <Route path="/projects/:projectId/processing" element={<Processing />} />
-                <Route path="/ai-studio" element={<AIStudio />} />
+                <Route path="/ai-studio" element={<FromAIStudio />} />
                 <Route path="/library" element={<ContentLibrary />} />
                 <Route path="/library/:pieceId" element={<ContentEditor />} />
                 <Route path="/clips" element={<Clips />} />
