@@ -24,6 +24,7 @@ import {
   Plus,
   RectangleVertical,
   Settings,
+  ThumbsUp,
   TrendingUp,
   Users,
   Workflow,
@@ -119,6 +120,7 @@ const nav: (NavLeaf | NavGroup)[] = [
     items: [
       { label: "Overview", to: "/analytics", icon: Eye, current: analyticsTab("overview") },
       { label: "Content", to: "/analytics?tab=content", icon: FileText, current: analyticsTab("content") },
+      { label: "Engagement", to: "/analytics?tab=engagement", icon: ThumbsUp, current: analyticsTab("engagement") },
       { label: "Audience", to: "/analytics?tab=audience", icon: Users, current: analyticsTab("audience") },
       { label: "Trends", to: "/analytics?tab=trends", icon: TrendingUp, current: analyticsTab("trends") },
     ],

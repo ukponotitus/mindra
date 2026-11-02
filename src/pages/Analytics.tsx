@@ -9,6 +9,7 @@ import { cn } from "../lib/cn";
 import { formatDate } from "../lib/format";
 import { platformInfo } from "../lib/projects";
 import {
+  CONTENT_TYPE_LABELS,
   countryName,
   DEFAULT_PERIOD,
   formatCount,
@@ -17,15 +18,20 @@ import {
   NUMBER_NAMES,
   PERIODS,
   useResultsSummary,
+  type AccountFollowers,
+  type ContentType,
   type FollowStatus,
   type MetricName,
   type ResultPost,
   type ResultsSummary,
 } from "../lib/results";
+import { ACCOUNT_KINDS } from "../lib/social";
+import type { ConnectedAccountKind } from "../lib/types";
 
 const TABS = [
   { id: "overview", label: "Overview" },
   { id: "content", label: "Content" },
+  { id: "engagement", label: "Engagement" },
   { id: "audience", label: "Audience" },
   { id: "trends", label: "Trends" },
 ] as const;
@@ -76,6 +82,12 @@ const TIMES_OF_DAY = [
   { label: "Evening", hint: "5 pm to 9 pm", from: 17, to: 21 },
   { label: "Night", hint: "9 pm to 5 am", from: 21, to: 29 },
 ];
+// What each connected account whose platform doesn't share followers with Mindra says instead (WordPress has none).
+const NO_FOLLOWERS: Partial<Record<ConnectedAccountKind, string>> = {
+  x: "X charges for every read, so Mindra doesn't read follower numbers there.",
+  linkedin: "LinkedIn doesn't share follower numbers with apps yet.",
+  tiktok: "TikTok doesn't share follower numbers with Mindra yet.",
+};
 const card = "rounded-xl border border-border bg-card p-5";
 const linkClass = "rounded font-medium text-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary";
 
@@ -140,6 +152,31 @@ function percentChange(now: number | null, before: number | null) {
   return Math.round(((now - before) / before) * 100);
 }
 
+/** Against the period before, as Facebook's cards say it: "↑ 12%" in green, "↓ 56%" in red. */
+function ChangeLine({ summary, name }: { summary: ResultsSummary; name: MetricName }) {
+  const value = summary.metrics[name];
+  const change = percentChange(value, summary.previous[name]);
+  if (value === null) return null;
+  if (change === null || change === "new") {
+    if (!summary.previous.posts) return <>No earlier posts to compare</>;
+    return change === "new" ? <>New in this period</> : null;
+  }
+  if (change === 0) return <>No change from the period before</>;
+  return (
+    <>
+      <span className={cn("font-medium", change > 0 ? "text-emerald-700" : "text-red-600")}>
+        <span aria-hidden="true">{change > 0 ? "↑" : "↓"}</span>
+        <span className="sr-only">{change > 0 ? "Up" : "Down"}</span> {Math.abs(change)}%
+      </span>{" "}
+      vs the period before
+    </>
+  );
+}
+
+function signed(value: number) {
+  return `${value > 0 ? "+" : value < 0 ? "−" : ""}${formatCount(Math.abs(value))}`;
+}
+
 function dateRange(summary: ResultsSummary) {
   const from = new Date(summary.since);
   const to = new Date(summary.until);
@@ -181,10 +218,9 @@ function MetricChart({ summary, metrics, id }: { summary: ResultsSummary; metric
   const metric = metrics.includes(chosen) ? chosen : metrics[0];
   return (
     <div className="overflow-hidden rounded-xl border border-border bg-card">
-      <div role="tablist" aria-label="What to show" className={cn("grid border-b border-border", metrics.length === 3 ? "grid-cols-3" : "grid-cols-2 sm:grid-cols-4")}>
+      <div role="tablist" aria-label="What to show" className={cn("grid border-b border-border", metrics.length === 3 ? "grid-cols-1 sm:grid-cols-3" : "grid-cols-2 sm:grid-cols-4")}>
         {metrics.map((name) => {
           const value = summary.metrics[name];
-          const change = percentChange(value, summary.previous[name]);
           const active = name === metric;
           return (
             <button
@@ -202,8 +238,8 @@ function MetricChart({ summary, metrics, id }: { summary: ResultsSummary; metric
             >
               <span className="block text-xs font-medium text-muted-foreground">{METRIC_LABELS[name]}</span>
               <span className="mt-1 block text-2xl font-semibold text-foreground tabular-nums">{value === null ? "—" : formatCount(value)}</span>
-              <span className="mt-0.5 block h-4 text-[11px] text-muted-foreground tabular-nums">
-                {change === "new" ? "New in this period" : change === null ? "" : `${change > 0 ? "↑" : change < 0 ? "↓" : ""} ${Math.abs(change)}% vs the period before`}
+              <span className="mt-0.5 block min-h-4 text-[11px] text-muted-foreground tabular-nums">
+                <ChangeLine summary={summary} name={name} />
               </span>
             </button>
           );
@@ -220,6 +256,92 @@ function MetricChart({ summary, metrics, id }: { summary: ResultsSummary; metric
         )}
       </div>
     </div>
+  );
+}
+
+/** A top content card's picture, or the post's words on a tile when it has none (a text post) or it doesn't load. */
+function CardPicture({ post }: { post: ResultPost }) {
+  const [failed, setFailed] = useState(false);
+  if (post.thumbnail_url && !failed) {
+    return <img src={post.thumbnail_url} alt="" loading="lazy" onError={() => setFailed(true)} className="aspect-[4/3] w-full bg-secondary object-cover" />;
+  }
+  return (
+    <span className="flex aspect-[4/3] w-full flex-col gap-1.5 bg-secondary p-3 text-left">
+      <PlatformBadge platform={post.platform} withLabel={false} />
+      <span className="line-clamp-4 text-xs text-pretty text-foreground">{postName(post)}</span>
+    </span>
+  );
+}
+
+/**
+ * Facebook's "Top content": a card per post (its picture, or its words for a text post), with the day it went out and
+ * its number for the period; a row that scrolls sideways inside its card.
+ */
+function TopContentCards({ id, title, posts, value, unit, empty }: { id: string; title: string; posts: ResultPost[]; value: (post: ResultPost) => number; unit: string; empty: ReactNode }) {
+  return (
+    <Card id={id} title={title}>
+      {posts.length === 0 ? (
+        <NotEnough>{empty}</NotEnough>
+      ) : (
+        <ul className="relative -mx-1 flex snap-x gap-3 overflow-x-auto px-1 pb-2">
+          {posts.map((post) => (
+            <li key={post.id} className="w-40 shrink-0 snap-start sm:w-44">
+              <Link
+                to={`/library/${post.id}`}
+                className="block overflow-hidden rounded-lg border border-border bg-card transition-colors hover:border-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              >
+                <CardPicture post={post} />
+                <span className="block p-3">
+                  <span className="block truncate text-xs text-muted-foreground">{post.posted_at ? formatDate(post.posted_at) : platformInfo(post.platform).label}</span>
+                  <span className="mt-0.5 block text-base font-semibold text-foreground tabular-nums">{formatCount(value(post))}</span>
+                  <span className="block text-xs text-muted-foreground">{unit}</span>
+                  <span className="sr-only">: {postName(post)}</span>
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Card>
+  );
+}
+
+/** Views or engagement by what the posts are made of, as shares of the whole. */
+function ContentTypeBars({ summary, metric, empty }: { summary: ResultsSummary; metric: "views" | "engagement"; empty: ReactNode }) {
+  const rows = summary.content_types.filter((row) => row[metric] !== null);
+  const total = rows.reduce((sum, row) => sum + (row[metric] ?? 0), 0);
+  if (total === 0) return <NotEnough>{empty}</NotEnough>;
+  const max = Math.max(...rows.map((row) => row[metric] ?? 0));
+  const hint = (type: ContentType) => {
+    const posts = summary.content_types.find((row) => row.type === type)?.posts ?? 0;
+    return `${posts} ${posts === 1 ? "post" : "posts"} out in this period`;
+  };
+  // The platforms of this period's posts that don't share this number with Mindra, named under the bars.
+  const uncounted = summary.platforms
+    .filter((row) => (metric === "views" ? row.views === null : row.likes === null && row.comments === null && row.shares === null))
+    .map((row) => platformInfo(row.platform).label);
+  return (
+    <>
+      <ul className="space-y-3">
+        {rows.map((row) => (
+          <BarRow
+            key={row.type}
+            label={CONTENT_TYPE_LABELS[row.type]}
+            hint={hint(row.type)}
+            value={row[metric] ?? 0}
+            max={max}
+            display={`${Math.round(((row[metric] ?? 0) / total) * 1000) / 10}%`}
+          />
+        ))}
+      </ul>
+      {uncounted.length > 0 && (
+        <p className="mt-3 text-xs text-pretty text-muted-foreground">
+          Not counted here: your {uncounted.length > 1 ? `${uncounted.slice(0, -1).join(", ")} and ${uncounted[uncounted.length - 1]}` : uncounted[0]} posts, since{" "}
+          {uncounted.length === 1 ? "that platform doesn't" : "those platforms don't"} share {metric === "views" ? "views" : "likes, comments or shares"} with
+          Mindra.
+        </p>
+      )}
+    </>
   );
 }
 
@@ -478,17 +600,29 @@ function AllPosts({ summary }: { summary: ResultsSummary }) {
 }
 
 function ContentTab({ summary }: { summary: ResultsSummary }) {
-  const { metrics } = summary;
   const sources = summary.sources;
   const sourceMax = Math.max(0, ...sources.map((row) => row.clicks));
   const sourceTotal = sources.reduce((sum, row) => sum + row.clicks, 0);
-  const engaged = (metrics.likes ?? 0) + (metrics.comments ?? 0) + (metrics.shares ?? 0);
-  const parts = (["likes", "comments", "shares"] as const).map((name) => ({ name, value: metrics[name] ?? 0 }));
-  const topMax = Math.max(0, ...summary.top_posts.map((post) => post.period.views ?? 0));
+  const viewed = summary.top_posts.filter((post) => (post.period.views ?? 0) > 0);
   return (
     <div className="space-y-6">
       <MetricChart id="content" summary={summary} metrics={["views", "likes", "comments", "shares"]} />
-      <div className="grid gap-6 lg:grid-cols-2">
+      <TopContentCards
+        id="top-viewed"
+        title="Top content"
+        posts={viewed}
+        value={(post) => post.period.views ?? 0}
+        unit="Views"
+        empty="No views in this period yet. YouTube and X share views with Mindra; Facebook and Instagram share likes and comments."
+      />
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <Card id="views-by-type" title="Views by content type" subtitle="Views gained in this period">
+          <ContentTypeBars
+            summary={summary}
+            metric="views"
+            empty="Views by photo, video and text posts show once your posts on YouTube or X have views in this period."
+          />
+        </Card>
         <Card id="sources" title="How people found your links" subtitle="Link clicks, by where they came from">
           {sources.length === 0 ? (
             <NotEnough>No clicks on your Mindra links in this period. “Count clicks” in the post editor puts one in a post.</NotEnough>
@@ -500,108 +634,238 @@ function ContentTab({ summary }: { summary: ResultsSummary }) {
             </ul>
           )}
         </Card>
-        <Card id="engaged" title="How people engaged" subtitle="Likes, comments and shares in this period">
-          {metrics.engagement === null || engaged === 0 ? (
-            <NotEnough>No likes, comments or shares in this period yet.</NotEnough>
-          ) : (
-            <>
-              <div className="flex h-3 gap-0.5 overflow-hidden rounded-full" role="img" aria-label={parts.map((part) => `${part.value} ${part.name}`).join(", ")}>
-                {parts.map((part, index) =>
-                  part.value ? <span key={part.name} className={cn("h-full", ["bg-primary", "bg-primary/60", "bg-primary/30"][index])} style={{ width: `${(part.value / engaged) * 100}%` }} /> : null,
-                )}
-              </div>
-              <dl className="mt-4 grid grid-cols-3 gap-3 text-sm">
-                {parts.map((part, index) => (
-                  <div key={part.name}>
-                    <dt className="flex items-center gap-1.5 text-muted-foreground">
-                      <span aria-hidden="true" className={cn("size-2.5 rounded-sm", ["bg-primary", "bg-primary/60", "bg-primary/30"][index])} />
-                      {NUMBER_LABELS[part.name]}
-                    </dt>
-                    <dd className="mt-0.5 text-lg font-semibold text-foreground tabular-nums">{formatCount(part.value)}</dd>
-                  </div>
-                ))}
-              </dl>
-              {metrics.views ? (
-                <p className="mt-3 text-sm text-muted-foreground">
-                  <span className="font-semibold text-foreground tabular-nums">{Math.round((engaged / metrics.views) * 1000) / 10}%</span> engagement rate: likes, comments and shares for every 100 views.
-                </p>
-              ) : null}
-            </>
-          )}
-        </Card>
-        <Card id="top-posts" title="Top posts" subtitle="Views gained in this period">
-          {summary.top_posts.length === 0 ? (
-            <NotEnough>Nothing to show for these dates.</NotEnough>
-          ) : (
-            <ul className="space-y-3">
-              {summary.top_posts.slice(0, 6).map((post) => (
-                <BarRow
-                  key={post.id}
-                  label={
-                    <span className="flex min-w-0 items-center gap-2">
-                      <Thumb post={post} className="h-7 w-11" />
-                      <Link to={`/library/${post.id}`} className="truncate hover:text-primary">
-                        {postName(post)}
-                      </Link>
-                    </span>
-                  }
-                  value={post.period.views ?? 0}
-                  max={topMax}
-                  display={formatCount(post.period.views ?? post.period.clicks)}
-                />
-              ))}
-            </ul>
-          )}
-        </Card>
-        <Card id="platforms" title="By platform" subtitle="Posts out and what they gained in this period">
-          {summary.platforms.length === 0 ? (
-            <NotEnough>No posts went out in this period.</NotEnough>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[26rem] text-sm">
-                <thead>
-                  <tr className="text-left text-xs text-muted-foreground">
-                    <th scope="col" className="py-1.5 pr-3 font-medium">
-                      Platform
-                    </th>
-                    <th scope="col" className="py-1.5 pr-3 text-right font-medium">
-                      Posts
-                    </th>
-                    <th scope="col" className="py-1.5 pr-3 text-right font-medium">
-                      Views
-                    </th>
-                    <th scope="col" className="py-1.5 pr-3 text-right font-medium">
-                      Engagement
-                    </th>
-                    <th scope="col" className="py-1.5 text-right font-medium">
-                      Link clicks
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {summary.platforms.map((row) => (
-                    <tr key={row.platform} className="border-t border-border">
-                      <th scope="row" className="py-2 pr-3 text-left font-normal">
-                        <PlatformBadge platform={row.platform} />
-                      </th>
-                      <td className="py-2 pr-3 text-right tabular-nums">{row.posts}</td>
-                      <td className="py-2 pr-3 text-right tabular-nums">{formatCount(row.views)}</td>
-                      <td className="py-2 pr-3 text-right tabular-nums">{formatCount(row.engagement)}</td>
-                      <td className="py-2 text-right tabular-nums">{formatCount(row.clicks)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </Card>
+        <PlatformsCard summary={summary} />
       </div>
       <AllPosts summary={summary} />
     </div>
   );
 }
 
+// Engagement
+
+/** Likes, comments and shares in the period, split by kind (Facebook's "By interaction type"). */
+function InteractionSplit({ summary }: { summary: ResultsSummary }) {
+  const { metrics } = summary;
+  const engaged = (metrics.likes ?? 0) + (metrics.comments ?? 0) + (metrics.shares ?? 0);
+  const parts = (["likes", "comments", "shares"] as const).map((name) => ({ name, value: metrics[name] ?? 0 }));
+  return (
+    <Card id="engaged" title="By interaction type" subtitle="Likes, comments and shares in this period">
+      {metrics.engagement === null || engaged === 0 ? (
+        <NotEnough>No likes, comments or shares in this period yet.</NotEnough>
+      ) : (
+        <>
+          <div className="flex h-3 gap-0.5 overflow-hidden rounded-full" role="img" aria-label={parts.map((part) => `${part.value} ${part.name}`).join(", ")}>
+            {parts.map((part, index) =>
+              part.value ? <span key={part.name} className={cn("h-full", ["bg-primary", "bg-primary/60", "bg-primary/30"][index])} style={{ width: `${(part.value / engaged) * 100}%` }} /> : null,
+            )}
+          </div>
+          <dl className="mt-4 grid grid-cols-3 gap-3 text-sm">
+            {parts.map((part, index) => (
+              <div key={part.name}>
+                <dt className="flex items-center gap-1.5 text-muted-foreground">
+                  <span aria-hidden="true" className={cn("size-2.5 rounded-sm", ["bg-primary", "bg-primary/60", "bg-primary/30"][index])} />
+                  {NUMBER_LABELS[part.name]}
+                </dt>
+                <dd className="mt-0.5 text-lg font-semibold text-foreground tabular-nums">{formatCount(part.value)}</dd>
+              </div>
+            ))}
+          </dl>
+          {metrics.views ? (
+            <p className="mt-3 text-sm text-muted-foreground">
+              <span className="font-semibold text-foreground tabular-nums">{Math.round((engaged / metrics.views) * 1000) / 10}%</span> engagement rate: likes, comments and shares for every 100 views.
+            </p>
+          ) : null}
+        </>
+      )}
+    </Card>
+  );
+}
+
+/** Facebook's Engagement overview: the total and each kind against the period before, day by day; by interaction
+ * and content type; and the posts with the most. */
+function EngagementTab({ summary }: { summary: ResultsSummary }) {
+  return (
+    <div className="space-y-6">
+      <MetricChart id="engagement" summary={summary} metrics={["engagement", "likes", "comments", "shares"]} />
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <InteractionSplit summary={summary} />
+        <Card id="engagement-by-type" title="By content type" subtitle="Likes, comments and shares gained in this period">
+          <ContentTypeBars summary={summary} metric="engagement" empty="No likes, comments or shares in this period yet." />
+        </Card>
+      </div>
+      <TopContentCards
+        id="top-engaged"
+        title="Top content"
+        posts={summary.top_engaged}
+        value={(post) => post.period.engagement}
+        unit="Engagement"
+        empty="No likes, comments or shares in this period yet. Facebook, Instagram, YouTube and X share them for posts Mindra follows."
+      />
+    </div>
+  );
+}
+
+// Content, continued
+
+function PlatformsCard({ summary }: { summary: ResultsSummary }) {
+  return (
+    <Card id="platforms" title="By platform" subtitle="Posts out and what they gained in this period">
+      {summary.platforms.length === 0 ? (
+        <NotEnough>No posts went out in this period.</NotEnough>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[26rem] text-sm">
+            <thead>
+              <tr className="text-left text-xs text-muted-foreground">
+                <th scope="col" className="py-1.5 pr-3 font-medium">
+                  Platform
+                </th>
+                <th scope="col" className="py-1.5 pr-3 text-right font-medium">
+                  Posts
+                </th>
+                <th scope="col" className="py-1.5 pr-3 text-right font-medium">
+                  Views
+                </th>
+                <th scope="col" className="py-1.5 pr-3 text-right font-medium">
+                  Engagement
+                </th>
+                <th scope="col" className="py-1.5 text-right font-medium">
+                  Link clicks
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {summary.platforms.map((row) => (
+                <tr key={row.platform} className="border-t border-border">
+                  <th scope="row" className="py-2 pr-3 text-left font-normal">
+                    <PlatformBadge platform={row.platform} />
+                  </th>
+                  <td className="py-2 pr-3 text-right tabular-nums">{row.posts}</td>
+                  <td className="py-2 pr-3 text-right tabular-nums">{formatCount(row.views)}</td>
+                  <td className="py-2 pr-3 text-right tabular-nums">{formatCount(row.engagement)}</td>
+                  <td className="py-2 text-right tabular-nums">{formatCount(row.clicks)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </Card>
+  );
+}
+
 // Audience
+
+function dayLabel(iso: string, options: Intl.DateTimeFormatOptions) {
+  return new Date(`${iso}T12:00:00Z`).toLocaleDateString(undefined, options);
+}
+
+/** One account's followers: the latest count, the change over the period, and the count day by day once there are two. */
+function AccountFollowersRow({ account }: { account: AccountFollowers }) {
+  const unit: [string, string] = account.kind === "youtube" ? ["subscriber", "subscribers"] : ["follower", "followers"];
+  const points: ChartPoint[] = account.series.map((entry) => ({
+    label: dayLabel(entry.day, { day: "numeric", month: "short" }),
+    long: dayLabel(entry.day, { weekday: "short", day: "numeric", month: "short", year: "numeric" }),
+    value: entry.followers,
+  }));
+  return (
+    <li className="min-w-0 rounded-lg border border-border p-4">
+      <div className="flex items-center gap-3">
+        {account.picture_url ? (
+          <img src={account.picture_url} alt="" loading="lazy" className="size-9 shrink-0 rounded-full bg-secondary object-cover" />
+        ) : (
+          <span aria-hidden="true" className="grid size-9 shrink-0 place-items-center rounded-full bg-secondary text-sm font-medium text-foreground">
+            {account.name.replace(/^@/, "").charAt(0).toUpperCase()}
+          </span>
+        )}
+        <div className="min-w-0">
+          <p className="truncate text-sm font-medium text-foreground">{account.name}</p>
+          <p className="text-xs text-muted-foreground">{ACCOUNT_KINDS[account.kind].label}</p>
+        </div>
+      </div>
+      {account.followers === null ? (
+        <p className="mt-3 text-sm text-pretty text-muted-foreground">
+          {account.needs_reconnect ? (
+            <>
+              Reconnect it in{" "}
+              <Link to="/settings#accounts" className={linkClass}>
+                Settings
+              </Link>
+              , so Mindra can count its {unit[1]}.
+            </>
+          ) : account.kind === "youtube" ? (
+            "Mindra counts its subscribers once a day, unless the channel hides them. The first count shows here soon."
+          ) : (
+            `Mindra counts its ${unit[1]} once a day. The first count shows here soon.`
+          )}
+        </p>
+      ) : (
+        <>
+          <p className="mt-3 text-2xl font-semibold text-foreground tabular-nums">
+            {account.followers.toLocaleString()} <span className="text-sm font-normal text-muted-foreground">{account.followers === 1 ? unit[0] : unit[1]}</span>
+          </p>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            {account.change === null ? (
+              "The change shows once Mindra has counted on two days."
+            ) : (
+              <>
+                <span className={cn("font-medium tabular-nums", account.change > 0 ? "text-emerald-700" : account.change < 0 ? "text-red-600" : "text-foreground")}>
+                  {signed(account.change)}
+                </span>{" "}
+                in this period
+              </>
+            )}
+          </p>
+          {points.length >= 2 && (
+            <div className="mt-3">
+              <TimeChart points={points} name={account.kind === "youtube" ? "Subscribers" : "Followers"} unit={unit} format={(value) => value.toLocaleString()} fromZero={false} />
+            </div>
+          )}
+          {account.needs_reconnect && (
+            <p className="mt-2 text-xs text-pretty text-muted-foreground">
+              Mindra can't count any more until it's reconnected in{" "}
+              <Link to="/settings#accounts" className={linkClass}>
+                Settings
+              </Link>
+              .
+            </p>
+          )}
+          {account.kind === "youtube" && <p className="mt-2 text-xs text-muted-foreground">YouTube rounds subscriber numbers down to three figures.</p>}
+        </>
+      )}
+    </li>
+  );
+}
+
+/** How many follow each connected account (Facebook's "Total followers" and "Net follows"), read once a day. */
+function FollowersCard({ summary }: { summary: ResultsSummary }) {
+  const { accounts, others } = summary.followers;
+  const notes = [...new Set(others.map((row) => NO_FOLLOWERS[row.kind]).filter((note): note is string => Boolean(note)))];
+  return (
+    <Card id="followers" title="Followers" subtitle="On your connected accounts, counted once a day">
+      {accounts.length === 0 ? (
+        <NotEnough>
+          Connect your YouTube channel, Facebook Page or Instagram account in{" "}
+          <Link to="/settings#accounts" className={linkClass}>
+            Settings
+          </Link>
+          , and Mindra counts their followers once a day.
+        </NotEnough>
+      ) : (
+        <ul className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
+          {accounts.map((account) => (
+            <AccountFollowersRow key={account.account_id} account={account} />
+          ))}
+        </ul>
+      )}
+      {notes.map((note) => (
+        <p key={note} className="mt-3 text-sm text-pretty text-muted-foreground">
+          {note}
+        </p>
+      ))}
+    </Card>
+  );
+}
 
 function AudienceTab({ summary }: { summary: ResultsSummary }) {
   const total = summary.metrics.clicks ?? 0;
@@ -620,6 +884,7 @@ function AudienceTab({ summary }: { summary: ResultsSummary }) {
   const busiestHour = byHour.indexOf(hourMax);
   return (
     <div className="space-y-6">
+      <FollowersCard summary={summary} />
       <MetricChart id="audience" summary={summary} metrics={["clicks", "posts", "engagement"]} />
       {total === 0 && (
         <p className="rounded-lg border border-dashed border-border bg-card px-4 py-3 text-sm text-pretty text-muted-foreground">
@@ -627,7 +892,7 @@ function AudienceTab({ summary }: { summary: ResultsSummary }) {
           themselves is kept. In the post editor, “Count clicks” puts a Mindra link in place of a web address.
         </p>
       )}
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card id="countries" title="Top countries" subtitle="Link clicks in this period">
           {summary.countries.length === 0 ? (
             <NotEnough>Not enough data to show this report.</NotEnough>
@@ -750,7 +1015,7 @@ function TrendsTab({ summary }: { summary: ResultsSummary }) {
       <Card id="best" title="Best days and times to post" subtitle="Likes, comments and shares per post">
         {best}
       </Card>
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card id="posting" title="Where you post most" subtitle="Posts out in this period">
           {summary.platforms.length === 0 ? (
             <NotEnough>No posts went out in this period.</NotEnough>
@@ -789,7 +1054,8 @@ function Skeleton() {
   );
 }
 
-/** The Analytics page, laid out like YouTube Studio's: Overview, Content, Audience and Trends for a period. */
+/** The Analytics page, laid out like YouTube Studio's and Facebook's Creator dashboard: Overview, Content, Engagement,
+ * Audience and Trends for a period. */
 export default function Analytics() {
   const [params, setParams] = useSearchParams();
   const asked = Number(params.get("days"));
@@ -814,7 +1080,7 @@ export default function Analytics() {
     );
   } else {
     const data = summary.data;
-    const empty = !data.posts_total && !data.metrics.clicks && !data.links && !data.top_posts.length && !data.latest;
+    const empty = !data.posts_total && !data.metrics.clicks && !data.links && !data.top_posts.length && !data.latest && !data.followers.accounts.length;
     body = empty ? (
       <EmptyState
         icon={ChartColumn}
@@ -831,6 +1097,7 @@ export default function Analytics() {
       <div role="tabpanel" id={`analytics-${tab}`} aria-labelledby={`analytics-tab-${tab}`}>
         {tab === "overview" && <Overview summary={data} go={(next) => set({ tab: next })} />}
         {tab === "content" && <ContentTab summary={data} />}
+        {tab === "engagement" && <EngagementTab summary={data} />}
         {tab === "audience" && <AudienceTab summary={data} />}
         {tab === "trends" && <TrendsTab summary={data} />}
         <p className="mt-6 flex items-start gap-2 text-xs text-pretty text-muted-foreground">

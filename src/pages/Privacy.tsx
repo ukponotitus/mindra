@@ -89,6 +89,10 @@ export default function PrivacyPage() {
           read for a month after it goes out. Mindra reads the numbers only, not the comments or who left them.
         </li>
         <li>
+          <strong>Follower counts:</strong> once a day, how many people follow each connected YouTube channel, Facebook
+          Page and Instagram account, kept day by day to show the change. The number only, never who they are.
+        </li>
+        <li>
           <strong>Clicks on Mindra links:</strong> when you choose to count the clicks on a web address in a post, Mindra
           puts a short link (mindra.online/l/…) in its place. When someone clicks it, Mindra counts the click by day and hour,
           by the country Cloudflare says it came from, by the kind of device (phone, tablet or computer) and by where it came
@@ -173,14 +177,15 @@ export default function PrivacyPage() {
           <strong>What Mindra does with it:</strong> it posts only what you choose, at the time you set or when you say “post
           now”, sending the post’s text and its photos or video. It keeps the post’s id and link. For 30 days it reads the
           post’s views, likes, comments and shares. When you mark a post as posted yourself, it looks through the account’s
-          recent posts for about a day to find it, comparing titles and captions, and keeps only the match. It doesn’t read
-          your messages, comments or followers, and never posts to a personal Facebook profile.
+          recent posts for about a day to find it, comparing titles and captions, and keeps only the match. Once a day it reads
+          how many followers a YouTube channel, Facebook Page or Instagram account has. It doesn’t read your messages or
+          comments, or who your followers are, and never posts to a personal Facebook profile.
         </li>
         <li>
           <strong>YouTube:</strong> Mindra uses the YouTube API Services. By connecting a channel you agree to{" "}
           <a href="https://www.youtube.com/t/terms">YouTube’s Terms of Service</a>, and{" "}
           <a href="https://policies.google.com/privacy">Google’s Privacy Policy</a> applies. Mindra reads the channel’s id,
-          name and picture, the statistics of videos it posts or finds, and the channel’s recent uploads when looking for a
+          name and picture, its subscriber count once a day, the statistics of videos it posts or finds, and the channel’s recent uploads when looking for a
           post. You can remove Mindra’s access in Mindra or in{" "}
           <a href="https://security.google.com/settings/security/permissions">Google’s security settings</a>. If Mindra can
           no longer use a channel’s access, the numbers read through it are deleted after 30 days.
