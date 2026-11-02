@@ -11,6 +11,14 @@ function niceMax(value: number) {
   return [1, 2, 5, 10].map((step) => step * power).find((step) => step >= value) ?? value;
 }
 
+/** The scale for a level that moves little (followers): from a little under the lowest to a little over the highest. */
+function fittedRange(values: number[]): [number, number] {
+  const low = Math.min(...values);
+  const high = Math.max(...values);
+  const pad = Math.max(Math.ceil((high - low) * 0.15), 2);
+  return [Math.max(0, low - pad), high + pad];
+}
+
 /**
  * One series over time, as YouTube Studio draws it: a 2px line with a faint fill, hairline gridlines and the scale on
  * the right, a few dates below, a marker under each day posts went out, and a crosshair with the day's value on hover.
@@ -21,6 +29,7 @@ export default function TimeChart({
   name,
   unit,
   format = formatCount,
+  fromZero = true,
 }: {
   points: ChartPoint[];
   /** What's drawn, for the chart's description: "Views". */
@@ -28,20 +37,25 @@ export default function TimeChart({
   /** One of it, for the tooltip: "view". */
   unit: [string, string];
   format?: (value: number) => string;
+  /** False for a total that moves little against its size (followers): the scale fits the values and only the line is
+   * drawn, with no fill down to a zero that isn't shown. */
+  fromZero?: boolean;
 }) {
   const [hovered, setHovered] = useState<number | null>(null);
   const [asTable, setAsTable] = useState(false);
   const count = points.length;
-  const top = niceMax(Math.max(0, ...points.map((point) => point.value)));
+  const [bottom, top] = fromZero || points.length === 0 ? [0, niceMax(Math.max(0, ...points.map((point) => point.value)))] : fittedRange(points.map((point) => point.value));
   const total = points.reduce((sum, point) => sum + point.value, 0);
   const width = Math.max(count - 1, 1);
   const x = (index: number) => (count === 1 ? 0.5 : index);
-  const y = (value: number) => 100 - (value / top) * 100;
+  const y = (value: number) => 100 - ((value - bottom) / (top - bottom)) * 100;
   const line = points.map((point, index) => `${index ? "L" : "M"}${x(index)},${y(point.value)}`).join(" ");
   const area = count ? `${line} L${x(count - 1)},100 L${x(0)},100 Z` : "";
   const busiest = points.reduce((best, point) => (point.value > best.value ? point : best), points[0] ?? { long: "", value: 0, label: "" });
   const ticks = count > 1 ? [0, Math.round((count - 1) / 4), Math.round((count - 1) / 2), Math.round(((count - 1) * 3) / 4), count - 1] : [0];
   const word = (value: number) => (value === 1 ? unit[0] : unit[1]);
+  // Posts out are shown for the posts' own numbers, not for an account's followers.
+  const withPosts = points.some((point) => point.posts !== undefined);
 
   return (
     <figure>
@@ -66,9 +80,11 @@ export default function TimeChart({
                 <th scope="col" className="py-1.5 text-right font-medium">
                   {name}
                 </th>
-                <th scope="col" className="py-1.5 text-right font-medium">
-                  Posts out
-                </th>
+                {withPosts && (
+                  <th scope="col" className="py-1.5 text-right font-medium">
+                    Posts out
+                  </th>
+                )}
               </tr>
             </thead>
             <tbody>
@@ -76,7 +92,7 @@ export default function TimeChart({
                 <tr key={point.long} className="border-t border-border">
                   <td className="py-1.5 text-foreground">{point.long}</td>
                   <td className="py-1.5 text-right text-foreground tabular-nums">{format(point.value)}</td>
-                  <td className="py-1.5 text-right text-muted-foreground tabular-nums">{point.posts ?? 0}</td>
+                  {withPosts && <td className="py-1.5 text-right text-muted-foreground tabular-nums">{point.posts ?? 0}</td>}
                 </tr>
               ))}
             </tbody>
@@ -94,12 +110,16 @@ export default function TimeChart({
               </div>
               <svg
                 role="img"
-                aria-label={`${name} day by day: ${format(total)} in all${busiest.value ? `; most on ${busiest.long}, ${format(busiest.value)}` : ""}.`}
+                aria-label={
+                  fromZero
+                    ? `${name} day by day: ${format(total)} in all${busiest.value ? `; most on ${busiest.long}, ${format(busiest.value)}` : ""}.`
+                    : `${name} day by day: ${format(points[0]?.value ?? 0)} on ${points[0]?.long ?? ""}, ${format(points[count - 1]?.value ?? 0)} on ${points[count - 1]?.long ?? ""}.`
+                }
                 viewBox={`0 0 ${width} 100`}
                 preserveAspectRatio="none"
                 className="absolute inset-0 size-full overflow-visible text-primary"
               >
-                {count > 1 && <path d={area} fill="currentColor" opacity={0.1} />}
+                {count > 1 && fromZero && <path d={area} fill="currentColor" opacity={0.1} />}
                 {count > 1 && <path d={line} fill="none" stroke="currentColor" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />}
               </svg>
               {hovered !== null && points[hovered] && (
@@ -139,8 +159,8 @@ export default function TimeChart({
             </div>
             <div aria-hidden="true" className="flex h-56 w-10 shrink-0 flex-col justify-between text-[11px] text-muted-foreground tabular-nums">
               <span className="-translate-y-1/2">{format(top)}</span>
-              <span>{format(top / 2)}</span>
-              <span className="translate-y-1/2">0</span>
+              <span>{format(Math.round((top + bottom) / 2))}</span>
+              <span className="translate-y-1/2">{format(bottom)}</span>
             </div>
           </div>
           {/* A marker under each day posts went out. */}

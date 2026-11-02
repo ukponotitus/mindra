@@ -58,6 +58,10 @@ export type FollowStatus = "following" | "waiting" | "error" | "looking" | "past
 
 export type NumberSet = { views: number | null; likes: number | null; comments: number | null; shares: number | null };
 
+/** What a post is made of: one photo, several, a video (a clip, a Motion Studio video or an uploaded one) or its text. */
+export type ContentType = "photo" | "photos" | "video" | "text";
+export const CONTENT_TYPE_LABELS: Record<ContentType, string> = { photo: "Photo", photos: "Multiple photos", video: "Video", text: "Text" };
+
 /** One post on the Analytics page: its numbers now, and what it gained in the period. */
 export type ResultPost = NumberSet & {
   id: string;
@@ -66,6 +70,7 @@ export type ResultPost = NumberSet & {
   excerpt: string;
   project_name: string;
   thumbnail_url: string | null;
+  content_type: ContentType;
   posted_at: string | null;
   published: boolean;
   url: string;
@@ -86,6 +91,21 @@ export type MetricName = NumberName | "engagement" | "clicks" | "posts";
 export type MetricSet = Record<MetricName, number | null>;
 export type Breakdown<K extends string | number = string> = { key: K; clicks: number }[];
 
+/** A connected account's followers (the backend's analytics/followers.py, read once a day): the latest count, the
+ * change over the period (null until there are two days to compare) and the counts day by day in the period. */
+export type AccountFollowers = {
+  account_id: string;
+  kind: ConnectedAccountKind;
+  name: string;
+  username: string;
+  picture_url: string;
+  needs_reconnect: boolean;
+  followers: number | null;
+  read_at: string | null;
+  change: number | null;
+  series: { day: string; followers: number }[];
+};
+
 /** GET /api/results/?days= (the backend's analytics/summary.py): what happened in the period, like YouTube Studio. */
 export type ResultsSummary = {
   days: number;
@@ -97,6 +117,12 @@ export type ResultsSummary = {
   /** Day by day (UTC days); views, likes, comments and shares spread evenly between readings. */
   series: ({ day: string } & Record<MetricName, number>)[];
   top_posts: ResultPost[];
+  /** The posts with the most likes, comments and shares in the period. */
+  top_engaged: ResultPost[];
+  /** Posts out, and views and engagement gained in the period (null: none of its posts shares that), by content type. */
+  content_types: { type: ContentType; posts: number; views: number | null; engagement: number | null }[];
+  /** Followers on the accounts whose platform shares them, and the connected accounts whose platform doesn't. */
+  followers: { accounts: AccountFollowers[]; others: { kind: ConnectedAccountKind; name: string }[] };
   latest: ResultPost | null;
   /** Link clicks hour by hour over the last 48 hours. */
   recent_clicks: { hour: string; clicks: number }[];
