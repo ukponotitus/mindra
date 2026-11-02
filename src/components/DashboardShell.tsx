@@ -8,6 +8,7 @@ import { cn } from "../lib/cn";
 import { useMediaQuery } from "../lib/useMediaQuery";
 import Sidebar from "./Sidebar";
 import MobileTabBar from "./MobileTabBar";
+import PageErrorBoundary from "./PageErrorBoundary";
 import TopNav from "./TopNav";
 
 // Most specific first: the first pattern that matches names the page.
@@ -116,15 +117,18 @@ export default function DashboardShell() {
           />
         )}
         <main className={cn("relative flex-1", fullScreen ? "overflow-hidden" : "overflow-y-auto p-4 sm:p-6 lg:p-8")}>
-          <Suspense
-            fallback={
-              <p role="status" className={cn("text-sm text-muted-foreground", fullScreen && "p-4")}>
-                Loading…
-              </p>
-            }
-          >
-            <Outlet />
-          </Suspense>
+          {/* A page that fails says so here, with the navigation still around it. */}
+          <PageErrorBoundary resetKey={pathname}>
+            <Suspense
+              fallback={
+                <p role="status" className={cn("text-sm text-muted-foreground", fullScreen && "p-4")}>
+                  Loading…
+                </p>
+              }
+            >
+              <Outlet />
+            </Suspense>
+          </PageErrorBoundary>
         </main>
         {!wide && !fullScreen && <MobileTabBar onMore={() => setDrawerOpen(true)} />}
       </div>

@@ -1,9 +1,10 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, type ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router";
 import AuthProvider from "./auth/AuthProvider";
 import RequireAuth from "./auth/RequireAuth";
 import DashboardShell from "./components/DashboardShell";
+import PageErrorBoundary from "./components/PageErrorBoundary";
 import { ApiError } from "./lib/api";
 import AuthPage from "./pages/Auth";
 import DataDeletionPage from "./pages/DataDeletion";
@@ -76,71 +77,83 @@ function FromAIStudio() {
   return <Navigate to={project ? `/projects/${project}?tab=posts` : "/library"} replace />;
 }
 
+/** Every page, with a message and Reload instead of a blank screen if one fails to show. */
+function Pages({ children }: { children: ReactNode }) {
+  const { pathname } = useLocation();
+  return (
+    <PageErrorBoundary resetKey={pathname} fullPage>
+      {children}
+    </PageErrorBoundary>
+  );
+}
+
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter basename={basename}>
         <AuthProvider>
-          <Suspense fallback={null}>
-            <Routes>
-              <Route path="/" element={<LandingPage />} />
-              <Route path="/login" element={<AuthPage key="login" mode="login" />} />
-              <Route path="/signup" element={<AuthPage key="signup" mode="signup" />} />
-              <Route path="/forgot-password" element={<AuthPage key="forgot" mode="forgot" />} />
-              <Route path="/reset-password" element={<AuthPage key="reset" mode="reset" />} />
-              <Route path="/privacy" element={<PrivacyPage />} />
-              <Route path="/terms" element={<TermsPage />} />
-              <Route path="/data-deletion" element={<DataDeletionPage />} />
-              <Route path="/unsubscribe" element={<Unsubscribe />} />
-              <Route path="/l/:code" element={<ShortLink />} />
+          <Pages>
+            <Suspense fallback={null}>
+              <Routes>
+                <Route path="/" element={<LandingPage />} />
+                <Route path="/login" element={<AuthPage key="login" mode="login" />} />
+                <Route path="/signup" element={<AuthPage key="signup" mode="signup" />} />
+                <Route path="/forgot-password" element={<AuthPage key="forgot" mode="forgot" />} />
+                <Route path="/reset-password" element={<AuthPage key="reset" mode="reset" />} />
+                <Route path="/privacy" element={<PrivacyPage />} />
+                <Route path="/terms" element={<TermsPage />} />
+                <Route path="/data-deletion" element={<DataDeletionPage />} />
+                <Route path="/unsubscribe" element={<Unsubscribe />} />
+                <Route path="/l/:code" element={<ShortLink />} />
 
-              <Route element={<RequireAuth />}>
-                <Route element={<DashboardShell />}>
-                  <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/projects" element={<Projects />} />
-                  <Route path="/projects/new" element={<CreateProject />} />
-                  <Route path="/projects/:projectId" element={<ProjectDetails />} />
-                  <Route path="/projects/:projectId/processing" element={<Processing />} />
-                  <Route path="/ai-studio" element={<FromAIStudio />} />
-                  <Route path="/library" element={<ContentLibrary />} />
-                  <Route path="/library/:pieceId" element={<ContentEditor />} />
-                  <Route path="/clips" element={<Clips />} />
-                  <Route path="/vertical" element={<VerticalVideos />} />
-                  <Route path="/studio" element={<Studio />} />
-                  <Route path="/studio/new" element={<StudioCreate />} />
-                  <Route path="/studio/:projectId" element={<StudioEditor />} />
-                  <Route path="/planner" element={<CalendarPage />} />
-                  <Route path="/calendar" element={<ToPlanner />} />
-                  <Route path="/analytics" element={<Analytics />} />
-                  <Route path="/results" element={<Navigate to="/analytics" replace />} />
-                  <Route path="/plans" element={<Plans />} />
-                  <Route path="/automations" element={<Automations />} />
-                  <Route path="/automations/new" element={<AutomationNew />} />
-                  <Route path="/automations/approvals" element={<AutomationApprovals />} />
-                  <Route path="/automations/runs/:runId" element={<AutomationRun />} />
-                  <Route path="/automations/:automationId" element={<AutomationDetail />} />
-                  <Route path="/automations/:automationId/setup" element={<AutomationSetup />} />
-                  <Route path="/plans/:planId" element={<PlanDetail />} />
-                  <Route path="/assistant" element={<Assistant />} />
-                  <Route path="/content-studio" element={<ContentStudio />} />
-                  <Route path="/content-calendar" element={<ContentCalendars />} />
-                  <Route path="/content-calendar/new" element={<ContentCalendarNew />} />
-                  <Route path="/content-calendar/:calendarId" element={<ContentCalendarPage />} />
-                  <Route path="/content-calendar/:calendarId/plan" element={<CalendarPlan />} />
-                  <Route path="/brand" element={<BrandProfile />} />
-                  <Route path="/brand-voice" element={<Navigate to="/brand" replace />} />
-                  <Route path="/campaigns" element={<Campaigns />} />
-                  <Route path="/campaigns/new" element={<CampaignEditor />} />
-                  <Route path="/campaigns/:campaignId" element={<CampaignDetail />} />
-                  <Route path="/campaigns/:campaignId/edit" element={<CampaignEditor key="edit" />} />
-                  <Route path="/billing" element={<Billing />} />
-                  <Route path="/settings" element={<Settings />} />
+                <Route element={<RequireAuth />}>
+                  <Route element={<DashboardShell />}>
+                    <Route path="/dashboard" element={<Dashboard />} />
+                    <Route path="/projects" element={<Projects />} />
+                    <Route path="/projects/new" element={<CreateProject />} />
+                    <Route path="/projects/:projectId" element={<ProjectDetails />} />
+                    <Route path="/projects/:projectId/processing" element={<Processing />} />
+                    <Route path="/ai-studio" element={<FromAIStudio />} />
+                    <Route path="/library" element={<ContentLibrary />} />
+                    <Route path="/library/:pieceId" element={<ContentEditor />} />
+                    <Route path="/clips" element={<Clips />} />
+                    <Route path="/vertical" element={<VerticalVideos />} />
+                    <Route path="/studio" element={<Studio />} />
+                    <Route path="/studio/new" element={<StudioCreate />} />
+                    <Route path="/studio/:projectId" element={<StudioEditor />} />
+                    <Route path="/planner" element={<CalendarPage />} />
+                    <Route path="/calendar" element={<ToPlanner />} />
+                    <Route path="/analytics" element={<Analytics />} />
+                    <Route path="/results" element={<Navigate to="/analytics" replace />} />
+                    <Route path="/plans" element={<Plans />} />
+                    <Route path="/automations" element={<Automations />} />
+                    <Route path="/automations/new" element={<AutomationNew />} />
+                    <Route path="/automations/approvals" element={<AutomationApprovals />} />
+                    <Route path="/automations/runs/:runId" element={<AutomationRun />} />
+                    <Route path="/automations/:automationId" element={<AutomationDetail />} />
+                    <Route path="/automations/:automationId/setup" element={<AutomationSetup />} />
+                    <Route path="/plans/:planId" element={<PlanDetail />} />
+                    <Route path="/assistant" element={<Assistant />} />
+                    <Route path="/content-studio" element={<ContentStudio />} />
+                    <Route path="/content-calendar" element={<ContentCalendars />} />
+                    <Route path="/content-calendar/new" element={<ContentCalendarNew />} />
+                    <Route path="/content-calendar/:calendarId" element={<ContentCalendarPage />} />
+                    <Route path="/content-calendar/:calendarId/plan" element={<CalendarPlan />} />
+                    <Route path="/brand" element={<BrandProfile />} />
+                    <Route path="/brand-voice" element={<Navigate to="/brand" replace />} />
+                    <Route path="/campaigns" element={<Campaigns />} />
+                    <Route path="/campaigns/new" element={<CampaignEditor />} />
+                    <Route path="/campaigns/:campaignId" element={<CampaignDetail />} />
+                    <Route path="/campaigns/:campaignId/edit" element={<CampaignEditor key="edit" />} />
+                    <Route path="/billing" element={<Billing />} />
+                    <Route path="/settings" element={<Settings />} />
+                  </Route>
                 </Route>
-              </Route>
 
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </Suspense>
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </Suspense>
+          </Pages>
         </AuthProvider>
       </BrowserRouter>
     </QueryClientProvider>

@@ -100,3 +100,19 @@ test("a new account starts light on a device set to dark, until the person choos
   await page.getByRole("radio", { name: /Light/ }).click();
   await expect(page.locator("html")).not.toHaveClass(/\bdark\b/);
 });
+
+test("a page whose code can't load says so with Reload, not a blank screen", async ({ page }) => {
+  await logIn(page, person);
+  // As after a deploy: the page's code is gone. It reloads once by itself, then says so, with the navigation still there.
+  await page.route("**/src/pages/ContentLibrary.tsx*", (route) => route.abort());
+  await page.getByRole("navigation", { name: "Main" }).getByRole("button", { name: "Content", exact: true }).click();
+  await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Content Library" }).click();
+  const alert = page.getByRole("alert");
+  await expect(alert.getByRole("heading", { name: "Mindra was updated" })).toBeVisible();
+  await expect(alert.getByRole("button", { name: "Reload" })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Main" })).toBeVisible();
+
+  await page.unroute("**/src/pages/ContentLibrary.tsx*");
+  await alert.getByRole("button", { name: "Reload" }).click();
+  await expect(page.getByRole("heading", { name: "Content Library", level: 2 })).toBeVisible();
+});
