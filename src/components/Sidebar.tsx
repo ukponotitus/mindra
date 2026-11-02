@@ -7,6 +7,7 @@ import {
   ChevronDown,
   ChevronsUpDown,
   Clapperboard,
+  Clock,
   ClipboardList,
   CreditCard,
   Eye,
@@ -111,6 +112,7 @@ const nav: (NavLeaf | NavGroup)[] = [
     items: [
       { label: "Content Library", to: "/library", icon: FileText },
       { label: "Planner", to: "/planner", icon: CalendarDays },
+      { label: "Activity log", to: "/activity", icon: Clock },
     ],
   },
   {

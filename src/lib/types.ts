@@ -590,3 +590,50 @@ export type ContentPlanDetail = ContentPlan & {
   /** A campaign's results; null for a plan. */
   results: CampaignResults | null;
 };
+
+/** An event in the Activity log (GET /api/activity/; the backend's engagement/activity.py). */
+export type ActivityKind =
+  | "published"
+  | "publish_failed"
+  | "marked_posted"
+  | "reminder_sent"
+  | "scheduled"
+  | "moved"
+  | "unscheduled"
+  | "approved"
+  | "calendar_approved"
+  | "calendar_rejected"
+  | "video_made"
+  | "video_failed"
+  | "account_connected"
+  | "account_disconnected"
+  | "account_needs_reconnect";
+
+export type ActivityType = "posting" | "planning" | "videos" | "accounts";
+
+export type ActivityEvent = {
+  id: number;
+  kind: ActivityKind;
+  type: ActivityType | "";
+  /** Who did it: their first name or email; "" when Mindra did. */
+  actor_name: string;
+  by_you: boolean;
+  /** The post it's about, while it exists. */
+  post: string | null;
+  /** The post's first line, or the calendar's, video's or account's name. */
+  subject: string;
+  /** The connected account it went to. */
+  account: string;
+  /** Why it failed, a calendar's version, or who was reminded. */
+  detail: string;
+  /** The post's platform, or the account's service ("LinkedIn"). */
+  platform: string;
+  /** The time a post was planned for. */
+  at: string | null;
+  /** The post on its platform (https://…), or a page in Mindra (/studio/…). */
+  link: string;
+  created_at: string;
+};
+
+/** GET /api/activity/summary/: the period's counts. */
+export type ActivitySummary = { published: number; marked_posted: number; failed: number; reminders: number };
