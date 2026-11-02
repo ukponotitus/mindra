@@ -1,4 +1,6 @@
 import {
+  createContext,
+  useContext,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -10,6 +12,7 @@ import {
   type ReactNode,
   type RefObject,
 } from "react"
+import { Volume2 } from "lucide-react"
 import { cn } from "../../lib/cn"
 import {
   CAPTION_Y,
@@ -28,7 +31,7 @@ import {
 import {
   clipTime,
   layerStyles,
-  motionScale,
+  motionTransform,
   sceneMove,
   musicFrame,
   overlayShows,
@@ -74,6 +77,10 @@ export const EFFECT_FILTERS: Record<SceneEffect, string | undefined> = {
   vintage: "sepia(0.35) saturate(0.8) contrast(1.05)",
   sepia: "sepia(1)",
   black_white: "grayscale(1)",
+  punch: "saturate(1.6) contrast(1.15)",
+  noir: "grayscale(1) contrast(1.35) brightness(0.97)",
+  soft: "contrast(0.9) brightness(1.05) saturate(0.85)",
+  golden: "sepia(0.25) saturate(1.25) brightness(1.06)",
 }
 
 /** The stage's size in px: the canvas's aspect, as large as fits the root. A root with no height of its own takes its
@@ -134,6 +141,11 @@ function useStage(
   }
 }
 
+/** What the clips and music tell the preview while it plays: those waiting for their data (the clock waits for them),
+ * and when the browser wouldn't start one without a tap. */
+type Playback = { waiting: Set<HTMLMediaElement>; onWaiting: () => void; onBlocked: () => void }
+const PlaybackContext = createContext<Playback | null>(null)
+
 /** Keeps an <audio> or <video> at `target` seconds: seeking when paused or when it drifts, playing while `running`. */
 function useFollow(
   ref: RefObject<HTMLMediaElement | null>,
@@ -142,13 +154,39 @@ function useFollow(
   volume: number,
   muted: boolean,
 ) {
+  const playback = useContext(PlaybackContext)
   const latest = useRef(target)
   latest.current = target
+  const lastSeek = useRef(0)
+  // While it should be playing but has no data yet, the preview's clock waits for it, so the sound starts with the
+  // picture instead of being chased.
+  useEffect(() => {
+    const media = ref.current
+    if (!media || !playback) return
+    const hold = () => {
+      if (media.paused) return
+      playback.waiting.add(media)
+      playback.onWaiting()
+    }
+    const go = () => {
+      if (playback.waiting.delete(media)) playback.onWaiting()
+    }
+    const events = ["playing", "pause", "error", "ended", "emptied"] as const
+    media.addEventListener("waiting", hold)
+    for (const name of events) media.addEventListener(name, go)
+    return () => {
+      media.removeEventListener("waiting", hold)
+      for (const name of events) media.removeEventListener(name, go)
+      go()
+    }
+  }, [ref, playback])
   useEffect(() => {
     const media = ref.current
     if (!media) return
     media.muted = muted
+    // Phones (iPhones) fix a media element's volume at full: there the made video has the volume set, the preview not.
     media.volume = Math.min(Math.max(volume, 0), 1)
+    media.dataset.run = running ? "1" : ""
     const known = Number.isFinite(media.duration) ? media.duration : null
     const goal =
       known !== null ? Math.min(target, Math.max(known - 0.05, 0)) : target
@@ -159,10 +197,25 @@ function useFollow(
         media.currentTime = goal
       return
     }
-    if (media.readyState >= 1 && Math.abs(media.currentTime - goal) > 0.2)
+    // Seeking only when it's clearly off, and never in the middle of a seek: on a slow connection, seeking every frame
+    // started its loading over and over, so the music never played.
+    const now = performance.now()
+    if (
+      media.readyState >= 1 &&
+      !media.seeking &&
+      Math.abs(media.currentTime - goal) > 0.3 &&
+      now - lastSeek.current > 750
+    ) {
       media.currentTime = goal
-    if (media.paused) media.play().catch(() => undefined)
-  }, [ref, target, running, volume, muted])
+      lastSeek.current = now
+    }
+    if (media.paused)
+      media.play().catch((error: unknown) => {
+        // A browser that wants a tap before sound: the preview asks for one.
+        if (error instanceof DOMException && error.name === "NotAllowedError")
+          playback?.onBlocked()
+      })
+  }, [ref, target, running, volume, muted, playback])
   // Once it knows its length, start from the right place.
   return () => {
     const media = ref.current
@@ -371,13 +424,11 @@ function SceneContent({
       />
     )
   }
-  const scale = motionScale(scene, start, time)
+  const motion = motionTransform(scene, start, time)
   return (
     <div
       className="absolute inset-0"
-      style={
-        scale !== 1 ? { transform: `scale(${scale.toFixed(4)})` } : undefined
-      }
+      style={motion ? { transform: motion } : undefined}
     >
       <ScenePhoto scene={scene} asset={asset} blurPx={blurPx} />
     </div>
@@ -782,7 +833,30 @@ export default function Preview({
   const { starts, length } = view
   const styles = layerStyles(composition, view, time)
 
-  // The clock: while playing it runs from `time`, and an outside jump (the editor seeking) carries on from there.
+  // Clips and music waiting for their data, and whether the browser wants a tap before it plays sound.
+  const waiting = useRef(new Set<HTMLMediaElement>())
+  const [buffering, setBuffering] = useState(false)
+  const [blocked, setBlocked] = useState(false)
+  const playback = useMemo<Playback>(
+    () => ({
+      waiting: waiting.current,
+      onWaiting: () => setBuffering(waiting.current.size > 0),
+      onBlocked: () => setBlocked(true),
+    }),
+    [],
+  )
+  useEffect(() => {
+    if (!playing) setBlocked(false)
+  }, [playing])
+  const allowSound = () => {
+    // Started from the tap itself, which is what the browser waits for; the ones that shouldn't play are paused again.
+    const media = stage.rootRef.current?.querySelectorAll<HTMLMediaElement>("audio, video") ?? []
+    for (const item of media) if (item.dataset.run) void item.play().catch(() => undefined)
+    setBlocked(false)
+  }
+
+  // The clock: while playing it runs from `time`, and an outside jump (the editor seeking) carries on from there. It
+  // waits while a clip or the music that should be playing is still loading (up to 8 seconds at a time).
   const latest = useRef({ time, length, onTime, onEnded })
   latest.current = { time, length, onTime, onEnded }
   useEffect(() => {
@@ -793,6 +867,8 @@ export default function Preview({
         ? 0
         : latest.current.time
     let began = performance.now()
+    let previous = began
+    let heldSince = 0
     let last = base
     if (base !== latest.current.time) latest.current.onTime(base)
     const tick = (now: number) => {
@@ -801,6 +877,11 @@ export default function Preview({
         base = outside
         began = now
       }
+      if (waiting.current.size) {
+        heldSince ||= now
+        if (now - heldSince < 8000) began += now - previous
+      } else heldSince = 0
+      previous = now
       const t = base + (now - began) / 1000
       if (t >= end) {
         latest.current.onTime(end)
@@ -819,138 +900,158 @@ export default function Preview({
   const stageSize = { width: stage.width, height: stage.height }
 
   return (
-    <div
-      ref={stage.rootRef}
-      className={cn("relative w-full overflow-hidden", className)}
-      style={stage.rootStyle}
-    >
+    <PlaybackContext.Provider value={playback}>
       <div
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 overflow-hidden bg-black [container-type:size]"
-        style={{ width: stage.width, height: stage.height }}
-        onPointerDown={(event) => {
-          if (event.button !== 0 || !onSelect) return
-          onSelect(sceneAt ? { kind: "scene", id: sceneAt.id } : null)
-        }}
+        ref={stage.rootRef}
+        className={cn("relative w-full overflow-hidden", className)}
+        style={stage.rootStyle}
       >
-        {view.mounted.map((index) => {
-          const scene = composition.scenes[index]
-          const visible = view.visible.includes(index)
-          const layer = styles.layers[index] ?? { opacity: 0, zIndex: 0 }
-          const move = sceneMove(scene, starts[index], visible ? time : starts[index])
-          return (
-            <div
-              key={scene.id}
-              aria-hidden="true"
-              className="pointer-events-none absolute inset-0 overflow-hidden"
-              style={{
-                ...layer,
-                // An animated scene is drawn over the canvas colour, as the renderer makes it.
-                background: move.moving ? composition.canvas.background : undefined,
-                visibility: visible ? "visible" : "hidden",
-              }}
-            >
+        <div
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 overflow-hidden bg-black [container-type:size]"
+          style={{ width: stage.width, height: stage.height }}
+          onPointerDown={(event) => {
+            if (event.button !== 0 || !onSelect) return
+            onSelect(sceneAt ? { kind: "scene", id: sceneAt.id } : null)
+          }}
+        >
+          {view.mounted.map((index) => {
+            const scene = composition.scenes[index]
+            const visible = view.visible.includes(index)
+            const layer = styles.layers[index] ?? { opacity: 0, zIndex: 0 }
+            const move = sceneMove(scene, starts[index], visible ? time : starts[index])
+            return (
               <div
-                className="absolute inset-0"
+                key={scene.id}
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 overflow-hidden"
                 style={{
-                  filter: EFFECT_FILTERS[scene.effect],
-                  opacity: move.opacity,
-                  transform: move.moving
-                    ? `translate(${(move.shiftX * 100).toFixed(3)}%, ${(move.shiftY * 100).toFixed(3)}%) scale(${move.scale.toFixed(4)})`
-                    : undefined,
+                  ...layer,
+                  // An animated scene is drawn over the canvas colour, as the renderer makes it.
+                  background: move.moving ? composition.canvas.background : undefined,
+                  visibility: visible ? "visible" : "hidden",
                 }}
               >
-              <SceneContent
-                scene={scene}
-                asset={scene.asset ? assets[scene.asset] : undefined}
-                start={starts[index]}
-                time={visible ? time : starts[index]}
-                playing={playing}
-                visible={visible}
-                volume={sceneVolume(composition, index, starts, time)}
-                muted={muted || scene.muted}
-                stageWidth={stage.width}
-              />
+                <div
+                  className="absolute inset-0"
+                  style={{
+                    filter: EFFECT_FILTERS[scene.effect],
+                    opacity: move.opacity,
+                    transform: move.moving
+                      ? `translate(${(move.shiftX * 100).toFixed(3)}%, ${(move.shiftY * 100).toFixed(3)}%) scale(${move.scale.toFixed(4)})`
+                      : undefined,
+                  }}
+                >
+                <SceneContent
+                  scene={scene}
+                  asset={scene.asset ? assets[scene.asset] : undefined}
+                  start={starts[index]}
+                  time={visible ? time : starts[index]}
+                  playing={playing}
+                  visible={visible}
+                  volume={sceneVolume(composition, index, starts, time)}
+                  muted={muted || scene.muted}
+                  stageWidth={stage.width}
+                />
+                </div>
               </div>
+            )
+          })}
+          {styles.wash ? (
+            // Under the scenes: a fade through black or white goes through this colour.
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-0"
+              style={{
+                background: styles.wash.color,
+                opacity: styles.wash.opacity,
+                zIndex: 0,
+              }}
+            />
+          ) : null}
+
+          {composition.overlays.map((overlay) =>
+            overlayShows(overlay.start, overlay.end, length, time) ? (
+              <OverlayLayer
+                key={overlay.id}
+                overlay={overlay}
+                asset={overlay.asset ? assets[overlay.asset] : undefined}
+                stage={stageSize}
+                selected={
+                  selected?.kind === "overlay" && selected.id === overlay.id
+                }
+                onSelect={onSelect}
+                onMove={onMove}
+              />
+            ) : null,
+          )}
+          {composition.texts.map((text) => {
+            const frame = textFrame(text, composition, starts, length, time)
+            return frame ? (
+              <TextLayer
+                key={text.id}
+                text={text}
+                frame={frame}
+                composition={composition}
+                stage={stageSize}
+                selected={selected?.kind === "text" && selected.id === text.id}
+                onSelect={onSelect}
+                onMove={onMove}
+              />
+            ) : null
+          })}
+
+          {composition.captions ? (
+            <CaptionLayer
+              captions={composition.captions}
+              aspect={composition.canvas.aspect}
+              canvasHeight={canvasHeight}
+              stage={stageSize}
+              time={time}
+            />
+          ) : null}
+
+          {composition.scenes.length === 0 ? (
+            <div
+              className="pointer-events-none absolute inset-0 grid place-items-center px-[10%] text-center text-white/55"
+              style={{ fontSize: "clamp(11px, 3.4cqw, 15px)" }}
+            >
+              Add a photo, clip or colour to start.
             </div>
+          ) : null}
+        </div>
+
+        {composition.audio.map((track) => {
+          const asset = track.asset ? assets[track.asset] : undefined
+          if (!asset || asset.status !== "ready" || !asset.url) return null
+          return (
+            <MusicTrack
+              key={track.id}
+              url={asset.url}
+              frame={musicFrame(track, length, asset.duration, time)}
+              playing={playing}
+              muted={muted || track.muted}
+            />
           )
         })}
-        {styles.wash ? (
-          // Under the scenes: a fade through black or white goes through this colour.
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-0"
-            style={{
-              background: styles.wash.color,
-              opacity: styles.wash.opacity,
-              zIndex: 0,
-            }}
-          />
-        ) : null}
 
-        {composition.overlays.map((overlay) =>
-          overlayShows(overlay.start, overlay.end, length, time) ? (
-            <OverlayLayer
-              key={overlay.id}
-              overlay={overlay}
-              asset={overlay.asset ? assets[overlay.asset] : undefined}
-              stage={stageSize}
-              selected={
-                selected?.kind === "overlay" && selected.id === overlay.id
-              }
-              onSelect={onSelect}
-              onMove={onMove}
-            />
-          ) : null,
-        )}
-        {composition.texts.map((text) => {
-          const frame = textFrame(text, composition, starts, length, time)
-          return frame ? (
-            <TextLayer
-              key={text.id}
-              text={text}
-              frame={frame}
-              composition={composition}
-              stage={stageSize}
-              selected={selected?.kind === "text" && selected.id === text.id}
-              onSelect={onSelect}
-              onMove={onMove}
-            />
-          ) : null
-        })}
-
-        {composition.captions ? (
-          <CaptionLayer
-            captions={composition.captions}
-            aspect={composition.canvas.aspect}
-            canvasHeight={canvasHeight}
-            stage={stageSize}
-            time={time}
-          />
-        ) : null}
-
-        {composition.scenes.length === 0 ? (
-          <div
-            className="pointer-events-none absolute inset-0 grid place-items-center px-[10%] text-center text-white/55"
-            style={{ fontSize: "clamp(11px, 3.4cqw, 15px)" }}
+        {playing && blocked ? (
+          <button
+            type="button"
+            onClick={allowSound}
+            className="absolute bottom-3 left-1/2 z-20 flex min-h-11 -translate-x-1/2 items-center gap-2 rounded-full bg-black/75 px-4 text-sm font-medium text-white"
           >
-            Add a photo, clip or colour to start.
-          </div>
+            <Volume2 aria-hidden="true" className="size-4" />
+            Tap for sound
+          </button>
+        ) : playing && buffering ? (
+          <p
+            role="status"
+            className="pointer-events-none absolute bottom-3 left-1/2 z-20 -translate-x-1/2 rounded-full bg-black/60 px-3 py-1 text-xs text-white"
+          >
+            Loading…
+          </p>
         ) : null}
       </div>
-
-      {composition.audio.map((track) => {
-        const asset = track.asset ? assets[track.asset] : undefined
-        if (!asset || asset.status !== "ready" || !asset.url) return null
-        return (
-          <MusicTrack
-            key={track.id}
-            url={asset.url}
-            frame={musicFrame(track, length, asset.duration, time)}
-            playing={playing}
-            muted={muted || track.muted}
-          />
-        )
-      })}
-    </div>
+    </PlaybackContext.Provider>
   )
 }

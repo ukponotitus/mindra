@@ -23,7 +23,7 @@ import {
 } from "../lib/studio";
 
 const EXAMPLE =
-  "Create a 45-second Sunday service recap using these photos and clips. Start with 'Sunday Service Highlights', use smooth transitions, add uplifting music, show our logo, and end with 'Join us next Sunday at 8 AM'.";
+  "Create a 45-second recap of our weekend event using these photos and clips. Start with 'Weekend highlights', use smooth transitions, add upbeat music, show our logo, and end with 'See you next Saturday at 10 AM'.";
 
 /** Create with AI: the media, the description and the choices; Mindra writes a draft that opens in the editor. A link
  * can start it with media, a name, a description and a type (`?assets=<id>,<id>&name=&prompt=&type=`), as a
@@ -174,7 +174,7 @@ export default function StudioCreate() {
             id="ai-upload"
             type="file"
             multiple
-            accept="image/jpeg,image/png,image/webp,image/heic,.heic,.heif,video/mp4,video/quicktime,video/webm,.m4v,audio/mpeg,audio/mp4,audio/wav,.m4a"
+            accept="image/*,.heic,.heif,video/*,.m4v,audio/*,.m4a,.ogg,.opus"
             className="sr-only"
             onChange={(event) => {
               void send(event.target.files);

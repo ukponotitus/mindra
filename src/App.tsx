@@ -1,50 +1,54 @@
+import { lazy, Suspense } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router";
 import AuthProvider from "./auth/AuthProvider";
 import RequireAuth from "./auth/RequireAuth";
 import DashboardShell from "./components/DashboardShell";
 import { ApiError } from "./lib/api";
-import Analytics from "./pages/Analytics";
-import Assistant from "./pages/Assistant";
-import CalendarPlan from "./pages/CalendarPlan";
-import ContentCalendarPage from "./pages/ContentCalendar";
-import ContentCalendarNew from "./pages/ContentCalendarNew";
-import ContentCalendars from "./pages/ContentCalendars";
-import ContentStudio from "./pages/ContentStudio";
-import AutomationApprovals from "./pages/AutomationApprovals";
-import AutomationDetail from "./pages/AutomationDetail";
-import AutomationNew from "./pages/AutomationNew";
-import AutomationRun from "./pages/AutomationRun";
-import Automations from "./pages/Automations";
-import AutomationSetup from "./pages/AutomationSetup";
-import Billing from "./pages/Billing";
 import AuthPage from "./pages/Auth";
-import CalendarPage from "./pages/Calendar";
-import BrandProfile from "./pages/BrandProfile";
-import CampaignDetail from "./pages/CampaignDetail";
-import CampaignEditor from "./pages/CampaignEditor";
-import Campaigns from "./pages/Campaigns";
-import ContentEditor from "./pages/ContentEditor";
-import Clips from "./pages/Clips";
-import PlanDetail from "./pages/PlanDetail";
-import Plans from "./pages/Plans";
-import VerticalVideos from "./pages/VerticalVideos";
-import Studio from "./pages/Studio";
-import StudioCreate from "./pages/StudioCreate";
-import StudioEditor from "./pages/StudioEditor";
-import ContentLibrary from "./pages/ContentLibrary";
-import CreateProject from "./pages/CreateProject";
-import Dashboard from "./pages/Dashboard";
 import DataDeletionPage from "./pages/DataDeletion";
-import Unsubscribe from "./pages/Unsubscribe";
 import LandingPage from "./pages/Landing";
 import PrivacyPage from "./pages/Privacy";
-import Processing from "./pages/Processing";
-import ProjectDetails from "./pages/ProjectDetails";
-import Projects from "./pages/Projects";
-import Settings from "./pages/Settings";
-import ShortLink from "./pages/ShortLink";
 import TermsPage from "./pages/Terms";
+
+// The signed-in pages load when they're first opened, so a phone downloads the landing page and sign-in first, not the
+// whole app (DashboardShell shows "Loading…" meanwhile).
+const Analytics = lazy(() => import("./pages/Analytics"));
+const Assistant = lazy(() => import("./pages/Assistant"));
+const CalendarPlan = lazy(() => import("./pages/CalendarPlan"));
+const ContentCalendarPage = lazy(() => import("./pages/ContentCalendar"));
+const ContentCalendarNew = lazy(() => import("./pages/ContentCalendarNew"));
+const ContentCalendars = lazy(() => import("./pages/ContentCalendars"));
+const ContentStudio = lazy(() => import("./pages/ContentStudio"));
+const AutomationApprovals = lazy(() => import("./pages/AutomationApprovals"));
+const AutomationDetail = lazy(() => import("./pages/AutomationDetail"));
+const AutomationNew = lazy(() => import("./pages/AutomationNew"));
+const AutomationRun = lazy(() => import("./pages/AutomationRun"));
+const Automations = lazy(() => import("./pages/Automations"));
+const AutomationSetup = lazy(() => import("./pages/AutomationSetup"));
+const Billing = lazy(() => import("./pages/Billing"));
+const CalendarPage = lazy(() => import("./pages/Calendar"));
+const BrandProfile = lazy(() => import("./pages/BrandProfile"));
+const CampaignDetail = lazy(() => import("./pages/CampaignDetail"));
+const CampaignEditor = lazy(() => import("./pages/CampaignEditor"));
+const Campaigns = lazy(() => import("./pages/Campaigns"));
+const ContentEditor = lazy(() => import("./pages/ContentEditor"));
+const Clips = lazy(() => import("./pages/Clips"));
+const PlanDetail = lazy(() => import("./pages/PlanDetail"));
+const Plans = lazy(() => import("./pages/Plans"));
+const VerticalVideos = lazy(() => import("./pages/VerticalVideos"));
+const Studio = lazy(() => import("./pages/Studio"));
+const StudioCreate = lazy(() => import("./pages/StudioCreate"));
+const StudioEditor = lazy(() => import("./pages/StudioEditor"));
+const ContentLibrary = lazy(() => import("./pages/ContentLibrary"));
+const CreateProject = lazy(() => import("./pages/CreateProject"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Unsubscribe = lazy(() => import("./pages/Unsubscribe"));
+const Processing = lazy(() => import("./pages/Processing"));
+const ProjectDetails = lazy(() => import("./pages/ProjectDetails"));
+const Projects = lazy(() => import("./pages/Projects"));
+const Settings = lazy(() => import("./pages/Settings"));
+const ShortLink = lazy(() => import("./pages/ShortLink"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -77,64 +81,66 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <BrowserRouter basename={basename}>
         <AuthProvider>
-          <Routes>
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/login" element={<AuthPage key="login" mode="login" />} />
-            <Route path="/signup" element={<AuthPage key="signup" mode="signup" />} />
-            <Route path="/forgot-password" element={<AuthPage key="forgot" mode="forgot" />} />
-            <Route path="/reset-password" element={<AuthPage key="reset" mode="reset" />} />
-            <Route path="/privacy" element={<PrivacyPage />} />
-            <Route path="/terms" element={<TermsPage />} />
-            <Route path="/data-deletion" element={<DataDeletionPage />} />
-            <Route path="/unsubscribe" element={<Unsubscribe />} />
-            <Route path="/l/:code" element={<ShortLink />} />
+          <Suspense fallback={null}>
+            <Routes>
+              <Route path="/" element={<LandingPage />} />
+              <Route path="/login" element={<AuthPage key="login" mode="login" />} />
+              <Route path="/signup" element={<AuthPage key="signup" mode="signup" />} />
+              <Route path="/forgot-password" element={<AuthPage key="forgot" mode="forgot" />} />
+              <Route path="/reset-password" element={<AuthPage key="reset" mode="reset" />} />
+              <Route path="/privacy" element={<PrivacyPage />} />
+              <Route path="/terms" element={<TermsPage />} />
+              <Route path="/data-deletion" element={<DataDeletionPage />} />
+              <Route path="/unsubscribe" element={<Unsubscribe />} />
+              <Route path="/l/:code" element={<ShortLink />} />
 
-            <Route element={<RequireAuth />}>
-              <Route element={<DashboardShell />}>
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/projects" element={<Projects />} />
-                <Route path="/projects/new" element={<CreateProject />} />
-                <Route path="/projects/:projectId" element={<ProjectDetails />} />
-                <Route path="/projects/:projectId/processing" element={<Processing />} />
-                <Route path="/ai-studio" element={<FromAIStudio />} />
-                <Route path="/library" element={<ContentLibrary />} />
-                <Route path="/library/:pieceId" element={<ContentEditor />} />
-                <Route path="/clips" element={<Clips />} />
-                <Route path="/vertical" element={<VerticalVideos />} />
-                <Route path="/studio" element={<Studio />} />
-                <Route path="/studio/new" element={<StudioCreate />} />
-                <Route path="/studio/:projectId" element={<StudioEditor />} />
-                <Route path="/planner" element={<CalendarPage />} />
-                <Route path="/calendar" element={<ToPlanner />} />
-                <Route path="/analytics" element={<Analytics />} />
-                <Route path="/results" element={<Navigate to="/analytics" replace />} />
-                <Route path="/plans" element={<Plans />} />
-                <Route path="/automations" element={<Automations />} />
-                <Route path="/automations/new" element={<AutomationNew />} />
-                <Route path="/automations/approvals" element={<AutomationApprovals />} />
-                <Route path="/automations/runs/:runId" element={<AutomationRun />} />
-                <Route path="/automations/:automationId" element={<AutomationDetail />} />
-                <Route path="/automations/:automationId/setup" element={<AutomationSetup />} />
-                <Route path="/plans/:planId" element={<PlanDetail />} />
-                <Route path="/assistant" element={<Assistant />} />
-                <Route path="/content-studio" element={<ContentStudio />} />
-                <Route path="/content-calendar" element={<ContentCalendars />} />
-                <Route path="/content-calendar/new" element={<ContentCalendarNew />} />
-                <Route path="/content-calendar/:calendarId" element={<ContentCalendarPage />} />
-                <Route path="/content-calendar/:calendarId/plan" element={<CalendarPlan />} />
-                <Route path="/brand" element={<BrandProfile />} />
-                <Route path="/brand-voice" element={<Navigate to="/brand" replace />} />
-                <Route path="/campaigns" element={<Campaigns />} />
-                <Route path="/campaigns/new" element={<CampaignEditor />} />
-                <Route path="/campaigns/:campaignId" element={<CampaignDetail />} />
-                <Route path="/campaigns/:campaignId/edit" element={<CampaignEditor key="edit" />} />
-                <Route path="/billing" element={<Billing />} />
-                <Route path="/settings" element={<Settings />} />
+              <Route element={<RequireAuth />}>
+                <Route element={<DashboardShell />}>
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/projects" element={<Projects />} />
+                  <Route path="/projects/new" element={<CreateProject />} />
+                  <Route path="/projects/:projectId" element={<ProjectDetails />} />
+                  <Route path="/projects/:projectId/processing" element={<Processing />} />
+                  <Route path="/ai-studio" element={<FromAIStudio />} />
+                  <Route path="/library" element={<ContentLibrary />} />
+                  <Route path="/library/:pieceId" element={<ContentEditor />} />
+                  <Route path="/clips" element={<Clips />} />
+                  <Route path="/vertical" element={<VerticalVideos />} />
+                  <Route path="/studio" element={<Studio />} />
+                  <Route path="/studio/new" element={<StudioCreate />} />
+                  <Route path="/studio/:projectId" element={<StudioEditor />} />
+                  <Route path="/planner" element={<CalendarPage />} />
+                  <Route path="/calendar" element={<ToPlanner />} />
+                  <Route path="/analytics" element={<Analytics />} />
+                  <Route path="/results" element={<Navigate to="/analytics" replace />} />
+                  <Route path="/plans" element={<Plans />} />
+                  <Route path="/automations" element={<Automations />} />
+                  <Route path="/automations/new" element={<AutomationNew />} />
+                  <Route path="/automations/approvals" element={<AutomationApprovals />} />
+                  <Route path="/automations/runs/:runId" element={<AutomationRun />} />
+                  <Route path="/automations/:automationId" element={<AutomationDetail />} />
+                  <Route path="/automations/:automationId/setup" element={<AutomationSetup />} />
+                  <Route path="/plans/:planId" element={<PlanDetail />} />
+                  <Route path="/assistant" element={<Assistant />} />
+                  <Route path="/content-studio" element={<ContentStudio />} />
+                  <Route path="/content-calendar" element={<ContentCalendars />} />
+                  <Route path="/content-calendar/new" element={<ContentCalendarNew />} />
+                  <Route path="/content-calendar/:calendarId" element={<ContentCalendarPage />} />
+                  <Route path="/content-calendar/:calendarId/plan" element={<CalendarPlan />} />
+                  <Route path="/brand" element={<BrandProfile />} />
+                  <Route path="/brand-voice" element={<Navigate to="/brand" replace />} />
+                  <Route path="/campaigns" element={<Campaigns />} />
+                  <Route path="/campaigns/new" element={<CampaignEditor />} />
+                  <Route path="/campaigns/:campaignId" element={<CampaignDetail />} />
+                  <Route path="/campaigns/:campaignId/edit" element={<CampaignEditor key="edit" />} />
+                  <Route path="/billing" element={<Billing />} />
+                  <Route path="/settings" element={<Settings />} />
+                </Route>
               </Route>
-            </Route>
 
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Suspense>
         </AuthProvider>
       </BrowserRouter>
     </QueryClientProvider>

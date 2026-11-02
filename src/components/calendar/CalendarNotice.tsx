@@ -28,7 +28,7 @@ export default function CalendarNotice({ notice, onDismiss }: { notice: Notice |
   }, [notice, held, onDismiss]);
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] lg:pb-[calc(1rem+env(safe-area-inset-bottom))]">
       <div
         onPointerEnter={() => setHeld(true)}
         onPointerLeave={() => setHeld(false)}

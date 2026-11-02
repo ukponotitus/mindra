@@ -1,11 +1,13 @@
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { Dialog } from "@base-ui/react/dialog";
 import AssistantPanel from "./assistant/AssistantPanel";
 import { matchPath, Outlet, useLocation } from "react-router";
 import { useDocumentTitle } from "../lib/useDocumentTitle";
 import { useApplyTheme } from "../lib/theme";
+import { cn } from "../lib/cn";
 import { useMediaQuery } from "../lib/useMediaQuery";
 import Sidebar from "./Sidebar";
+import MobileTabBar from "./MobileTabBar";
 import TopNav from "./TopNav";
 
 // Most specific first: the first pattern that matches names the page.
@@ -77,6 +79,9 @@ export default function DashboardShell() {
     }
   };
   const title = pageTitles.find(([pattern]) => matchPath(pattern, pathname))?.[1] ?? "Dashboard";
+  // Phones get the tab bar, except in the video editor, which fills the screen with its own header and tools.
+  const editing = Boolean(matchPath("/studio/:projectId", pathname)) && pathname !== "/studio/new";
+  const fullScreen = !wide && editing;
   useDocumentTitle(title);
 
   return (
@@ -101,16 +106,27 @@ export default function DashboardShell() {
       )}
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <TopNav
-          title={title}
-          onToggleNavigation={() => (wide ? setCollapsed((value) => !value) : setDrawerOpen(true))}
-          navigationLabel={wide ? (collapsed ? "Show sidebar" : "Hide sidebar") : "Open navigation"}
-          assistantOpen={showAssistant}
-          onToggleAssistant={pathname === "/assistant" ? undefined : () => setAssistantOpen(!assistantOpen)}
-        />
-        <main className="relative flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-          <Outlet />
+        {!fullScreen && (
+          <TopNav
+            title={title}
+            onToggleNavigation={() => (wide ? setCollapsed((value) => !value) : setDrawerOpen(true))}
+            navigationLabel={wide ? (collapsed ? "Show sidebar" : "Hide sidebar") : "Open navigation"}
+            assistantOpen={showAssistant}
+            onToggleAssistant={pathname === "/assistant" ? undefined : () => setAssistantOpen(!assistantOpen)}
+          />
+        )}
+        <main className={cn("relative flex-1", fullScreen ? "overflow-hidden" : "overflow-y-auto p-4 sm:p-6 lg:p-8")}>
+          <Suspense
+            fallback={
+              <p role="status" className={cn("text-sm text-muted-foreground", fullScreen && "p-4")}>
+                Loading…
+              </p>
+            }
+          >
+            <Outlet />
+          </Suspense>
         </main>
+        {!wide && !fullScreen && <MobileTabBar onMore={() => setDrawerOpen(true)} />}
       </div>
 
       {showAssistant && roomy && (

@@ -9,6 +9,7 @@ import { ApiError } from "../lib/api";
 import { cn } from "../lib/cn";
 import { formatDate, formatDuration, formatExtensions, formatFileSize, formatMegabytes } from "../lib/format";
 import { useUploadOptions } from "../lib/projects";
+import { recordingAccept, withExtension } from "../lib/recordings";
 import type { VerticalVideo } from "../lib/types";
 import { formatTimeLeft } from "../lib/upload";
 import {
@@ -61,8 +62,9 @@ function NewVerticalVideo() {
   const maxMinutes = options?.vertical_max_minutes ?? 5;
   const busy = make.isPending;
 
-  const choose = async (candidate: File | undefined) => {
-    if (!candidate || busy) return;
+  const choose = async (chosen: File | undefined) => {
+    if (!chosen || busy) return;
+    const candidate = withExtension(chosen);
     make.reset();
     const extension = `.${candidate.name.split(".").pop()?.toLowerCase() ?? ""}`;
     if (extensions.length > 0 && !extensions.includes(extension)) {
@@ -174,7 +176,7 @@ function NewVerticalVideo() {
             <input
               id={`${ids}-file`}
               type="file"
-              accept={extensions.join(",") || "video/*"}
+              accept={recordingAccept(["video"], options)}
               aria-describedby={`${ids}-hint`}
               aria-invalid={problem ? true : undefined}
               className="peer sr-only"

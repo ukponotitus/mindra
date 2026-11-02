@@ -1,12 +1,13 @@
 import { Fragment, useEffect, useId, useState, type DragEvent, type FormEvent } from "react";
-import { ArrowLeft, ArrowRight, Check, ImageOff, Images, LoaderCircle, Megaphone, Pencil, Plus, RotateCw, Trash2, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, ImageOff, Images, LoaderCircle, Megaphone, Pencil, Plus, RotateCw, Trash2, Upload, X } from "lucide-react";
 import { Link } from "react-router";
 import EmptyState from "../EmptyState";
+import SeePlans from "../SeePlans";
 import ConfirmDialog from "../ui/ConfirmDialog";
 import { buttonStyles } from "../ui/button";
 import PhotoPostVideo from "./PhotoPostVideo";
 import { cn } from "../../lib/cn";
-import { formatDate } from "../../lib/format";
+import { formatDate, formatExtensions, formatFileSize, formatMegabytes } from "../../lib/format";
 import {
   photoAccept,
   photoRules,
@@ -24,11 +25,13 @@ import {
   isPicturePost,
   SOURCE_LABELS,
   useAnalyzeProject,
+  useMakeVideo,
   useProjects,
   useRetryProject,
   useUpdateProject,
   useUploadOptions,
 } from "../../lib/projects";
+import { recordingAccept, recordingExtensions, recordingKind, uploadRecording, withExtension } from "../../lib/recordings";
 import type { Project } from "../../lib/types";
 
 const fieldClass =
@@ -222,6 +225,93 @@ export function QueuedPhotoTile({
   );
 }
 
+/** A recording from the phone (audio, or a video for its sound) uploaded as one of its own and connected to the post;
+ * for a photo post the video of the photos with it is asked for at once. */
+function AddRecording({ project, onLinked }: { project: Project; onLinked: (id: string) => void }) {
+  const options = useUploadOptions().data;
+  const update = useUpdateProject();
+  const makeVideo = useMakeVideo(project.id);
+  const [progress, setProgress] = useState<number | null>(null);
+  const [problem, setProblem] = useState("");
+  const [failure, setFailure] = useState<unknown>(null);
+  const ids = useId();
+  const busy = progress !== null;
+
+  const add = async (chosen: File | undefined) => {
+    if (!chosen || busy) return;
+    const file = withExtension(chosen);
+    const kind = recordingKind(file, ["audio", "video"], options);
+    if (!kind) {
+      const types = [...recordingExtensions("audio", options), ...recordingExtensions("video", options)];
+      setProblem(`This file type isn't supported here. Use ${formatExtensions(types)}.`);
+      return;
+    }
+    if (options && file.size > options.max_upload_mb * 1024 * 1024) {
+      setProblem(`This file is ${formatFileSize(file.size)}. Files can be up to ${formatMegabytes(options.max_upload_mb)}.`);
+      return;
+    }
+    setProblem("");
+    setFailure(null);
+    setProgress(0);
+    try {
+      const recording = await uploadRecording({
+        file,
+        kind,
+        name: `${project.name} (audio)`.slice(0, 200),
+        language: options?.default_language ?? "en",
+        options,
+        onProgress: setProgress,
+      });
+      await update.mutateAsync({ id: project.id, linked_recording: recording.id });
+      onLinked(recording.id);
+      if (project.source_type === "photos") await makeVideo.mutateAsync().catch(() => undefined);
+    } catch (error) {
+      setFailure(error);
+      setProblem(error instanceof Error ? error.message : "Couldn't upload this file. Try again.");
+    } finally {
+      setProgress(null);
+    }
+  };
+
+  return (
+    <div className="mt-3">
+      <input
+        id={`${ids}-file`}
+        type="file"
+        accept={recordingAccept(["audio", "video"], options)}
+        disabled={busy}
+        className="peer sr-only"
+        aria-describedby={problem ? `${ids}-problem` : undefined}
+        onChange={(event) => {
+          void add(event.target.files?.[0]);
+          event.target.value = "";
+        }}
+      />
+      <label
+        htmlFor={`${ids}-file`}
+        className={cn(
+          buttonStyles({ variant: "secondary", className: "min-h-11 cursor-pointer" }),
+          "peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-primary",
+          busy && "pointer-events-none opacity-60",
+        )}
+      >
+        {busy ? <LoaderCircle aria-hidden="true" className="size-4 animate-spin motion-reduce:animate-none" /> : <Upload aria-hidden="true" className="size-4" />}
+        {busy ? `Uploading ${Math.round((progress ?? 0) * 100)}%` : project.linked_recording ? "Upload different audio" : "Upload audio or a video"}
+      </label>
+      {busy && (
+        <div className="mt-2 h-1.5 max-w-xs overflow-hidden rounded-full bg-secondary" aria-hidden="true">
+          <div className="h-full origin-left bg-primary transition-transform" style={{ transform: `scaleX(${progress ?? 0})` }} />
+        </div>
+      )}
+      {problem && (
+        <p id={`${ids}-problem`} role="alert" className="mt-2 text-sm text-pretty text-red-600">
+          {problem} <SeePlans error={failure} text={problem} />
+        </p>
+      )}
+    </div>
+  );
+}
+
 /** The note and connected recording of a photo or flyer post. */
 function PhotoDetails({ project }: { project: Project }) {
   const isFlyer = project.source_type === "flyer";
@@ -283,7 +373,7 @@ function PhotoDetails({ project }: { project: Project }) {
         <p id={`${ids}-recording-hint`} className="mt-1.5 text-xs text-pretty text-muted-foreground">
           {isFlyer
             ? "Optional. A recording the program follows on from: the posts can then use its message."
-            : "Optional. The captions can then use that recording's message."}
+            : "Optional. The captions can then use what's said, and Mindra makes a video of the photos with its sound."}
           {project.linked_recording && (
             <>
               {" "}
@@ -296,6 +386,7 @@ function PhotoDetails({ project }: { project: Project }) {
             </>
           )}
         </p>
+        <AddRecording project={project} onLinked={setLinked} />
       </div>
       {update.isError && (
         <p role="alert" className="text-sm text-pretty text-red-600">

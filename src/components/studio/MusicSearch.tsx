@@ -12,6 +12,9 @@ export function usePreviewPlayer() {
   const [listening, setListening] = useState<string | null>(null)
   const [loading, setLoading] = useState<string | null>(null)
   const [failed, setFailed] = useState<string | null>(null)
+  // Where the song playing is, and its length, for the seek bar.
+  const [position, setPosition] = useState(0)
+  const [duration, setDuration] = useState(0)
   const player = useRef<HTMLAudioElement | null>(null)
   // Stop when the panel closes.
   useEffect(() => () => player.current?.pause(), [])
@@ -20,6 +23,8 @@ export function usePreviewPlayer() {
     player.current = null
     setListening(null)
     setLoading(null)
+    setPosition(0)
+    setDuration(0)
   }
   const listen = (id: string, url: string | null) => {
     const again = listening === id
@@ -40,6 +45,8 @@ export function usePreviewPlayer() {
     audio.onplaying = () => current() && setLoading(null)
     audio.onended = () => current() && stop()
     audio.onerror = fail
+    audio.onloadedmetadata = () => current() && setDuration(Number.isFinite(audio.duration) ? audio.duration : 0)
+    audio.ontimeupdate = () => current() && setPosition(audio.currentTime)
     player.current = audio
     setListening(id)
     setLoading(id)
@@ -48,7 +55,33 @@ export function usePreviewPlayer() {
       if (!(error instanceof DOMException && error.name === "AbortError")) fail()
     })
   }
-  return { listening, loading, failed, listen, stop }
+  const seek = (seconds: number) => {
+    if (!player.current) return
+    player.current.currentTime = seconds
+    setPosition(seconds)
+  }
+  return { listening, loading, failed, position, duration, listen, stop, seek }
+}
+
+/** The song playing's seek bar, under its row: where it is, its length, and a slider to move through it. */
+export function PreviewSeek({ player, id, name }: { player: PreviewPlayer; id: string; name: string }) {
+  if (player.listening !== id || !player.duration) return null
+  return (
+    <div className="flex items-center gap-2 pb-1 text-[11px] text-muted-foreground tabular-nums">
+      <span className="w-8 text-right">{formatDuration(player.position)}</span>
+      <input
+        type="range"
+        min={0}
+        max={player.duration}
+        step={0.5}
+        value={Math.min(player.position, player.duration)}
+        onChange={(event) => player.seek(Number(event.target.value))}
+        aria-label={`Where to play ${name} from`}
+        className="h-6 min-w-0 flex-1 accent-primary"
+      />
+      <span className="w-8">{formatDuration(player.duration)}</span>
+    </div>
+  )
 }
 
 /** The play button's icon: loading, playing or not. */
@@ -201,7 +234,8 @@ export default function MusicSearch({
             {data?.results.map((track) => {
               const id = `search-${track.id}`
               return (
-                <li key={track.id} className="flex items-center gap-2 py-2">
+                <li key={track.id} className="py-2">
+                <div className="flex items-center gap-2">
                   <button
                     type="button"
                     onClick={() => player.listen(id, track.preview_url)}
@@ -245,6 +279,8 @@ export default function MusicSearch({
                       )}
                     </button>
                   )}
+                </div>
+                <PreviewSeek player={player} id={id} name={track.title} />
                 </li>
               )
             })}

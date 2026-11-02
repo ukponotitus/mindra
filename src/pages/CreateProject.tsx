@@ -9,9 +9,11 @@ import SeePlans from "../components/SeePlans";
 import { buttonStyles } from "../components/ui/button";
 import { ApiError, apiRequest, uploadWithProgress, type FieldErrors } from "../lib/api";
 import { cn } from "../lib/cn";
+import { useMediaQuery } from "../lib/useMediaQuery";
 import { formatExtensions, formatFileSize, formatMegabytes } from "../lib/format";
 import { PHOTO_PLATFORMS, photoAccept, photoRules, useMoveFocus, usePhotoQueue } from "../lib/photos";
 import { isPicturePost, PLATFORMS, uploadOptionsQuery, useUploadOptions } from "../lib/projects";
+import { recordingAccept, recordingExtensions, recordingKind, uploadRecording, withExtension } from "../lib/recordings";
 import type { Platform, Project, SourceType } from "../lib/types";
 import {
   DirectUpload,
@@ -61,6 +63,8 @@ export default function CreateProject() {
   const [searchParams] = useSearchParams();
   const requestedType = searchParams.get("type");
   const options = useUploadOptions().data;
+  // A phone or tablet: say "choose from your phone" rather than "drop".
+  const touch = useMediaQuery("(pointer: coarse)");
 
   const [sourceType, setSourceType] = useState<SourceType>(
     sourceTypes.find((type) => type.id === requestedType)?.id ?? "video",
@@ -131,8 +135,15 @@ export default function CreateProject() {
     setFieldErrors({});
   };
 
-  const chooseFile = (candidate: File | undefined) => {
-    if (!candidate) return;
+  // Chosen again from the phone's Create menu while this page is open (?type= changes): switch to it.
+  useEffect(() => {
+    const type = sourceTypes.find((item) => item.id === requestedType)?.id;
+    if (type && !submitting) selectType(type);
+  }, [requestedType]);
+
+  const chooseFile = (chosen: File | undefined) => {
+    if (!chosen) return;
+    const candidate = withExtension(chosen);
     const extension = `.${candidate.name.split(".").pop()?.toLowerCase() ?? ""}`;
     let problem = "";
     if (extensions.length > 0 && !extensions.includes(extension)) {
@@ -177,35 +188,37 @@ export default function CreateProject() {
       },
     });
 
-  /** Upload a photo post's audio as a recording of its own (transcribed like any other). */
+  /** Upload a photo post's audio (or a video, for its sound) as a recording of its own, transcribed like any other. */
   const uploadAudio = async (media: File) => {
     setAudioProgress(0);
-    const recordingName = `${name.trim()} (audio)`.slice(0, 200);
     try {
       const live = await queryClient.ensureQueryData(uploadOptionsQuery).catch(() => options);
-      if (live?.direct_upload) {
-        const upload = new DirectUpload(media, { sourceType: "audio", onProgress: (progress) => setAudioProgress(progress.loaded / progress.total) });
-        directUpload.current = upload;
-        let key: string;
-        try {
-          ({ key } = await upload.start());
-        } finally {
-          directUpload.current = null;
-        }
-        return await apiRequest<Project>("/api/projects/", {
-          method: "POST",
-          body: { name: recordingName, source_type: "audio", source_key: key, language: spokenLanguage },
-        });
-      }
-      const form = new FormData();
-      form.append("name", recordingName);
-      form.append("source_type", "audio");
-      form.append("source_file", media);
-      form.append("language", spokenLanguage);
-      return await uploadWithProgress<Project>("/api/projects/", form, setAudioProgress);
+      return await uploadRecording({
+        file: media,
+        kind: recordingKind(media, ["audio", "video"], live) ?? "audio",
+        name: `${name.trim()} (audio)`.slice(0, 200),
+        language: spokenLanguage,
+        options: live,
+        onProgress: setAudioProgress,
+        onUpload: (upload) => {
+          directUpload.current = upload;
+        },
+      });
     } finally {
       setAudioProgress(null);
     }
+  };
+
+  const chooseAudio = (chosen: File | undefined) => {
+    if (!chosen) return;
+    const candidate = withExtension(chosen);
+    if (!recordingKind(candidate, ["audio", "video"], options)) {
+      const types = [...recordingExtensions("audio", options), ...recordingExtensions("video", options)];
+      setFieldErrors((current) => ({ ...current, audio: [`This file type isn't supported here. Use ${formatExtensions(types)}.`] }));
+      return;
+    }
+    setFieldErrors(({ audio: _audio, ...rest }) => rest);
+    setAudio(candidate);
   };
 
   /** Ask for the photo post's video with its audio; the post's page follows it (and offers it again if this fails). */
@@ -554,7 +567,7 @@ export default function CreateProject() {
                   <input
                     id="source-file"
                     type="file"
-                    accept={extensions.join(",")}
+                    accept={sourceType === "video" || sourceType === "audio" ? recordingAccept([sourceType], options) : undefined}
                     disabled={submitting}
                     aria-invalid={fieldErrors.source_file ? true : undefined}
                     aria-describedby={fieldErrors.source_file ? "source-file-error" : undefined}
@@ -586,12 +599,14 @@ export default function CreateProject() {
                       <Upload aria-hidden="true" className="size-5" />
                     </span>
                     <span className="mb-1 block font-medium text-balance text-foreground">
-                      Drop your {sourceType} file here
+                      {touch ? `Choose ${sourceType === "video" ? "a video" : "a recording"} from your phone` : `Drop your ${sourceType} file here`}
                     </span>
                     <span className="mb-4 block text-sm text-muted-foreground">
                       {extensions.length > 0 ? formatExtensions(extensions) : " "}
                     </span>
-                    <span className={buttonStyles({ variant: "secondary" })}>Browse Files</span>
+                    <span className={buttonStyles({ variant: touch ? "primary" : "secondary", className: "min-h-11" })}>
+                      {touch ? (sourceType === "video" ? "Choose video" : "Choose audio") : "Browse Files"}
+                    </span>
                     {options && (
                       <span className="mt-3 block text-xs text-muted-foreground tabular-nums">
                         Maximum file size: {formatMegabytes(options.max_upload_mb)}
@@ -675,13 +690,19 @@ export default function CreateProject() {
                       {isFlyer
                         ? photoCount > 0
                           ? "Add another flyer"
-                          : "Drop your flyer here"
+                          : touch
+                            ? "Choose your flyer from your phone"
+                            : "Drop your flyer here"
                         : photoCount > 0
                           ? "Add more photos"
-                          : "Drop your photos here"}
+                          : touch
+                            ? "Choose photos from your gallery"
+                            : "Drop your photos here"}
                     </span>
                     <span className="mb-4 block text-sm text-muted-foreground">{formatExtensions(rules.types)}</span>
-                    <span className={buttonStyles({ variant: "secondary" })}>{isFlyer ? "Choose Flyer" : "Choose Photos"}</span>
+                    <span className={buttonStyles({ variant: touch && photoCount === 0 ? "primary" : "secondary", className: "min-h-11" })}>
+                      {isFlyer ? "Choose Flyer" : "Choose Photos"}
+                    </span>
                     <span id="photo-files-hint" className="mt-3 block text-xs text-pretty text-muted-foreground tabular-nums">
                       {isFlyer
                         ? "The flyer as a picture (JPEG, PNG or a phone photo of it), or a few for a series of programs. "
@@ -773,17 +794,22 @@ export default function CreateProject() {
                       <input
                         id="photo-audio"
                         type="file"
-                        accept={(options?.extensions.audio ?? [".mp3", ".m4a", ".wav", ".aac", ".flac"]).join(",")}
+                        accept={recordingAccept(["audio", "video"], options)}
                         disabled={locked}
-                        onChange={(event) => setAudio(event.target.files?.[0] ?? null)}
-                        aria-describedby="photo-audio-hint"
-                        className="block w-full text-sm text-muted-foreground file:mr-3 file:rounded-lg file:border file:border-border file:bg-card file:px-3 file:py-2 file:text-sm file:font-medium file:text-foreground hover:file:bg-secondary sm:max-w-md"
+                        onChange={(event) => {
+                          chooseAudio(event.target.files?.[0]);
+                          event.target.value = "";
+                        }}
+                        aria-invalid={fieldErrors.audio ? true : undefined}
+                        aria-describedby={fieldErrors.audio ? "photo-audio-hint photo-audio-error" : "photo-audio-hint"}
+                        className="block w-full text-sm text-muted-foreground file:mr-3 file:min-h-11 file:rounded-lg file:border file:border-border file:bg-card file:px-3 file:py-2 file:text-sm file:font-medium file:text-foreground hover:file:bg-secondary sm:max-w-md"
                       />
                     )}
                     <p id="photo-audio-hint" className="mt-2 text-xs text-pretty text-muted-foreground">
-                      A song, a voice note or part of a talk. Mindra makes a vertical video of the photos with it, and the captions use what&apos;s
-                      said. Leave it out to post the photos on their own.
+                      A song, a voice note, part of a talk, or a video from your phone for its sound. Mindra makes a vertical video of the photos
+                      with it, and the captions use what&apos;s said. Leave it out to post the photos on their own.
                     </p>
+                    <FieldError id="photo-audio-error" message={fieldErrors.audio?.[0]} />
                   </div>
                 )}
 

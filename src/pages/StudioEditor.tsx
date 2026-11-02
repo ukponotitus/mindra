@@ -1,5 +1,23 @@
-import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, History, LoaderCircle, Pause, Play, Redo2, Sparkles, Undo2 } from "lucide-react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { Dialog } from "@base-ui/react/dialog";
+import {
+  ArrowLeft,
+  Blend,
+  History,
+  Images,
+  LoaderCircle,
+  Music,
+  Palette,
+  Pause,
+  Play,
+  Redo2,
+  SlidersHorizontal,
+  Sparkles,
+  Type,
+  Undo2,
+  X,
+  type LucideIcon,
+} from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router";
 import AssistantTab, { useAssistant } from "../components/studio/Assistant";
 import Inspector, { type InspectorTab } from "../components/studio/Inspector";
@@ -15,6 +33,7 @@ import { buttonStyles } from "../components/ui/button";
 import { cn } from "../lib/cn";
 import { useAiStatus } from "../lib/content";
 import { formatDate } from "../lib/format";
+import { useMediaQuery } from "../lib/useMediaQuery";
 import {
   FONTS_STYLESHEET,
   changeProjectMedia,
@@ -55,6 +74,33 @@ function saveText(state: SaveState) {
     case "offline":
       return "Not saved: offline?";
   }
+}
+
+type Sheet = "tools" | "edit" | "export" | "history";
+
+/** On phones: a panel that slides up over the lower part of the editor, leaving the preview in sight above it. */
+function EditorSheet({ open, onClose, title, tall = false, children }: { open: boolean; onClose: () => void; title: string; tall?: boolean; children: ReactNode }) {
+  return (
+    <Dialog.Root open={open} onOpenChange={(next) => !next && onClose()}>
+      <Dialog.Portal>
+        <Dialog.Backdrop className="fixed inset-0 z-40 bg-black/20 transition-opacity duration-200 data-[ending-style]:opacity-0 data-[starting-style]:opacity-0" />
+        <Dialog.Popup
+          className={cn(
+            "fixed inset-x-0 bottom-0 z-50 flex flex-col rounded-t-2xl border-t border-border bg-background pb-[env(safe-area-inset-bottom)] shadow-xl transition-transform duration-200 ease-out data-[ending-style]:translate-y-full data-[starting-style]:translate-y-full",
+            tall ? "h-[88dvh]" : "h-[58dvh]",
+          )}
+        >
+          <div className="flex shrink-0 items-center justify-between px-4 pt-1">
+            <Dialog.Title className="text-sm font-semibold text-foreground">{title}</Dialog.Title>
+            <Dialog.Close aria-label="Close" className="grid size-11 place-items-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground">
+              <X aria-hidden="true" className="size-5" />
+            </Dialog.Close>
+          </div>
+          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-3 pb-3">{children}</div>
+        </Dialog.Popup>
+      </Dialog.Portal>
+    </Dialog.Root>
+  );
 }
 
 const NO_AI = "The AI assistant needs Mindra's AI switched on. Until then, change the video by hand.";
@@ -139,6 +185,23 @@ function Editor({ project }: { project: StudioProject }) {
   const [showHistory, setShowHistory] = useState(false);
   const [panel, setPanel] = useState<PanelTab>("media");
   const [inspectorTab, setInspectorTab] = useState<InspectorTab>("basic");
+  // Phones: the editor fills the screen, with its tools along the bottom opening sheets over the lower half.
+  const wide = useMediaQuery("(min-width: 1024px)");
+  const [sheet, setSheet] = useState<Sheet | null>(null);
+  const openTool = (tab: PanelTab) => {
+    // Transitions and filters are for a clip, and the sheet covers the timeline: with none selected, the clip at the
+    // playhead is (for a transition, not the first, which starts with a cut).
+    if ((tab === "transitions" || tab === "filters") && selected?.kind !== "scene" && composition.scenes.length) {
+      let index = 0;
+      starts.forEach((start, at) => {
+        if (start <= time) index = at;
+      });
+      if (tab === "transitions" && index === 0 && composition.scenes.length > 1) index = 1;
+      setSelected({ kind: "scene", id: composition.scenes[index].id });
+    }
+    setPanel(tab);
+    setSheet("tools");
+  };
   // This video's own media (newest first), and assets learned since the editor opened.
   const [mediaIds, setMediaIds] = useState<string[]>(project.media ?? []);
   const [learned, setLearned] = useState<Record<string, StudioAsset>>({});
@@ -297,7 +360,346 @@ function Editor({ project }: { project: StudioProject }) {
     return () => window.removeEventListener("keydown", onKey);
   });
 
+
+  const leftPanel = (
+    <LeftPanel
+      projectId={project.id}
+      tab={panel}
+      onTab={setPanel}
+      locked={busy}
+      assistant={
+        <AssistantTab
+          assistant={assistant}
+          unavailable={aiStatus.data?.provider === "fake" ? NO_AI : ""}
+          selection={selectionLabel}
+          suggestions={suggestions}
+          onAsk={(request) => void assistant.ask(request, assistantSelection, time)}
+        />
+      }
+      composition={composition}
+      media={media}
+      assets={assets}
+      selectedScene={selectedSceneIndex >= 0 ? { index: selectedSceneIndex, id: composition.scenes[selectedSceneIndex].id } : null}
+      onUploaded={intoMedia}
+      onAddScene={addScene}
+      onReplace={(asset) => selected?.kind === "scene" && change((current) => edit.replaceMedia(current, selected.id, asset, assets))}
+      onMusic={(asset) => {
+        intoMedia(asset);
+        // On the video as it is now: a song is added after its download or upload, which takes a while.
+        let track = "";
+        change((current) => {
+          const result = edit.setMusic(current, asset);
+          track = result.id;
+          return result.composition;
+        });
+        if (track) setSelected({ kind: "audio", id: track });
+      }}
+      onBringIn={async (chosen) => {
+        try {
+          const fresh = await changeProjectMedia(project.id, chosen.map((asset) => asset.id));
+          learn([...chosen, ...Object.values(fresh.assets)]);
+          setMediaIds(fresh.media);
+        } catch (error) {
+          setNotice(error instanceof Error ? error.message : "Couldn't add these to the video.");
+        }
+      }}
+      onRemove={async (asset) => {
+        const uses = edit.usesOf(composition, asset.id);
+        if (uses.scenes + uses.overlays + uses.audio) {
+          change((current) => edit.removeUses(current, asset.id));
+          setSelected(null);
+        }
+        setMediaIds((ids) => ids.filter((id) => id !== asset.id));
+        try {
+          const fresh = await changeProjectMedia(project.id, [asset.id], true);
+          setMediaIds(fresh.media);
+        } catch (error) {
+          setMediaIds((ids) => (ids.includes(asset.id) ? ids : [asset.id, ...ids]));
+          setNotice(error instanceof Error ? error.message : "Couldn't take this out of the video.");
+        }
+      }}
+      onAddText={(style) => {
+        const result = edit.addText(composition, time, style);
+        change(result.composition);
+        setSelected({ kind: "text", id: result.id });
+        setInspectorTab("text");
+        if (!wide) setSheet("edit");
+      }}
+      onTransition={(type, all) => {
+        if (selectedSceneIndex < 1) return;
+        const scene = composition.scenes[selectedSceneIndex];
+        const transition = { type, duration: scene.transition.duration || 0.5 };
+        change((current) => (all ? edit.transitionAll(current, transition) : edit.updateScene(current, scene.id, { transition }, assets)));
+        setInspectorTab("transition");
+      }}
+      onFilter={(effect, all) => {
+        if (selectedSceneIndex < 0) return;
+        const scene = composition.scenes[selectedSceneIndex];
+        change((current) => (all ? edit.filterAll(current, effect) : edit.updateScene(current, scene.id, { effect }, assets)));
+      }}
+    />
+  );
+  const preview = (className: string) => (
+    <Preview
+      composition={composition}
+      assets={assets}
+      time={time}
+      playing={playing}
+      onTime={setTime}
+      onEnded={() => setPlaying(false)}
+      selected={selected && selected.kind !== "audio" ? { kind: selected.kind, id: selected.id } : null}
+      onSelect={(item) => select(item)}
+      onMove={(kind, id, x, y) =>
+        change((current) => (kind === "text" ? edit.updateText(current, id, { x, y }) : edit.updateOverlay(current, id, { x, y })), `${id}.drag`)
+      }
+      className={className}
+    />
+  );
+  const playControls = (
+    <div className="flex items-center gap-2">
+      <button
+        type="button"
+        onClick={() => {
+          if (!playing && time >= length - 0.05) setTime(0);
+          setPlaying((value) => !value);
+        }}
+        disabled={!composition.scenes.length}
+        aria-label={playing ? "Pause" : "Play"}
+        className={buttonStyles({ size: "icon" })}
+      >
+        {playing ? <Pause aria-hidden="true" className="size-4" /> : <Play aria-hidden="true" className="size-4" />}
+      </button>
+      <input
+        type="range"
+        aria-label="Position in the video"
+        min={0}
+        max={Math.max(length, 0.1)}
+        step={0.05}
+        value={Math.min(time, length)}
+        onChange={(event) => setTime(Number(event.target.value))}
+        className="min-w-0 flex-1 accent-primary"
+      />
+      <span className="w-24 text-right text-xs text-muted-foreground tabular-nums">
+        {formatSeconds(time)} / {formatSeconds(length)}
+      </span>
+    </div>
+  );
+  const inspector = (
+    <Inspector
+      composition={composition}
+      assets={assets}
+      selected={selected}
+      onSelect={select}
+      change={change}
+      tab={inspectorTab}
+      onTab={setInspectorTab}
+      onPickLogo={() => setLogoPicker(true)}
+    />
+  );
+  const timelinePanel = (
+    <Timeline
+      composition={composition}
+      assets={assets}
+      time={time}
+      onSeek={(seconds) => {
+        setPlaying(false);
+        setTime(seconds);
+      }}
+      selected={selected}
+      onSelect={(item) => {
+        select(item);
+        if (item?.kind === "scene") {
+          const index = composition.scenes.findIndex((scene) => scene.id === item.id);
+          if (index >= 0 && (time < starts[index] || time > starts[index] + composition.scenes[index].duration)) setTime(starts[index]);
+        }
+      }}
+      onMoveScene={(from, to) => change((current) => edit.moveScene(current, from, to))}
+      onSceneLength={(id, seconds) => change((current) => edit.updateScene(current, id, { duration: seconds }, assets))}
+      onTime={(kind, id, start, end) =>
+        change((current) =>
+          kind === "text" ? edit.timeText(current, id, start, end) : kind === "overlay" ? edit.timeOverlay(current, id, start, end) : edit.timeAudio(current, id, start, end),
+        )
+      }
+      onJunction={(id) => {
+        setSelected({ kind: "scene", id });
+        setInspectorTab("transition");
+        setPanel("transitions");
+        if (!wide) setSheet("edit");
+      }}
+      onMuteScene={(id, muted) => change((current) => edit.updateScene(current, id, { muted }, assets))}
+      onMuteAudio={(id, muted) => change((current) => edit.updateAudio(current, id, { muted }))}
+      onAddText={() => {
+        const result = edit.addText(composition, time);
+        change(result.composition);
+        setSelected({ kind: "text", id: result.id });
+        setInspectorTab("text");
+        if (!wide) setSheet("edit");
+      }}
+      onAddColor={() => {
+        const scene = edit.colorScene(composition);
+        const at = selectedSceneIndex >= 0 ? selectedSceneIndex + 1 : composition.scenes.length;
+        change(edit.addScene(composition, scene, at));
+        setSelected({ kind: "scene", id: scene.id });
+      }}
+      onLogo={() => (logo ? setSelected({ kind: "overlay", id: logo.id }) : setLogoPicker(true))}
+      onSplit={split}
+      onDuplicate={() => selected?.kind === "scene" && change((current) => edit.duplicateScene(current, selected.id))}
+      onDelete={removeSelected}
+    />
+  );
+  const renderPanel = (
+    <RenderPanel projectId={project.id} composition={composition} assets={assets} version={editor.version} flush={editor.flush} />
+  );
+  const logoDialog = (
+    <LogoPicker
+      open={logoPicker}
+      onOpenChange={setLogoPicker}
+      projectId={project.id}
+      media={media}
+      current={logo?.asset ?? null}
+      onChoose={chooseLogo}
+    />
+  );
+
   const save = editor.save;
+  const alerts = (
+    <>
+      {save.kind === "conflict" && (
+        <div role="alert" className="flex flex-wrap items-center gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <p className="min-w-0 flex-1 text-pretty">
+            This video was changed somewhere else (version {save.version}) since you opened it, so your latest changes aren't saved.
+          </p>
+          <button type="button" onClick={() => void editor.loadNewest()} className={buttonStyles({ variant: "secondary", size: "sm" })}>
+            Load the newest version
+          </button>
+          <button type="button" onClick={() => void editor.keepMine()} className={buttonStyles({ size: "sm" })}>
+            Save mine over it
+          </button>
+        </div>
+      )}
+      {(save.kind === "refused" || save.kind === "offline") && (
+        <div role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-pretty text-red-800">
+          {save.message} {save.kind === "offline" ? "Mindra keeps trying to save your changes." : "Change it and Mindra saves again."}
+        </div>
+      )}
+      {notice && (
+        <div role="alert" className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-pretty text-red-800">
+          <p className="min-w-0 flex-1">{notice}</p>
+          <button type="button" onClick={() => setNotice("")} className="font-medium underline">
+            Dismiss
+          </button>
+        </div>
+      )}
+    </>
+  );
+
+  if (!wide) {
+    const editLabel = !selected ? "Video" : selected.kind === "scene" ? "Clip" : selected.kind === "text" ? "Text" : selected.kind === "overlay" ? "Logo" : "Music";
+    const tools: { tab: PanelTab; label: string; icon: LucideIcon }[] = [
+      { tab: "media", label: "Media", icon: Images },
+      { tab: "audio", label: "Audio", icon: Music },
+      { tab: "text", label: "Text", icon: Type },
+      { tab: "transitions", label: "Transitions", icon: Blend },
+      { tab: "filters", label: "Filters", icon: Palette },
+      { tab: "assistant", label: "Ask AI", icon: Sparkles },
+    ];
+    const toolClass =
+      "flex min-h-14 min-w-[3.2rem] flex-1 flex-col items-center justify-center gap-0.5 rounded-lg px-0.5 text-[10px] font-medium outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50";
+    return (
+      <div className="flex h-full flex-col bg-background">
+        <div inert={busy} className="flex shrink-0 items-center gap-1 border-b border-border bg-card px-1.5 py-1.5 pt-[calc(0.375rem+env(safe-area-inset-top))]">
+          <Link to="/studio" aria-label="Back to Motion Studio" className={buttonStyles({ variant: "ghost", size: "icon", className: "size-11 shrink-0" })}>
+            <ArrowLeft aria-hidden="true" className="size-5" />
+          </Link>
+          <div className="min-w-0 flex-1">
+            <input
+              aria-label="Video name"
+              value={name}
+              maxLength={200}
+              onChange={(event) => setName(event.target.value)}
+              onBlur={() => name.trim() && name.trim() !== project.name && rename.mutate({ id: project.id, name: name.trim() })}
+              className="w-full truncate rounded-md bg-transparent px-1 text-sm font-semibold text-foreground outline-none focus:bg-secondary"
+            />
+            <p role="status" className={cn("truncate px-1 text-[11px]", save.kind === "saved" ? "text-muted-foreground" : save.kind === "saving" || save.kind === "unsaved" ? "text-foreground" : "text-red-700")}>
+              {saveText(save)}
+            </p>
+          </div>
+          <button type="button" aria-label="Undo" disabled={!editor.canUndo} onClick={editor.undo} className={buttonStyles({ variant: "ghost", size: "icon", className: "size-11 shrink-0" })}>
+            <Undo2 aria-hidden="true" className="size-5" />
+          </button>
+          <button type="button" aria-label="Redo" disabled={!editor.canRedo} onClick={editor.redo} className={buttonStyles({ variant: "ghost", size: "icon", className: "size-11 shrink-0" })}>
+            <Redo2 aria-hidden="true" className="size-5" />
+          </button>
+          <button type="button" aria-label="History" onClick={() => setSheet("history")} className={buttonStyles({ variant: "ghost", size: "icon", className: "size-11 shrink-0" })}>
+            <History aria-hidden="true" className="size-5" />
+          </button>
+          <button type="button" onClick={() => setSheet("export")} className={buttonStyles({ size: "sm", className: "h-10 shrink-0 px-3" })}>
+            Export
+          </button>
+        </div>
+
+        {(save.kind === "conflict" || save.kind === "refused" || save.kind === "offline" || notice) && <div className="shrink-0 space-y-2 px-3 pt-2">{alerts}</div>}
+
+        <div inert={busy} className={cn("flex min-h-0 flex-1 flex-col gap-2 px-3 pt-2 transition-opacity", busy && "opacity-60")}>
+          <div className="flex min-h-0 flex-[3] justify-center rounded-xl bg-gray-950 p-1.5">{preview("h-full")}</div>
+          {playControls}
+          <div className="min-h-0 flex-[2] overflow-y-auto pb-2">{timelinePanel}</div>
+        </div>
+
+        <nav aria-label="Editing tools" className="shrink-0 border-t border-border bg-card pb-[env(safe-area-inset-bottom)]">
+          <div className="flex overflow-x-auto px-1">
+            {tools.map((tool) => (
+              <button
+                key={tool.tab}
+                type="button"
+                disabled={busy && tool.tab !== "assistant"}
+                aria-haspopup="dialog"
+                onClick={() => openTool(tool.tab)}
+                className={cn(toolClass, "text-muted-foreground hover:text-foreground")}
+              >
+                <tool.icon aria-hidden="true" className="size-5" />
+                {tool.label}
+              </button>
+            ))}
+            <button
+              type="button"
+              disabled={busy}
+              aria-haspopup="dialog"
+              onClick={() => setSheet("edit")}
+              className={cn(toolClass, selected ? "text-primary" : "text-muted-foreground hover:text-foreground")}
+            >
+              <SlidersHorizontal aria-hidden="true" className="size-5" />
+              {editLabel}
+            </button>
+          </div>
+        </nav>
+
+        <EditorSheet open={sheet === "tools"} onClose={() => setSheet(null)} title="Media and effects">
+          <div className="flex min-h-0 flex-1 flex-col">{leftPanel}</div>
+        </EditorSheet>
+        <EditorSheet open={sheet === "edit"} onClose={() => setSheet(null)} title={selected ? `Edit the ${editLabel.toLowerCase()}` : "The video"}>
+          {inspector}
+        </EditorSheet>
+        <EditorSheet open={sheet === "export"} onClose={() => setSheet(null)} title="Export" tall>
+          {renderPanel}
+        </EditorSheet>
+        <EditorSheet open={sheet === "history"} onClose={() => setSheet(null)} title="History" tall>
+          <HistoryPanel
+            project={project}
+            version={editor.version}
+            canRestore={editor.save.kind === "saved"}
+            onRestored={(fresh) => {
+              editor.reset(fresh);
+              setSelected(null);
+              setSheet(null);
+            }}
+          />
+        </EditorSheet>
+        {logoDialog}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       <div inert={busy} className="flex flex-wrap items-center gap-2">
@@ -335,32 +737,7 @@ function Editor({ project }: { project: StudioProject }) {
         </div>
       </div>
 
-      {save.kind === "conflict" && (
-        <div role="alert" className="flex flex-wrap items-center gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          <p className="min-w-0 flex-1 text-pretty">
-            This video was changed somewhere else (version {save.version}) since you opened it, so your latest changes aren't saved.
-          </p>
-          <button type="button" onClick={() => void editor.loadNewest()} className={buttonStyles({ variant: "secondary", size: "sm" })}>
-            Load the newest version
-          </button>
-          <button type="button" onClick={() => void editor.keepMine()} className={buttonStyles({ size: "sm" })}>
-            Save mine over it
-          </button>
-        </div>
-      )}
-      {(save.kind === "refused" || save.kind === "offline") && (
-        <div role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-pretty text-red-800">
-          {save.message} {save.kind === "offline" ? "Mindra keeps trying to save your changes." : "Change it and Mindra saves again."}
-        </div>
-      )}
-      {notice && (
-        <div role="alert" className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-pretty text-red-800">
-          <p className="min-w-0 flex-1">{notice}</p>
-          <button type="button" onClick={() => setNotice("")} className="font-medium underline">
-            Dismiss
-          </button>
-        </div>
-      )}
+      {alerts}
       {showHistory && (
         <HistoryPanel
           project={project}
@@ -375,206 +752,29 @@ function Editor({ project }: { project: StudioProject }) {
 
       <div className="grid gap-4 lg:grid-cols-[18rem_minmax(0,1fr)] xl:grid-cols-[18rem_minmax(0,1fr)_20rem]">
         <div className="order-3 flex h-[30rem] min-h-0 flex-col lg:order-1 lg:h-[37rem]">
-          <LeftPanel
-            projectId={project.id}
-            tab={panel}
-            onTab={setPanel}
-            locked={busy}
-            assistant={
-              <AssistantTab
-                assistant={assistant}
-                unavailable={aiStatus.data?.provider === "fake" ? NO_AI : ""}
-                selection={selectionLabel}
-                suggestions={suggestions}
-                onAsk={(request) => void assistant.ask(request, assistantSelection, time)}
-              />
-            }
-            composition={composition}
-            media={media}
-            assets={assets}
-            selectedScene={selectedSceneIndex >= 0 ? { index: selectedSceneIndex, id: composition.scenes[selectedSceneIndex].id } : null}
-            onUploaded={intoMedia}
-            onAddScene={addScene}
-            onReplace={(asset) => selected?.kind === "scene" && change((current) => edit.replaceMedia(current, selected.id, asset, assets))}
-            onMusic={(asset) => {
-              intoMedia(asset);
-              // On the video as it is now: a song is added after its download or upload, which takes a while.
-              let track = "";
-              change((current) => {
-                const result = edit.setMusic(current, asset);
-                track = result.id;
-                return result.composition;
-              });
-              if (track) setSelected({ kind: "audio", id: track });
-            }}
-            onBringIn={async (chosen) => {
-              try {
-                const fresh = await changeProjectMedia(project.id, chosen.map((asset) => asset.id));
-                learn([...chosen, ...Object.values(fresh.assets)]);
-                setMediaIds(fresh.media);
-              } catch (error) {
-                setNotice(error instanceof Error ? error.message : "Couldn't add these to the video.");
-              }
-            }}
-            onRemove={async (asset) => {
-              const uses = edit.usesOf(composition, asset.id);
-              if (uses.scenes + uses.overlays + uses.audio) {
-                change((current) => edit.removeUses(current, asset.id));
-                setSelected(null);
-              }
-              setMediaIds((ids) => ids.filter((id) => id !== asset.id));
-              try {
-                const fresh = await changeProjectMedia(project.id, [asset.id], true);
-                setMediaIds(fresh.media);
-              } catch (error) {
-                setMediaIds((ids) => (ids.includes(asset.id) ? ids : [asset.id, ...ids]));
-                setNotice(error instanceof Error ? error.message : "Couldn't take this out of the video.");
-              }
-            }}
-            onAddText={(style) => {
-              const result = edit.addText(composition, time, style);
-              change(result.composition);
-              setSelected({ kind: "text", id: result.id });
-              setInspectorTab("text");
-            }}
-            onTransition={(type, all) => {
-              if (selectedSceneIndex < 1) return;
-              const scene = composition.scenes[selectedSceneIndex];
-              const transition = { type, duration: scene.transition.duration || 0.5 };
-              change((current) => (all ? edit.transitionAll(current, transition) : edit.updateScene(current, scene.id, { transition }, assets)));
-              setInspectorTab("transition");
-            }}
-            onFilter={(effect, all) => {
-              if (selectedSceneIndex < 0) return;
-              const scene = composition.scenes[selectedSceneIndex];
-              change((current) => (all ? edit.filterAll(current, effect) : edit.updateScene(current, scene.id, { effect }, assets)));
-            }}
-          />
+          {leftPanel}
         </div>
 
         <div inert={busy} className={cn("order-1 min-w-0 space-y-2 transition-opacity lg:order-2", busy && "opacity-60")}>
           <div className="flex max-h-[34rem] justify-center rounded-xl bg-gray-950 p-2">
-            <Preview
-              composition={composition}
-              assets={assets}
-              time={time}
-              playing={playing}
-              onTime={setTime}
-              onEnded={() => setPlaying(false)}
-              selected={selected && selected.kind !== "audio" ? { kind: selected.kind, id: selected.id } : null}
-              onSelect={(item) => select(item)}
-              onMove={(kind, id, x, y) =>
-                change((current) => (kind === "text" ? edit.updateText(current, id, { x, y }) : edit.updateOverlay(current, id, { x, y })), `${id}.drag`)
-              }
-              className="max-h-[32.5rem]"
-            />
+            {preview("max-h-[32.5rem]")}
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                if (!playing && time >= length - 0.05) setTime(0);
-                setPlaying((value) => !value);
-              }}
-              disabled={!composition.scenes.length}
-              aria-label={playing ? "Pause" : "Play"}
-              className={buttonStyles({ size: "icon" })}
-            >
-              {playing ? <Pause aria-hidden="true" className="size-4" /> : <Play aria-hidden="true" className="size-4" />}
-            </button>
-            <input
-              type="range"
-              aria-label="Position in the video"
-              min={0}
-              max={Math.max(length, 0.1)}
-              step={0.05}
-              value={Math.min(time, length)}
-              onChange={(event) => setTime(Number(event.target.value))}
-              className="min-w-0 flex-1 accent-primary"
-            />
-            <span className="w-24 text-right text-xs text-muted-foreground tabular-nums">
-              {formatSeconds(time)} / {formatSeconds(length)}
-            </span>
-          </div>
+          {playControls}
           <p className="text-[11px] text-muted-foreground">The preview is close to the finished video; the video you make is the final one.</p>
         </div>
 
         <div inert={busy} className={cn("order-4 min-w-0 space-y-4 transition-opacity lg:order-4 lg:col-span-2 xl:order-3 xl:col-span-1", busy && "opacity-60")}>
-          <div className="xl:max-h-[37rem] xl:overflow-y-auto xl:rounded-xl">
-            <Inspector
-              composition={composition}
-              assets={assets}
-              selected={selected}
-              onSelect={select}
-              change={change}
-              tab={inspectorTab}
-              onTab={setInspectorTab}
-              onPickLogo={() => setLogoPicker(true)}
-            />
-          </div>
+          <div className="xl:max-h-[37rem] xl:overflow-y-auto xl:rounded-xl">{inspector}</div>
         </div>
 
         <div inert={busy} className={cn("order-2 min-w-0 transition-opacity lg:order-3 lg:col-span-2 xl:order-4 xl:col-span-3", busy && "opacity-60")}>
-          <Timeline
-            composition={composition}
-            assets={assets}
-            time={time}
-            onSeek={(seconds) => {
-              setPlaying(false);
-              setTime(seconds);
-            }}
-            selected={selected}
-            onSelect={(item) => {
-              select(item);
-              if (item?.kind === "scene") {
-                const index = composition.scenes.findIndex((scene) => scene.id === item.id);
-                if (index >= 0 && (time < starts[index] || time > starts[index] + composition.scenes[index].duration)) setTime(starts[index]);
-              }
-            }}
-            onMoveScene={(from, to) => change((current) => edit.moveScene(current, from, to))}
-            onSceneLength={(id, seconds) => change((current) => edit.updateScene(current, id, { duration: seconds }, assets))}
-            onTime={(kind, id, start, end) =>
-              change((current) =>
-                kind === "text" ? edit.timeText(current, id, start, end) : kind === "overlay" ? edit.timeOverlay(current, id, start, end) : edit.timeAudio(current, id, start, end),
-              )
-            }
-            onJunction={(id) => {
-              setSelected({ kind: "scene", id });
-              setInspectorTab("transition");
-              setPanel("transitions");
-            }}
-            onMuteScene={(id, muted) => change((current) => edit.updateScene(current, id, { muted }, assets))}
-            onMuteAudio={(id, muted) => change((current) => edit.updateAudio(current, id, { muted }))}
-            onAddText={() => {
-              const result = edit.addText(composition, time);
-              change(result.composition);
-              setSelected({ kind: "text", id: result.id });
-              setInspectorTab("text");
-            }}
-            onAddColor={() => {
-              const scene = edit.colorScene(composition);
-              const at = selectedSceneIndex >= 0 ? selectedSceneIndex + 1 : composition.scenes.length;
-              change(edit.addScene(composition, scene, at));
-              setSelected({ kind: "scene", id: scene.id });
-            }}
-            onLogo={() => (logo ? setSelected({ kind: "overlay", id: logo.id }) : setLogoPicker(true))}
-            onSplit={split}
-            onDuplicate={() => selected?.kind === "scene" && change((current) => edit.duplicateScene(current, selected.id))}
-            onDelete={removeSelected}
-          />
+          {timelinePanel}
         </div>
 
         <div inert={busy} className={cn("order-5 min-w-0 transition-opacity lg:col-span-2 xl:col-span-3", busy && "opacity-60")}>
-          <RenderPanel projectId={project.id} composition={composition} assets={assets} version={editor.version} flush={editor.flush} />
+          {renderPanel}
         </div>
-        <LogoPicker
-          open={logoPicker}
-          onOpenChange={setLogoPicker}
-          projectId={project.id}
-          media={media}
-          current={logo?.asset ?? null}
-          onChoose={chooseLogo}
-        />
+        {logoDialog}
       </div>
     </div>
   );
@@ -582,7 +782,7 @@ function Editor({ project }: { project: StudioProject }) {
 
 function Generating({ project }: { project: StudioProject }) {
   return (
-    <div className="mx-auto max-w-lg space-y-4 py-16 text-center" role="status">
+    <div className="mx-auto max-w-lg space-y-4 px-4 py-16 text-center lg:px-0" role="status">
       <LoaderCircle aria-hidden="true" className="mx-auto size-8 animate-spin text-primary" />
       <h2 className="text-xl font-semibold text-balance text-foreground">Mindra is putting “{project.name}” together</h2>
       <p className="text-sm text-pretty text-muted-foreground">
@@ -598,7 +798,7 @@ function Failed({ project, onEdit }: { project: StudioProject; onEdit: () => voi
   const retry = useCreateWithAi();
   const brief = project.brief as AiBrief;
   return (
-    <div className="mx-auto max-w-lg space-y-4 py-16 text-center">
+    <div className="mx-auto max-w-lg space-y-4 px-4 py-16 text-center lg:px-0">
       <h2 className="text-xl font-semibold text-balance text-foreground">The AI couldn't make this video</h2>
       <p role="alert" className="text-sm text-pretty text-red-700">
         {project.error || "Something went wrong."}
@@ -631,14 +831,14 @@ export default function StudioEditor() {
 
   if (project.isPending) {
     return (
-      <p role="status" className="text-sm text-muted-foreground">
+      <p role="status" className="p-4 text-sm text-muted-foreground lg:p-0">
         Opening the editor…
       </p>
     );
   }
   if (project.isError) {
     return (
-      <div className="space-y-3">
+      <div className="space-y-3 p-4 lg:p-0">
         <p role="alert" className="text-sm text-red-700">
           {project.error.message}
         </p>

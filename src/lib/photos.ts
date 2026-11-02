@@ -77,16 +77,16 @@ function jpegName(name: string): string {
 }
 
 /**
- * A photo ready to send: scaled so its long side is at most 2048 px and saved as a JPEG (which also leaves out its
- * location and camera details), or the original when this browser can't read it, for the server to convert (such as an
- * iPhone HEIC photo outside Safari).
+ * A photo ready to send: scaled so its long side is at most `maxSide` px (2048 unless given) and saved as a JPEG (which
+ * also leaves out its location and camera details), or the original when this browser can't read it, for the server
+ * to convert (such as an iPhone HEIC photo outside Safari).
  */
-export async function preparePhoto(file: File): Promise<{ file: File; resized: boolean }> {
+export async function preparePhoto(file: File, maxSide = MAX_SIDE): Promise<{ file: File; resized: boolean }> {
   const decoded = await decode(file);
   if (!decoded) return { file, resized: false };
   try {
     if (!decoded.width || !decoded.height) return { file, resized: false };
-    const scale = Math.min(1, MAX_SIDE / Math.max(decoded.width, decoded.height));
+    const scale = Math.min(1, maxSide / Math.max(decoded.width, decoded.height));
     const canvas = document.createElement("canvas");
     canvas.width = Math.max(1, Math.round(decoded.width * scale));
     canvas.height = Math.max(1, Math.round(decoded.height * scale));

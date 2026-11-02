@@ -32,7 +32,7 @@ import ConfirmDialog from "../ui/ConfirmDialog"
 import { buttonStyles } from "../ui/button"
 import EarlierUploads from "./EarlierUploads"
 import { usesOf, type TextStyle } from "./edits"
-import MusicSearch, { PlayIcon, playLabel, usePreviewPlayer } from "./MusicSearch"
+import MusicSearch, { PlayIcon, PreviewSeek, playLabel, usePreviewPlayer } from "./MusicSearch"
 import { EFFECT_FILTERS } from "./Preview"
 import { panelClass } from "./styles"
 
@@ -203,7 +203,7 @@ function MediaTab({ projectId, composition, media, selectedScene, onUploaded, on
         id="studio-upload"
         type="file"
         multiple
-        accept="image/jpeg,image/png,image/webp,image/heic,.heic,.heif,video/mp4,video/quicktime,video/webm,.m4v,.mkv,audio/mpeg,audio/mp4,audio/wav,audio/aac,.m4a,.flac,.ogg"
+        accept="image/*,.heic,.heif,video/*,.m4v,.mkv,audio/*,.m4a,.flac,.ogg,.opus"
         className="sr-only"
         onChange={(event) => {
           void send(event.target.files)
@@ -256,6 +256,8 @@ function MediaTile({
 }) {
   const ready = asset.status === "ready"
   const Icon = asset.kind === "video" ? Film : ImageIcon
+  // A picture that doesn't load (its link expired, say) shows the icon rather than a broken picture.
+  const [broken, setBroken] = useState(false)
   const uses = usesOf(composition, asset.id)
   const used = uses.scenes + uses.overlays + uses.audio
   const description = used
@@ -270,8 +272,8 @@ function MediaTile({
         aria-label={`Add ${asset.name} to the video`}
         className="relative aspect-video bg-secondary focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary disabled:cursor-wait"
       >
-        {asset.thumbnail_url ? (
-          <img src={asset.thumbnail_url} alt="" className="absolute inset-0 size-full object-cover" />
+        {asset.thumbnail_url && !broken ? (
+          <img src={asset.thumbnail_url} alt="" onError={() => setBroken(true)} className="absolute inset-0 size-full object-cover" />
         ) : (
           <span className="absolute inset-0 grid place-items-center text-muted-foreground">
             <Icon aria-hidden="true" className="size-5" />
@@ -355,7 +357,7 @@ function AudioTab({ projectId, composition, media, assets, onUploaded, onMusic }
             id="studio-music-upload"
             type="file"
             multiple
-            accept="audio/mpeg,audio/mp4,audio/wav,audio/aac,.m4a,.flac,.ogg"
+            accept="audio/*,.m4a,.flac,.ogg,.opus"
             className="sr-only"
             onChange={(event) => {
               void send(event.target.files, (asset) => onMusic(asset))
@@ -369,7 +371,8 @@ function AudioTab({ projectId, composition, media, assets, onUploaded, onMusic }
         ) : (
           <ul className="divide-y divide-border">
             {ownMusic.map((asset) => (
-              <li key={asset.id} className="flex items-center gap-2 py-1.5">
+              <li key={asset.id} className="py-1.5">
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
                   disabled={asset.status !== "ready"}
@@ -407,6 +410,8 @@ function AudioTab({ projectId, composition, media, assets, onUploaded, onMusic }
                     Use
                   </button>
                 )}
+              </div>
+              <PreviewSeek player={player} id={asset.id} name={asset.name} />
               </li>
             ))}
           </ul>
@@ -420,11 +425,11 @@ function AudioTab({ projectId, composition, media, assets, onUploaded, onMusic }
 
 /** Ready-made text styles, as CapCut's text templates: click one to add it at the playhead. */
 export const TEXT_PRESETS: { name: string; sample: string; style: TextStyle }[] = [
-  { name: "Title", sample: "Sunday Service", style: { text: "Sunday Service", size: 0.08, font: "anton", y: 0.22, animation_in: { type: "slide_up", duration: 0.5 }, animation_out: { type: "fade", duration: 0.3 } } },
-  { name: "Heading", sample: "Welcome home", style: { text: "Welcome home", size: 0.065, font: "poppins", weight: "extra_bold", y: 0.3, animation_in: { type: "pop", duration: 0.4 } } },
+  { name: "Title", sample: "Big news", style: { text: "Big news", size: 0.08, font: "anton", y: 0.22, animation_in: { type: "slide_up", duration: 0.5 }, animation_out: { type: "fade", duration: 0.3 } } },
+  { name: "Heading", sample: "New this week", style: { text: "New this week", size: 0.065, font: "poppins", weight: "extra_bold", y: 0.3, animation_in: { type: "pop", duration: 0.4 } } },
   { name: "Subtitle", sample: "Join us live", style: { text: "Join us live", size: 0.045, font: "inter", y: 0.78, outline: true, animation_in: { type: "fade", duration: 0.4 } } },
-  { name: "Lower third", sample: "Pastor Ada · Lead pastor", style: { text: "Pastor Ada · Lead pastor", size: 0.035, font: "poppins", align: "left", x: 0.06, y: 0.84, box: "#6D5EF5", outline: false, animation_in: { type: "slide_right", duration: 0.5 }, animation_out: { type: "slide_left", duration: 0.4 } } },
-  { name: "Quote", sample: "Be still, and know", style: { text: "“Be still, and know”", size: 0.06, font: "abril", outline: false, effect: "shadow", animation_in: { type: "zoom_in", duration: 0.6 } } },
+  { name: "Lower third", sample: "Ada Okafor · Founder", style: { text: "Ada Okafor · Founder", size: 0.035, font: "poppins", align: "left", x: 0.06, y: 0.84, box: "#6D5EF5", outline: false, animation_in: { type: "slide_right", duration: 0.5 }, animation_out: { type: "slide_left", duration: 0.4 } } },
+  { name: "Quote", sample: "Made with care", style: { text: "“Made with care”", size: 0.06, font: "abril", outline: false, effect: "shadow", animation_in: { type: "zoom_in", duration: 0.6 } } },
   { name: "Neon", sample: "Tonight", style: { text: "Tonight", size: 0.08, font: "righteous", color: "#FF4FD8", outline: false, effect: "neon", animation_in: { type: "bounce", duration: 0.6 } } },
   { name: "Script", sample: "With love", style: { text: "With love", size: 0.07, font: "pacifico", outline: false, effect: "glow", animation_in: { type: "fade", duration: 0.6 } } },
   { name: "Bold box", sample: "SALE THIS WEEK", style: { text: "SALE THIS WEEK", size: 0.055, font: "archivo", color: "#111111", box: "#FACC15", outline: false, animation_in: { type: "pop", duration: 0.4 }, animation_out: { type: "pop", duration: 0.3 } } },
@@ -493,7 +498,13 @@ const TRANSITION_DEMO: Record<TransitionType, string> = {
   slide_down: "studio-demo-slide-down",
   wipe_left: "studio-demo-wipe-left",
   wipe_right: "studio-demo-wipe-right",
+  wipe_up: "studio-demo-wipe-up",
+  wipe_down: "studio-demo-wipe-down",
+  smooth_left: "studio-demo-smooth-left",
+  smooth_right: "studio-demo-smooth-right",
   circle_open: "studio-demo-circle",
+  circle_close: "studio-demo-circle-close",
+  radial: "studio-demo-radial",
   zoom_in: "studio-demo-zoom",
 }
 

@@ -74,6 +74,26 @@ function MusicCredits({ composition, assets }: { composition: Composition; asset
   );
 }
 
+/** What's happening to a video being made, in the order the server makes it (studio/render.py). */
+function renderStage(render: StudioRender): string {
+  if (render.status === "queued") {
+    if (render.ahead) return `Waiting for ${render.ahead === 1 ? "1 other video" : `${render.ahead} other videos`} to be made first…`;
+    return "Starting…";
+  }
+  const { progress } = render;
+  if (progress < 55) return `Making the scenes… ${progress}%`;
+  if (progress < 60) return `Joining the scenes… ${progress}%`;
+  if (progress < 99) return `Adding the text, logo and music… ${progress}%`;
+  return "Saving the video…";
+}
+
+/** About how long it takes: the renders worker makes a video in about six times its length. */
+function renderTime(composition: Composition): string {
+  const seconds = composition.scenes.reduce((total, scene) => total + scene.duration, 0);
+  const minutes = Math.max(1, Math.round((seconds * 6) / 60));
+  return `A video this long takes about ${minutes} minute${minutes > 1 ? "s" : ""} to make.`;
+}
+
 /** Making the MP4 from the saved version, the video made, and the posts to share it with. */
 export default function RenderPanel({ projectId, composition, assets, version, flush }: Props) {
   const queryClient = useQueryClient();
@@ -121,7 +141,7 @@ export default function RenderPanel({ projectId, composition, assets, version, f
           </h3>
           <button type="button" onClick={() => void make()} disabled={Boolean(blocked) || working || start.isPending} className={buttonStyles({ className: "w-full" })}>
             {working || start.isPending ? <LoaderCircle aria-hidden="true" className="size-4 animate-spin" /> : <Clapperboard aria-hidden="true" className="size-4" />}
-            {working ? "Making the video…" : ready ? "Make it again" : "Make video"}
+            {working ? "Making the video…" : latest?.status === "failed" ? "Try again" : ready ? "Make it again" : "Make video"}
           </button>
           {blocked && <p className="text-xs text-pretty text-muted-foreground">{blocked}</p>}
           {problem && (
@@ -132,15 +152,17 @@ export default function RenderPanel({ projectId, composition, assets, version, f
           {latest && isRendering(latest) && (
             <div>
               <p className="text-xs text-muted-foreground tabular-nums" role="status">
-                {latest.status === "queued" ? "Waiting to start…" : `Making it… ${latest.progress}%`}
+                {renderStage(latest)}
               </p>
               <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-secondary">
                 <div className="h-full origin-left bg-primary transition-transform duration-500" style={{ transform: `scaleX(${Math.max(latest.progress, 3) / 100})` }} />
               </div>
-              <p className="mt-1 text-[11px] text-pretty text-muted-foreground">This takes a few minutes. You can keep editing; the video is made from version {latest.version}.</p>
+              <p className="mt-1 text-[11px] text-pretty text-muted-foreground">
+                {renderTime(composition)} You can keep editing, or leave this page: it carries on, and the video is made from version {latest.version}.
+              </p>
             </div>
           )}
-          {latest?.status === "failed" && (
+          {latest?.status === "failed" && !working && (
             <p role="alert" className="text-xs text-pretty text-red-700">
               {latest.error || "This video couldn't be made."}
             </p>

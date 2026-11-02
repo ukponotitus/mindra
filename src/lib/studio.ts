@@ -4,6 +4,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { ApiError, apiRequest, uploadWithProgress } from "./api"
+import { preparePhoto } from "./photos"
 import { uploadOptionsQuery } from "./projects"
 import type { Paginated } from "./types"
 import { DirectUpload, forgetSavedUpload, uploadKind } from "./upload"
@@ -14,11 +15,11 @@ export type Aspect = "9:16" | "16:9" | "1:1"
 export type Quality = "high" | "standard"
 export type SceneType = "media" | "color" | "placeholder"
 export type Fit = "cover" | "contain" | "blur"
-export type Motion = "none" | "zoom_in" | "zoom_out"
-export type SceneEffect = "none" | "vivid" | "bright" | "warm" | "cool" | "moody" | "matte" | "vintage" | "sepia" | "black_white"
+export type Motion = "none" | "zoom_in" | "zoom_out" | "pan_left" | "pan_right" | "pan_up" | "pan_down"
+export type SceneEffect = "none" | "vivid" | "bright" | "warm" | "cool" | "moody" | "matte" | "vintage" | "sepia" | "black_white" | "punch" | "noir" | "soft" | "golden"
 /** How a scene comes in or goes out (CapCut's clip animations). */
 export type SceneAnimation = "none" | "fade" | "zoom_in" | "zoom_out" | "slide_left" | "slide_right" | "slide_up" | "slide_down"
-export type TransitionType = "none" | "fade" | "fade_black" | "fade_white" | "slide_left" | "slide_right" | "slide_up" | "slide_down" | "wipe_left" | "wipe_right" | "circle_open" | "zoom_in"
+export type TransitionType = "none" | "fade" | "fade_black" | "fade_white" | "slide_left" | "slide_right" | "slide_up" | "slide_down" | "wipe_left" | "wipe_right" | "wipe_up" | "wipe_down" | "smooth_left" | "smooth_right" | "circle_open" | "circle_close" | "radial" | "zoom_in"
 export type Weight = "bold" | "extra_bold"
 export type Align = "left" | "center" | "right"
 export type TextAnimation = "none" | "fade" | "slide_up" | "slide_down" | "slide_left" | "slide_right" | "pop" | "zoom_in" | "bounce"
@@ -181,6 +182,10 @@ export const SCENE_EFFECTS: { id: SceneEffect; label: string }[] = [
   { id: "vintage", label: "Vintage" },
   { id: "sepia", label: "Sepia" },
   { id: "black_white", label: "Black & white" },
+  { id: "punch", label: "Punch" },
+  { id: "noir", label: "Noir" },
+  { id: "soft", label: "Soft" },
+  { id: "golden", label: "Golden" },
 ]
 
 export const SCENE_ANIMATIONS_IN: { id: SceneAnimation; label: string }[] = [
@@ -248,7 +253,13 @@ export const TRANSITIONS: { id: TransitionType; label: string }[] = [
   { id: "slide_down", label: "Slide down" },
   { id: "wipe_left", label: "Wipe left" },
   { id: "wipe_right", label: "Wipe right" },
+  { id: "wipe_up", label: "Wipe up" },
+  { id: "wipe_down", label: "Wipe down" },
+  { id: "smooth_left", label: "Soft wipe left" },
+  { id: "smooth_right", label: "Soft wipe right" },
   { id: "circle_open", label: "Circle open" },
+  { id: "circle_close", label: "Circle close" },
+  { id: "radial", label: "Clock wipe" },
   { id: "zoom_in", label: "Zoom in" },
 ]
 
@@ -262,6 +273,10 @@ export const MOTIONS: { id: Motion; label: string }[] = [
   { id: "none", label: "Still" },
   { id: "zoom_in", label: "Slow zoom in" },
   { id: "zoom_out", label: "Slow zoom out" },
+  { id: "pan_left", label: "Slow pan left" },
+  { id: "pan_right", label: "Slow pan right" },
+  { id: "pan_up", label: "Slow pan up" },
+  { id: "pan_down", label: "Slow pan down" },
 ]
 
 export const TEXT_ANIMATIONS: { id: TextAnimation; label: string }[] = [
@@ -484,6 +499,8 @@ export type StudioRender = {
   /** Once posts are written for this video: the clip (and its project) that carries it into the Content Library. */
   post_clip: string | null
   post_project: string | null
+  /** While it waits to start: how many videos and clips are being made first (null otherwise, or when unknown). */
+  ahead: number | null
   created_at: string
   updated_at: string
 }
@@ -790,8 +807,28 @@ export function assetKind(file: File): AssetKind | null {
   const name = file.name.toLowerCase()
   if (/\.(jpe?g|png|webp|heic|heif)$/.test(name)) return "image"
   if (/\.(mp4|mov|m4v|webm|mkv|avi)$/.test(name)) return "video"
-  if (/\.(mp3|m4a|aac|wav|flac|ogg)$/.test(name)) return "audio"
+  if (/\.(mp3|m4a|aac|wav|flac|ogg|opus)$/.test(name)) return "audio"
+  // A phone's gallery sometimes hands over a file without its extension; its type still says what it is.
+  if (!/\.[a-z0-9]+$/.test(name)) {
+    const type = file.type.toLowerCase()
+    if (/^image\/(jpeg|png|webp|heic|heif)$/.test(type)) return "image"
+    if (type.startsWith("video/")) return "video"
+    if (type.startsWith("audio/")) return "audio"
+  }
   return null
+}
+
+/** Pictures are sent at most this many pixels on the long side, the most the server keeps. */
+const PICTURE_SIDE = 2560
+
+/** A camera photo (JPEG or HEIC) made smaller on the device first: a phone's photo can be 10 MB or more, slow to send
+ * on a phone's connection, and HEIC only some browsers can open. PNG and WebP are sent as they are, so a logo keeps
+ * its see-through background. */
+async function smallerPicture(file: File): Promise<File> {
+  const type = file.type.toLowerCase()
+  const camera = /\.(jpe?g|heic|heif)$/i.test(file.name) || /^image\/(jpeg|heic|heif)$/.test(type)
+  if (!camera) return file
+  return (await preparePhoto(file, PICTURE_SIDE)).file
 }
 
 /** Add a photo, clip, logo or piece of music. Pictures go with the request; videos and music straight to storage
@@ -835,7 +872,7 @@ export function useUploadAsset() {
         }
       }
       const form = new FormData()
-      form.append("file", file)
+      form.append("file", kind === "image" ? await smallerPicture(file) : file)
       if (project) form.append("project", project)
       return uploadWithProgress<StudioAsset>(
         "/api/studio/assets/",

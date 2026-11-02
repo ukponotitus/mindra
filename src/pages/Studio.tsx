@@ -67,7 +67,7 @@ function NewManualDialog({ open, onOpenChange }: { open: boolean; onOpenChange: 
               <label htmlFor={nameId} className={labelClass}>
                 Name
               </label>
-              <input id={nameId} value={name} maxLength={200} placeholder="Sunday service recap" onChange={(event) => setName(event.target.value)} className={fieldClass} />
+              <input id={nameId} value={name} maxLength={200} placeholder="Weekend recap" onChange={(event) => setName(event.target.value)} className={fieldClass} />
             </div>
             <fieldset>
               <legend className={labelClass}>Shape</legend>

@@ -16,7 +16,7 @@ import { PostPhotos } from "./ContentCard";
 import ShareButton from "./ShareButton";
 
 const MAX_PHOTOS = 10;
-const ACCEPT = "image/jpeg,image/png,image/webp,image/heic,.heic,.heif,video/mp4,video/quicktime,video/webm,.m4v,.mov";
+const ACCEPT = "image/*,.heic,.heif,video/*,.m4v,.mov";
 
 type Sending = { id: string; name: string; fraction: number; error: string };
 

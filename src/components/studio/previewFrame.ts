@@ -131,6 +131,54 @@ export function layerStyles(
     case "wipe_right":
       into.clipPath = `inset(0 ${percent(1 - p)} 0 0)`
       break
+    case "wipe_up":
+      into.clipPath = `inset(${percent(1 - p)} 0 0 0)`
+      break
+    case "wipe_down":
+      into.clipPath = `inset(0 0 ${percent(1 - p)} 0)`
+      break
+    case "smooth_left":
+    case "smooth_right": {
+      // ffmpeg's smoothleft and smoothright: a soft-edged wipe, the new scene's strength at x (0 to 1 across)
+      // smoothstep(x + 2p - 1), from the right edge (or the left).
+      const stops: string[] = []
+      for (let step = 0; step <= 10; step++) {
+        const x = step / 10
+        const across = scene.transition.type === "smooth_left" ? x : 1 - x
+        stops.push(`rgba(0,0,0,${smoothstep(across + 2 * p - 1).toFixed(3)}) ${x * 100}%`)
+      }
+      const mask = `linear-gradient(to right, ${stops.join(", ")})`
+      into.maskImage = mask
+      into.WebkitMaskImage = mask
+      break
+    }
+    case "circle_close": {
+      // ffmpeg's circleclose: the new scene comes in from the edges towards the middle; its strength at a distance r
+      // (0 in the middle, 1 at a corner) is smoothstep(r + (p - 0.5) * 3).
+      const shift = (p - 0.5) * 3
+      const stops: string[] = []
+      for (let step = 0; step <= 10; step++) {
+        const r = step / 10
+        stops.push(`rgba(0,0,0,${smoothstep(r + shift).toFixed(3)}) ${r * 100}%`)
+      }
+      const mask = `radial-gradient(circle farthest-corner at 50% 50%, ${stops.join(", ")})`
+      into.maskImage = mask
+      into.WebkitMaskImage = mask
+      break
+    }
+    case "radial": {
+      // ffmpeg's radial: a sweep like a clock's hand. At an angle a (CSS's: clockwise from straight up) the new
+      // scene's strength is smoothstep(pi - a - (0.5 - p) * 2.5 pi), a soft edge about a radian wide.
+      const stops: string[] = []
+      for (let step = 0; step <= 24; step++) {
+        const angle = (step / 24) * 2 * Math.PI
+        stops.push(`rgba(0,0,0,${smoothstep(Math.PI - angle - (0.5 - p) * 2.5 * Math.PI).toFixed(3)}) ${step * 15}deg`)
+      }
+      const mask = `conic-gradient(from 0deg at 50% 50%, ${stops.join(", ")})`
+      into.maskImage = mask
+      into.WebkitMaskImage = mask
+      break
+    }
     case "circle_open": {
       // ffmpeg's circleopen: the new scene shows through a soft-edged circle from the middle, which starts a third
       // of the way through. Its strength at a distance r (0 in the middle, 1 at a corner) is
@@ -177,9 +225,29 @@ function smoothstep(value: number): number {
 export function motionScale(scene: Scene, start: number, time: number): number {
   if (scene.motion === "none") return 1
   const progress = Math.min(Math.max((time - start) / scene.duration, 0), 1)
-  return scene.motion === "zoom_in"
-    ? 1 + 0.12 * progress
-    : 1.12 - 0.12 * progress
+  if (scene.motion === "zoom_in") return 1 + 0.12 * progress
+  if (scene.motion === "zoom_out") return 1.12 - 0.12 * progress
+  return PAN_ZOOM
+}
+
+/** A pan holds the photo 12% larger than the frame and moves across the extra (render.py's PAN_ZOOM). */
+const PAN_ZOOM = 1.12
+
+/** A photo's motion at `time` as a CSS transform, or undefined when it's still: render.py's motion_path. A pan moves
+ * the view from one edge of the enlarged photo to the other, so the photo slides the other way, 6% either side. */
+export function motionTransform(scene: Scene, start: number, time: number): string | undefined {
+  if (scene.motion === "none") return undefined
+  const scale = motionScale(scene, start, time)
+  const progress = Math.min(Math.max((time - start) / scene.duration, 0), 1)
+  const reach = ((PAN_ZOOM - 1) / 2) * (1 - 2 * progress) * 100
+  const shift = {
+    pan_right: [reach, 0],
+    pan_left: [-reach, 0],
+    pan_down: [0, reach],
+    pan_up: [0, -reach],
+  }[scene.motion as "pan_right" | "pan_left" | "pan_down" | "pan_up"]
+  if (!shift) return `scale(${scale.toFixed(4)})`
+  return `translate(${shift[0].toFixed(3)}%, ${shift[1].toFixed(3)}%) scale(${scale.toFixed(4)})`
 }
 
 /** Where in its clip a video scene is at `time` (seconds into the source file). */
