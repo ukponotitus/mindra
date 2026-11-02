@@ -54,4 +54,18 @@ test("write posts from a pasted talk, schedule one and mark it posted", async ({
   const postDialog = page.getByRole("dialog");
   await postDialog.getByRole("button", { name: /Mark as posted/ }).click();
   await expect(page.getByText(/Marked as posted/).first()).toBeVisible();
+
+  // The Content Library keeps posts apart by where they are: the rest are drafts, this one is under Posted, in a table
+  // of its numbers (WhatsApp shares none), and nothing is left under Scheduled.
+  await page.goto("/library");
+  const tabs = page.getByRole("tablist", { name: "Posts by where they are" });
+  await expect(tabs.getByRole("tab", { name: /Drafts/, selected: true })).toBeVisible();
+  await expect(tabs.getByRole("tab", { name: /Posted\s*1/ })).toBeVisible();
+  await tabs.getByRole("tab", { name: /Posted/ }).click();
+  await expect(page).toHaveURL(/tab=posted/);
+  await expect(main.getByRole("table").getByRole("row")).toHaveCount(2);
+  await main.getByRole("table").getByRole("button", { name: /Views/ }).click();
+  await expect(page).toHaveURL(/sort=views/);
+  await tabs.getByRole("tab", { name: /Scheduled/ }).click();
+  await expect(main.getByText("Nothing scheduled")).toBeVisible();
 });

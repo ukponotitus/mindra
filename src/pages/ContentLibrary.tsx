@@ -1,13 +1,16 @@
 import { useEffect, useState } from "react";
-import { ArrowLeft, ArrowRight, Check, FileText, Plus, Search, Star, X } from "lucide-react";
+import { Tabs } from "@base-ui/react/tabs";
+import { ArrowLeft, ArrowRight, CalendarClock, Check, FileText, Plus, Search, Send, Star, X, type LucideIcon } from "lucide-react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router";
 import ContentCard from "../components/content/ContentCard";
+import PostsTable from "../components/content/PostsTable";
 import EmptyState from "../components/EmptyState";
 import { buttonStyles } from "../components/ui/button";
 import { cn } from "../lib/cn";
-import { useContentList } from "../lib/content";
+import { LIBRARY_SORTS, LIBRARY_STAGES, useContentList, useContentStages, type LibrarySort, type LibraryStage } from "../lib/content";
 import { PLATFORMS, useProjects } from "../lib/projects";
 import type { Platform } from "../lib/types";
+import { useMediaQuery } from "../lib/useMediaQuery";
 
 const PAGE_SIZE = 24;
 
@@ -35,7 +38,40 @@ function PostSkeleton() {
   );
 }
 
-/** Every post Mindra has written, across all recordings, with filters kept in the address bar. */
+/** What each tab says while it has no posts (without filters). */
+const EMPTY: Record<LibraryStage, { icon: LucideIcon; title: string; description: string; action: { to: string; label: string } }> = {
+  drafts: {
+    icon: FileText,
+    title: "No drafts",
+    description:
+      "Posts Mindra writes for you wait here until you schedule or post them. Open a recording, photos or a flyer in Projects and choose Write posts.",
+    action: { to: "/projects", label: "Go to Projects" },
+  },
+  scheduled: {
+    icon: CalendarClock,
+    title: "Nothing scheduled",
+    description: "Schedule a draft, or approve a content plan, and it waits here until it goes out.",
+    action: { to: "/planner", label: "Open the Planner" },
+  },
+  published: {
+    icon: Send,
+    title: "Nothing published by Mindra yet",
+    description: "Posts Mindra puts on your connected accounts appear here, with how each one did.",
+    action: { to: "/settings#accounts", label: "Connect an account" },
+  },
+  posted: {
+    icon: Check,
+    title: "Nothing marked as posted",
+    description: "Posts you put up yourself appear here once you mark them as posted.",
+    action: { to: "/planner", label: "Open the Planner" },
+  },
+};
+
+const isStage = (value: string | null): value is LibraryStage => LIBRARY_STAGES.some((stage) => stage.id === value);
+const isSort = (value: string | null): value is LibrarySort => LIBRARY_SORTS.some((sort) => sort.id === value);
+
+/** Every post Mindra has written, in tabs by where it is (drafts, scheduled, published by Mindra, posted by hand), with
+ * filters kept in the address bar. */
 /** What the editor passes back after a save, for the "Saved" note. */
 type SavedNote = { saved?: { id: string; label: string } } | null;
 
@@ -53,6 +89,13 @@ export default function ContentLibrary() {
   const favorite = searchParams.get("favorite") === "true";
   const search = searchParams.get("search") ?? "";
   const page = Math.max(1, Number(searchParams.get("page")) || 1);
+  const tabParam = searchParams.get("tab");
+  const tab: LibraryStage = isStage(tabParam) ? tabParam : "drafts";
+  // Posts that went out: sorted by a number, and on a computer a table of their numbers.
+  const wentOut = tab === "published" || tab === "posted";
+  const sortParam = searchParams.get("sort");
+  const sort: LibrarySort | "" = wentOut && isSort(sortParam) ? sortParam : "";
+  const wide = useMediaQuery("(min-width: 1024px)");
   const [searchInput, setSearchInput] = useState(search);
 
   const update = (changes: Record<string, string>) => {
@@ -72,7 +115,8 @@ export default function ContentLibrary() {
     return () => window.clearTimeout(id);
   });
 
-  const content = useContentList({ platform, project, favorite, search, page });
+  const content = useContentList({ platform, project, favorite, search, page, stage: tab, sort });
+  const stages = useContentStages({ platform, project, favorite, search });
   const projects = useProjects(1);
   const count = content.data?.count ?? 0;
   const pages = Math.max(1, Math.ceil(count / PAGE_SIZE));
@@ -84,7 +128,7 @@ export default function ContentLibrary() {
         <div>
           <h2 className="text-2xl font-semibold text-balance text-foreground">Content Library</h2>
           <p className="mt-1 text-sm text-pretty text-muted-foreground tabular-nums">
-            {content.data ? `${count} post${count === 1 ? "" : "s"}` : "Every post Mindra has written for you."}
+            Every post Mindra has written for you, by where it is.
           </p>
         </div>
         {/* Posts are written from their recording, photos or flyer: its project's page. */}
@@ -111,6 +155,24 @@ export default function ContentLibrary() {
           </button>
         </div>
       )}
+
+      <Tabs.Root value={tab} onValueChange={(value) => update({ tab: value === "drafts" ? "" : String(value), sort: "" })}>
+        {/* All four in view on a phone, each count under its name; side by side from small screens up. */}
+        <Tabs.List aria-label="Posts by where they are" className="grid grid-cols-4 gap-1 rounded-xl bg-muted p-1 sm:inline-flex sm:max-w-full">
+          {LIBRARY_STAGES.map(({ id, label }) => (
+            <Tabs.Tab
+              key={id}
+              value={id}
+              className="flex min-h-11 min-w-0 flex-col items-center justify-center gap-0.5 rounded-lg px-1 py-1 text-[13px] font-medium whitespace-nowrap text-muted-foreground transition-colors outline-none hover:text-foreground focus-visible:outline-2 focus-visible:outline-primary data-[active]:bg-card data-[active]:text-foreground data-[active]:shadow-sm sm:min-h-10 sm:flex-row sm:gap-2 sm:px-3.5 sm:text-sm"
+            >
+              {label}
+              {stages.data && (
+                <span className="rounded-full bg-secondary px-1.5 py-0.5 text-xs text-muted-foreground tabular-nums">{stages.data[id]}</span>
+              )}
+            </Tabs.Tab>
+          ))}
+        </Tabs.List>
+      </Tabs.Root>
 
       <div className="flex flex-wrap gap-3">
         <div className="relative min-w-0 flex-1 basis-full sm:basis-56">
@@ -171,6 +233,26 @@ export default function ContentLibrary() {
           <Star aria-hidden="true" className={cn("size-4", favorite && "fill-amber-400 text-amber-500")} />
           Favourites
         </button>
+        {wentOut && (
+          <>
+            <label htmlFor="library-sort" className="sr-only">
+              Sort by
+            </label>
+            <select
+              id="library-sort"
+              value={sort}
+              onChange={(e) => update({ sort: e.target.value })}
+              className={cn(fieldClass, "min-w-0 flex-1 basis-36 sm:flex-none sm:basis-auto")}
+            >
+              <option value="">Newest first</option>
+              {LIBRARY_SORTS.map((option) => (
+                <option key={option.id} value={option.id}>
+                  Most {option.label.toLowerCase()}
+                </option>
+              ))}
+            </select>
+          </>
+        )}
       </div>
 
       {content.isPending ? (
@@ -197,7 +279,7 @@ export default function ContentLibrary() {
                 type="button"
                 onClick={() => {
                   setSearchInput("");
-                  setSearchParams({}, { replace: true });
+                  setSearchParams(tab === "drafts" ? {} : { tab }, { replace: true });
                 }}
                 className={buttonStyles()}
               >
@@ -207,23 +289,33 @@ export default function ContentLibrary() {
           />
         ) : (
           <EmptyState
-            icon={FileText}
-            title="Nothing written yet"
-            description="Open a recording, photos or a flyer in Projects and choose Write posts. Mindra writes them for the platforms you choose, and they all appear here."
+            icon={EMPTY[tab].icon}
+            title={EMPTY[tab].title}
+            description={EMPTY[tab].description}
             action={
-              <Link to="/projects" className={buttonStyles()}>
-                Go to Projects
+              <Link to={EMPTY[tab].action.to} className={buttonStyles()}>
+                {EMPTY[tab].action.label}
               </Link>
             }
           />
         )
       ) : (
         <>
-          <div className="grid items-start gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {content.data.results.map((piece) => (
-              <ContentCard key={piece.id} piece={piece} showProject />
-            ))}
-          </div>
+          {wentOut && wide ? (
+            <PostsTable posts={content.data.results} sort={sort} onSort={(next) => update({ sort: next })} />
+          ) : (
+            <div className="grid items-start gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {content.data.results.map((piece) => (
+                <ContentCard key={piece.id} piece={piece} showProject />
+              ))}
+            </div>
+          )}
+          {wentOut && (
+            <p className="text-sm text-pretty text-muted-foreground">
+              A dash means the platform doesn't share that number with Mindra. LinkedIn and TikTok share none yet, so their
+              posts show only the clicks on links Mindra shortened (Count clicks in the post).
+            </p>
+          )}
           {pages > 1 && (
             <nav aria-label="Pages" className="flex items-center justify-between gap-4">
               <button

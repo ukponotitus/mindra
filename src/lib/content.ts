@@ -19,6 +19,10 @@ export type ContentFilters = {
   scheduledAfter?: string;
   /** Posts scheduled before this ISO time. */
   scheduledBefore?: string;
+  /** One of the Content Library's tabs. */
+  stage?: LibraryStage;
+  /** How a tab of posts that went out is sorted: newest first unless a number is chosen. */
+  sort?: LibrarySort | "";
   page?: number;
   pageSize?: number;
 };
@@ -33,6 +37,8 @@ function contentQuery(filters: ContentFilters): string {
   if (filters.scheduled !== undefined) params.set("scheduled", String(filters.scheduled));
   if (filters.scheduledAfter) params.set("scheduled_after", filters.scheduledAfter);
   if (filters.scheduledBefore) params.set("scheduled_before", filters.scheduledBefore);
+  if (filters.stage) params.set("stage", filters.stage);
+  if (filters.sort) params.set("sort", filters.sort);
   if (filters.page && filters.page > 1) params.set("page", String(filters.page));
   if (filters.pageSize) params.set("page_size", String(filters.pageSize));
   return params.toString();
@@ -56,6 +62,38 @@ export function useContentList(filters: ContentFilters) {
     queryFn: () => apiRequest<Paginated<ContentPiece>>(`/api/content/?${contentQuery(filters)}`),
     placeholderData: keepPreviousData,
     refetchInterval: (query) => (query.state.data?.results.some(isPublishing) ? PUBLISHING_POLL_MS : false),
+  });
+}
+
+/** The Content Library's tabs: where each post is. A post that failed to go out by itself, or whose reminder was missed,
+ * stays in Scheduled until it's posted or taken off the Planner. */
+export type LibraryStage = "drafts" | "scheduled" | "published" | "posted";
+
+export const LIBRARY_STAGES: { id: LibraryStage; label: string }[] = [
+  { id: "drafts", label: "Drafts" },
+  { id: "scheduled", label: "Scheduled" },
+  { id: "published", label: "Published" },
+  { id: "posted", label: "Posted" },
+];
+
+/** The numbers a tab of posts that went out can be sorted by, largest first. */
+export type LibrarySort = "views" | "engagement" | "likes" | "comments" | "shares" | "clicks";
+
+export const LIBRARY_SORTS: { id: LibrarySort; label: string }[] = [
+  { id: "views", label: "Views" },
+  { id: "engagement", label: "Engagement" },
+  { id: "likes", label: "Likes" },
+  { id: "comments", label: "Comments" },
+  { id: "shares", label: "Shares" },
+  { id: "clicks", label: "Link clicks" },
+];
+
+/** How many posts each tab has, under the same filters (the tab, sort and page aside). */
+export function useContentStages(filters: Pick<ContentFilters, "project" | "platform" | "favorite" | "search">) {
+  return useQuery({
+    queryKey: ["content", "stages", filters],
+    queryFn: () => apiRequest<Record<LibraryStage, number>>(`/api/content/stages/?${contentQuery(filters)}`),
+    placeholderData: keepPreviousData,
   });
 }
 
