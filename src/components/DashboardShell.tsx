@@ -25,6 +25,7 @@ const pageTitles: [pattern: string, title: string][] = [
   ["/studio/:projectId", "Video Editor"],
   ["/studio", "Motion Studio"],
   ["/planner", "Planner"],
+  ["/activity", "Activity Log"],
   ["/analytics", "Analytics"],
   ["/plans/:planId", "Content Plan"],
   ["/plans", "Content Plans"],
