@@ -1,7 +1,8 @@
 import { useEffect, useLayoutEffect, useSyncExternalStore } from "react";
 
-// Light or dark: the person's choice, or their device's setting ("system"), remembered on this device. The app (inside
-// DashboardShell) follows it; the landing and legal pages stay light.
+// Light or dark: the person's choice, or their device's setting ("system"), remembered on this device. Light until they
+// choose, so a new account starts light even on a phone set to dark. The app (inside DashboardShell) follows it; the
+// landing and legal pages stay light.
 
 export type ThemeChoice = "light" | "dark" | "system";
 
@@ -18,9 +19,9 @@ const DARK_QUERY = "(prefers-color-scheme: dark)";
 function read(): ThemeChoice {
   try {
     const value = localStorage.getItem(KEY);
-    return value === "light" || value === "dark" ? value : "system";
+    return value === "dark" || value === "system" ? value : "light";
   } catch {
-    return "system";
+    return "light";
   }
 }
 
@@ -39,8 +40,7 @@ function subscribe(listener: () => void) {
 export function setTheme(choice: ThemeChoice) {
   current = choice;
   try {
-    if (choice === "system") localStorage.removeItem(KEY);
-    else localStorage.setItem(KEY, choice);
+    localStorage.setItem(KEY, choice);
   } catch {
     // Not remembered (private mode); it still applies for this visit.
   }
@@ -53,7 +53,7 @@ function systemDark() {
 
 /** The choice, and what it comes to now ("light" or "dark"). */
 export function useTheme() {
-  const choice = useSyncExternalStore(subscribe, () => current, () => "system" as ThemeChoice);
+  const choice = useSyncExternalStore(subscribe, () => current, () => "light" as ThemeChoice);
   const dark = useSyncExternalStore(subscribe, systemDark, () => false);
   const resolved: "light" | "dark" = choice === "system" ? (dark ? "dark" : "light") : choice;
   return { choice, resolved, setTheme };

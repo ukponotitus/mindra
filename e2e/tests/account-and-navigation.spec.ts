@@ -85,3 +85,18 @@ test("on a phone, the sidebar opens as a drawer", async ({ page }) => {
   await expect(page).toHaveURL(/\/planner/);
   await expect(page.getByRole("heading", { name: "Planner", level: 2 })).toBeVisible();
 });
+
+test("a new account starts light on a device set to dark, until the person chooses", async ({ page }) => {
+  await page.emulateMedia({ colorScheme: "dark" });
+  await signUp(page, newPerson("theme"));
+  await expect(page.locator("html")).not.toHaveClass(/\bdark\b/);
+
+  await page.goto("/settings#appearance");
+  await page.getByRole("radio", { name: /Device setting/ }).click();
+  await expect(page.locator("html")).toHaveClass(/\bdark\b/);
+  await page.reload();
+  await expect(page.locator("html")).toHaveClass(/\bdark\b/);
+
+  await page.getByRole("radio", { name: /Light/ }).click();
+  await expect(page.locator("html")).not.toHaveClass(/\bdark\b/);
+});
