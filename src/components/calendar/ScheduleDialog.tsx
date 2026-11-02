@@ -178,13 +178,20 @@ function ScheduleForm({ piece, day, onDone }: { piece: ContentPiece; day?: strin
   const [time, setTime] = useState(timeValue(start));
   const [tried, setTried] = useState(false);
 
-  // Automatic posting, for a post that hasn't gone out: on when it's already set to an account that can still post.
+  // Automatic posting, for a post that hasn't gone out: on when it's already set to an account that can still post, and
+  // for a post not planned yet when there's one account to post to that needs no choices first (TikTok's are made on
+  // each post). A post already planned as a reminder stays one until the switch is turned on.
   const auto = useAutoPost(piece);
   const offerAuto = auto.state === "ready" && !piece.posted_at;
   const activeAccounts = auto.state === "ready" ? auto.accounts : [];
   const [autoChoice, setAutoChoice] = useState<boolean | null>(null);
   const [pickedAccount, setPickedAccount] = useState<string | null>(null);
-  const autoOn = offerAuto && (autoChoice ?? activeAccounts.some((account) => sameAccount(account.id, piece.publish_to)));
+  const onByDefault =
+    activeAccounts.some((account) => sameAccount(account.id, piece.publish_to)) ||
+    (!piece.scheduled_at &&
+      activeAccounts.length === 1 &&
+      !optionsProblem(activeAccounts[0].kind, startingOptions(activeAccounts[0].kind, undefined)));
+  const autoOn = offerAuto && (autoChoice ?? onByDefault);
   const account = activeAccounts.find((option) => sameAccount(option.id, pickedAccount)) ?? defaultAccount(activeAccounts, piece.publish_to);
   // Sent only when the choice was shown; otherwise the post keeps what it has.
   const publishTo = offerAuto ? (autoOn && account ? account.id : null) : undefined;
