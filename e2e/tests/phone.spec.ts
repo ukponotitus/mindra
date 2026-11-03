@@ -51,3 +51,20 @@ test("Motion Studio's editor on a phone: tools open sheets, and adding a text op
   await expect(exporting.getByRole("button", { name: "Make video" })).toBeDisabled();
   await expect(exporting.getByText("Add a photo or clip first.")).toBeVisible();
 });
+
+test("the Assistant page on a phone starts a new conversation and opens an earlier one", async ({ page }) => {
+  await signUp(page, newPerson("phone-assistant"));
+  await page.goto("/assistant");
+  const chat = page.getByRole("region", { name: "Assistant" });
+  await chat.getByLabel("Message the assistant").fill("What should I post this week?");
+  await chat.getByLabel("Message the assistant").press("Enter");
+  await expect(chat.getByText(/stand-in assistant/)).toBeVisible();
+
+  await chat.getByRole("button", { name: "New conversation" }).click();
+  await expect(chat.getByText(/stand-in assistant/)).toHaveCount(0);
+
+  await chat.getByRole("button", { name: "Earlier conversations" }).click();
+  await page.getByRole("menuitem", { name: /What should I post this week/ }).click();
+  await expect(chat.getByText(/stand-in assistant/)).toBeVisible();
+  await page.screenshot({ path: "../../assistant-phone.png" });
+});
