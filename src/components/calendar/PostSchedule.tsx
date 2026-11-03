@@ -4,6 +4,7 @@ import { buttonStyles } from "../ui/button";
 import { dayKey, scheduleStatus, useMarkPosted } from "../../lib/calendar";
 import { cn } from "../../lib/cn";
 import type { ContentPiece } from "../../lib/types";
+import PostingNotes from "./PostingNotes";
 import PublishStatus from "./PublishStatus";
 import ScheduleChip from "./ScheduleChip";
 import ScheduleDialog from "./ScheduleDialog";
@@ -39,6 +40,12 @@ export default function PostSchedule({ piece }: { piece: ContentPiece }) {
           <ScheduleChip piece={piece} />
           <PublishStatus piece={piece} className="mt-2" />
           {note && <p className="mt-2 text-sm text-pretty text-muted-foreground">{note}</p>}
+          {!automatic && piece.publish_to && piece.posting_check?.problem && (
+            <p role="alert" className="mt-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-pretty text-amber-900">
+              Mindra can't post it as it is: {piece.posting_check.problem} If it isn't fixed by then, Mindra reminds you at its time instead.
+            </p>
+          )}
+          {!automatic && status !== "posted" && <PostingNotes piece={piece} withPreview={Boolean(piece.publish_to)} className="mt-3" />}
           {!automatic && (
             <div className="mt-3 flex flex-wrap gap-2">
               <ScheduleDialog

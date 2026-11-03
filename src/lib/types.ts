@@ -72,6 +72,8 @@ export type Project = {
   cover_url: string | null;
   /** Flyer posts: the text Mindra read from the flyers, which can be corrected. Empty until they're read. */
   flyer_text: string;
+  /** Flyer posts: the event's date found in that text ("2026-11-06"), for its countdown posts, or null. */
+  flyer_event_date: string | null;
   /** For the project that carries a Motion Studio video into the Content Library: that video, edited in Motion Studio. */
   studio_project: string | null;
   /** Photo posts with audio: the video of the photos with the audio as its sound; null when none was asked for. */
@@ -300,6 +302,8 @@ export type ContentPiece = {
   /** Why it can't have photos or a video of its own (they come from its photo project or its clip, it's out, …), or
    * "" when it can (`useSetPostMedia`). */
   media_problem: string;
+  /** What its platform takes, for the editor, the Schedule dialog and Post now (src/lib/postingCheck.ts). */
+  posting_check: PostingCheck;
   created_at: string;
   updated_at: string;
 };
@@ -414,6 +418,23 @@ export type NotificationSettings = {
 /** POST /api/notifications/test/: what a test reminder reached. */
 export type TestReminderResult = { push_sent: number; email_sent: boolean };
 
+/** A post checked against its platform's limits: why it can't go out automatically (photos, video or text over them),
+ * or ""; what the platform does with its media (shows fewer photos, crops); and for YouTube, exactly what it gets. */
+export type PostingCheck = {
+  problem: string;
+  notes: string[];
+  preview: { title: string; description: string; tags: string[] } | null;
+};
+
+/** Countdown posts to a flyer's event: the days before it (7, 3, 1, 0) kept and `skipped` because they'd passed. */
+export type Countdown = {
+  event_date: string;
+  days: number[];
+  skipped: number[];
+  time: string;
+  time_zone: string;
+};
+
 export type Generation = {
   id: string;
   project: string;
@@ -421,6 +442,8 @@ export type Generation = {
   platforms: Platform[];
   tone: string;
   variations: number;
+  /** Set for countdown posts (FlyerCountdown); empty otherwise. */
+  countdown: Countdown | Record<string, never>;
   status: "queued" | "running" | "completed" | "failed";
   progress: number;
   error: string;

@@ -4,6 +4,7 @@ import ShareButton from "../content/ShareButton";
 import { buttonStyles } from "../ui/button";
 import { postPhotoFiles } from "../../lib/photos";
 import { postMedia } from "../../lib/social";
+import { recordUse } from "../../lib/usage";
 import type { ContentPiece } from "../../lib/types";
 
 // Whether a post goes out with a made clip's video, or with its photos (automatic posting needs it too).
@@ -19,7 +20,7 @@ export default function ShareOrCopy({ piece, text, variant = "primary" }: { piec
   const clip = piece.clip;
 
   if (media === "video" && clip) {
-    return <ShareButton clipId={clip.id} downloadUrl={clip.download_url} text={text} title={piece.title || clip.title} variant={variant} size="md" />;
+    return <ShareButton clipId={clip.id} pieceId={piece.id} downloadUrl={clip.download_url} text={text} title={piece.title || clip.title} variant={variant} size="md" />;
   }
   if (media === "photos") {
     return (
@@ -27,6 +28,8 @@ export default function ShareOrCopy({ piece, text, variant = "primary" }: { piec
         // New photos or a new order: fetch the files again.
         key={piece.photos.map((photo) => photo.id).join()}
         loadFiles={() => postPhotoFiles(piece.id)}
+        pieceId={piece.id}
+        flyer={piece.project_source_type === "flyer"}
         text={text}
         title={piece.title || piece.project_name}
         variant={variant}
@@ -38,6 +41,7 @@ export default function ShareOrCopy({ piece, text, variant = "primary" }: { piec
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(text);
+      recordUse("copied", "post", { piece: piece.id });
       setCopied(true);
       window.setTimeout(() => setCopied(false), 2000);
     } catch {

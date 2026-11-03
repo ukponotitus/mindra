@@ -289,12 +289,14 @@ export default function PostMedia({ piece, text }: { piece: ContentPiece; text: 
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
         {clip && (
-          <ShareButton clipId={clip.id} downloadUrl={clip.download_url} text={text} title={piece.title || clip.title} variant="primary" size="md" />
+          <ShareButton clipId={clip.id} pieceId={piece.id} downloadUrl={clip.download_url} text={text} title={piece.title || clip.title} variant="primary" size="md" />
         )}
         {photos.length > 0 && (
           <ShareButton
             key={photos.map((photo) => photo.id).join()}
             loadFiles={() => postPhotoFiles(piece.id)}
+            pieceId={piece.id}
+            flyer={piece.project_source_type === "flyer"}
             text={text}
             title={piece.title || piece.project_name}
             variant="primary"

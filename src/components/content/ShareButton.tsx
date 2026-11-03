@@ -3,6 +3,7 @@ import { Download, LoaderCircle, Share2 } from "lucide-react";
 import { buttonStyles } from "../ui/button";
 import { canShareFiles, clipFile } from "../../lib/clips";
 import { cn } from "../../lib/cn";
+import { recordUse } from "../../lib/usage";
 
 type Shared = {
   /** The caption that goes with the files; empty shares the files alone. */
@@ -14,6 +15,10 @@ type Shared = {
   wide?: boolean;
   /** Called once the files went to an app or were saved, e.g. to ask whether the post went out. */
   onShared?: () => void;
+  /** The post they go with, for the usage numbers (src/lib/usage.ts). */
+  pieceId?: string;
+  /** A flyer post's pictures: "Share flyer". */
+  flyer?: boolean;
 };
 
 type Props = Shared &
@@ -51,6 +56,13 @@ const WORDS = {
     ready: "The video is ready. Tap Share again to choose an app.",
     failed: "Couldn't share this clip. Try again.",
   },
+  flyer: {
+    share: "Share flyer",
+    download: "Download flyer",
+    preparing: "Getting the flyer ready…",
+    ready: "The flyer is ready. Tap Share again to choose an app.",
+    failed: "Couldn't share this flyer. Try again.",
+  },
   photos: {
     share: "Share photos",
     download: "Download photos",
@@ -83,9 +95,15 @@ function saveFiles(files: File[]) {
  * Elsewhere it downloads the files and copies the caption.
  */
 export default function ShareButton(props: Props) {
-  const { text, title, variant = "secondary", size = "sm", wide = false, onShared } = props;
+  const { text, title, variant = "secondary", size = "sm", wide = false, onShared: shared, pieceId, flyer = false } = props;
   const isClip = props.clipId !== undefined || props.loadVideo !== undefined;
-  const words = isClip ? WORDS.video : WORDS.photos;
+  const words = isClip ? WORDS.video : flyer ? WORDS.flyer : WORDS.photos;
+  const what = props.clipId !== undefined ? "clip" : isClip ? "video" : flyer ? "flyer" : "photos";
+  const ids = { ...(pieceId ? { piece: pieceId } : {}), ...(props.clipId ? { clip: props.clipId } : {}) };
+  const done = (action: "shared" | "downloaded") => {
+    recordUse(action, what, ids);
+    shared?.();
+  };
   const [sharing] = useState(() => canShareFiles(isClip ? undefined : { name: "photo.jpg", type: "image/jpeg" }));
   const [state, setState] = useState<"idle" | "preparing" | "ready">("idle");
   const [message, setMessage] = useState("");
@@ -119,12 +137,12 @@ export default function ShareButton(props: Props) {
         files.current = await load();
       }
       if (!isClip && !navigator.canShare({ files: files.current })) {
-        throw new Error("This phone can't share these photos together. Try sharing them from your gallery.");
+        throw new Error(flyer ? "This phone can't share these flyers together. Try sharing them from your gallery." : "This phone can't share these photos together. Try sharing them from your gallery.");
       }
       await navigator.share({ files: files.current, title, ...(text ? { text } : {}) });
       setState("idle");
       setMessage(copied ? "Shared. The caption is copied too, so paste it if the app left it out." : "Shared.");
-      onShared?.();
+      done("shared");
     } catch (error) {
       const name = error instanceof DOMException ? error.name : "";
       if (name === "AbortError") {
@@ -154,11 +172,12 @@ export default function ShareButton(props: Props) {
         files.current = await load();
       }
       saveFiles(files.current);
-      onShared?.();
+      done("downloaded");
       const count = files.current.length;
+      const noun = flyer ? "flyer" : "photo";
       setState("idle");
       setMessage(
-        `Saving ${count} photo${count === 1 ? "" : "s"}.${count > 1 ? " If your browser asks, let it download several files." : ""}${copied ? " The caption is copied, ready to paste." : ""}`,
+        `Saving ${count} ${noun}${count === 1 ? "" : "s"}.${count > 1 ? " If your browser asks, let it download several files." : ""}${copied ? " The caption is copied, ready to paste." : ""}`,
       );
     } catch (error) {
       setState("idle");
@@ -183,7 +202,7 @@ export default function ShareButton(props: Props) {
             download
             onClick={async () => {
               setMessage((await copyCaption()) ? "Downloading the video. The caption is copied, ready to paste." : "Downloading the video.");
-              onShared?.();
+              done("downloaded");
             }}
             className={styles}
           >

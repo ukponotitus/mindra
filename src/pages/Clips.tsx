@@ -3,6 +3,7 @@ import { Link, useSearchParams } from "react-router";
 import EmptyState from "../components/EmptyState";
 import { buttonStyles } from "../components/ui/button";
 import { cn } from "../lib/cn";
+import { recordUse } from "../lib/usage";
 import { clipFrame, clipPath, clipStatusLabel, useClips, type Clip, type ClipFilters } from "../lib/clips";
 import { formatDuration } from "../lib/format";
 import { useProjects } from "../lib/projects";
@@ -50,7 +51,12 @@ function ClipTile({ clip }: { clip: Clip }) {
             Open
           </Link>
           {downloadable && (
-            <a href={clip.download_url ?? undefined} download className={buttonStyles({ variant: "ghost", size: "sm" })}>
+            <a
+              href={clip.download_url ?? undefined}
+              download
+              onClick={() => recordUse("downloaded", "clip", { clip: clip.id })}
+              className={buttonStyles({ variant: "ghost", size: "sm" })}
+            >
               <Download aria-hidden="true" className="size-4" />
               Download
             </a>

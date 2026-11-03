@@ -87,8 +87,10 @@ export function postMedia(piece: ContentPiece): "video" | "photos" | null {
   return (piece.photos ?? []).length > 0 ? "photos" : null;
 }
 
-/** Why a post can't go out automatically for want of a video or photos (the API checks the rest), or "". */
+/** Why a post can't go out automatically: its photos, video or text over its platform's limits (the API's
+ * `posting_check`), or for want of a video or photos, or "". */
 export function mediaNeeded(piece: ContentPiece): string {
+  if (piece.posting_check?.problem) return piece.posting_check.problem;
   const clip = piece.clip;
   switch (piece.platform) {
     case "instagram":

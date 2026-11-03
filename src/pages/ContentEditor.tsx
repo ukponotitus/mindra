@@ -20,6 +20,7 @@ import { postPhotoFiles } from "../lib/photos";
 import { postOrigin } from "../lib/plans";
 import { isPicturePost, platformInfo } from "../lib/projects";
 import type { ClipSummary } from "../lib/types";
+import { recordUse } from "../lib/usage";
 
 const toolButton = buttonStyles({ variant: "secondary", size: "sm", className: "h-9" });
 
@@ -172,6 +173,7 @@ export default function ContentEditor() {
 
   const copy = async () => {
     await navigator.clipboard.writeText(body);
+    recordUse("copied", "post", { piece: piece.id });
     setCopied(true);
     window.setTimeout(() => setCopied(false), 2000);
   };
@@ -392,6 +394,8 @@ export default function ContentEditor() {
                   // New photos or a new order: fetch the files again.
                   key={piece.photos.map((photo) => photo.id).join()}
                   loadFiles={() => postPhotoFiles(piece.id)}
+                  pieceId={piece.id}
+                  flyer={piece.project_source_type === "flyer"}
                   text={body}
                   title={piece.title || piece.project_name}
                   variant="primary"

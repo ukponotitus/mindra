@@ -5,6 +5,7 @@ import EmptyState from "../EmptyState";
 import SeePlans from "../SeePlans";
 import ConfirmDialog from "../ui/ConfirmDialog";
 import { buttonStyles } from "../ui/button";
+import FlyerCountdown from "./FlyerCountdown";
 import PhotoPostVideo from "./PhotoPostVideo";
 import { cn } from "../../lib/cn";
 import { formatDate, formatExtensions, formatFileSize, formatMegabytes } from "../../lib/format";
@@ -891,6 +892,7 @@ export default function ProjectPhotos({ project }: { project: Project }) {
         </section>
         {/* Under the flyer: what Mindra read from it. */}
         {isFlyer && (list.length > 0 || project.flyer_text || project.status !== "completed") && <FlyerText project={project} />}
+        {isFlyer && list.length > 0 && project.status === "completed" && <FlyerCountdown project={project} />}
       </div>
 
       <PhotoDetails project={project} />

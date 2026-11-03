@@ -30,6 +30,7 @@ import { ACCOUNT_KINDS, accountChoice, accountName, accountPlace, defaultAccount
 import type { ConnectedAccount, ContentPiece, PublishOptions } from "../../lib/types";
 import { backdropClass, popupClass, switchClass, thumbClass } from "./dialogStyles";
 import PostNow from "./PostNow";
+import PostingNotes from "./PostingNotes";
 import PublishOptionsFields from "./PublishOptionsFields";
 
 interface Props {
@@ -333,6 +334,7 @@ function ScheduleForm({ piece, day, onDone }: { piece: ContentPiece; day?: strin
             onDisclose={setDisclose}
           />
         )}
+        {!piece.posted_at && <PostingNotes piece={piece} withPreview={autoOn} />}
         <p>
           {note && <>{note} </>}
           {autoOn
