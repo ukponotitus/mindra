@@ -182,7 +182,7 @@ export default function PlatformCards(props: Props) {
           </div>
         </div>
         <p className="text-xs text-pretty text-muted-foreground">
-          Videos up to 3 minutes in the vertical shape go up as Shorts; longer ones as regular videos. YouTube picks the thumbnail from the video for now.
+          Videos up to 3 minutes in the vertical shape go up as Shorts; longer ones as regular videos. Landscape videos get a custom thumbnail when it's on in the Video settings (YouTube takes them only from verified channels).
         </p>
       </PlatformCard>
 

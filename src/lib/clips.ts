@@ -6,6 +6,8 @@ import type { ClipShape, Paginated, Platform } from "./types";
 
 export type ClipStatus = "suggested" | "rendering" | "ready" | "failed";
 export type CaptionStyle = "bold" | "clean" | "none";
+/** How a short-form clip is framed: the whole picture on a blurred background, or a window that follows the speaker. */
+export type ClipFraming = "whole" | "follow";
 
 export type Clip = {
   id: string;
@@ -21,11 +23,13 @@ export type Clip = {
   reason: string;
   caption_style: CaptionStyle;
   shape: ClipShape;
+  /** Short form only; long form keeps the whole picture as recorded. */
+  framing: ClipFraming;
   /** Made by someone choosing the times, rather than suggested by Mindra. */
   custom: boolean;
   status: ClipStatus;
   error: string;
-  /** Rendered, but trimmed, restyled or reshaped since: render again to update the video. */
+  /** Rendered, but trimmed, restyled, reshaped or reframed since: render again to update the video. */
   is_stale: boolean;
   /** The Motion Studio project whose video this clip carries (studio/posting.py), or null for a clip of a recording. */
   studio_project: string | null;
@@ -49,8 +53,13 @@ export const CAPTION_STYLES: { id: CaptionStyle; label: string; description: str
 ];
 
 export const CLIP_SHAPES: { id: ClipShape; label: string; description: string }[] = [
-  { id: "vertical", label: "Short form", description: "Vertical 9:16, the whole picture on a blurred background. For Reels, TikTok and Shorts" },
+  { id: "vertical", label: "Short form", description: "Vertical 9:16. For Reels, TikTok and Shorts" },
   { id: "original", label: "Long form", description: "As recorded, nothing cut off. For YouTube and Facebook" },
+];
+
+export const CLIP_FRAMINGS: { id: ClipFraming; label: string; description: string }[] = [
+  { id: "whole", label: "Whole picture", description: "Nothing cut off: the picture across the middle, on a blurred copy of itself" },
+  { id: "follow", label: "Follow the speaker", description: "Fills the screen and moves with whoever is speaking. The sides are cut off" },
 ];
 
 /** Classes for a clip's video frame: tall for short form, wide for long form. */
@@ -181,10 +190,25 @@ function useStoreClip() {
   };
 }
 
+/** A word said around a clip, with its times in the recording. */
+export type ClipWord = { start: number; end: number; text: string };
+
+/** The words said from a minute before the clip to a minute after it, for trimming it on a word. */
+export function useClipWords(clip: Pick<Clip, "id" | "start" | "end">, enabled = true) {
+  return useQuery({
+    queryKey: ["clips", "words", clip.id, clip.start, clip.end],
+    queryFn: () => apiRequest<{ from: number; to: number; words: ClipWord[] }>(`/api/clips/${clip.id}/words/`),
+    enabled,
+    staleTime: 5 * 60_000,
+    // While a trimmed clip's new words load, keep its old ones (never another clip's).
+    placeholderData: (previous, previousQuery) => (previousQuery?.queryKey[2] === clip.id ? previous : undefined),
+  });
+}
+
 export function useUpdateClip() {
   const store = useStoreClip();
   return useMutation({
-    mutationFn: ({ id, ...changes }: { id: string } & Partial<Pick<Clip, "start" | "end" | "title" | "caption" | "caption_style" | "shape">>) =>
+    mutationFn: ({ id, ...changes }: { id: string } & Partial<Pick<Clip, "start" | "end" | "title" | "caption" | "caption_style" | "shape" | "framing">>) =>
       apiRequest<Clip>(`/api/clips/${id}/`, { method: "PATCH", body: changes }),
     onSuccess: store,
   });

@@ -1,5 +1,5 @@
 import { useId, useState } from "react";
-import { ArrowLeft, CircleAlert, ExternalLink, LoaderCircle, RotateCcw } from "lucide-react";
+import { ArrowLeft, Check, CircleAlert, ExternalLink, Image as ImageIcon, LoaderCircle, RotateCcw } from "lucide-react";
 import { Link, Navigate, useParams } from "react-router";
 import { TikTokFields } from "../components/automations/PlatformCards";
 import Timeline from "../components/automations/Timeline";
@@ -22,7 +22,9 @@ import {
   WORDS_A_MINUTE,
   type PlatformId,
   type PostState,
+  type RunCheck,
   type RunDetail,
+  type ScripturePassage,
   type TikTokConfig,
 } from "../lib/automations";
 import { combine, dayKey, formatScheduled, timeValue, toOffsetIso } from "../lib/calendar";
@@ -58,6 +60,101 @@ function Player({ run, className }: { run: RunDetail; className?: string }) {
 }
 
 /** The script waits: approve it (as it is, or edited), have it written again, or reject the video. */
+const PASSAGE_WORDS: Record<ScripturePassage["status"], string> = {
+  matches: "Quoted word for word",
+  paraphrase: "Paraphrased",
+  mismatch: "The quote doesn't match",
+  not_quoted_now: "Not quoted any more",
+  not_listed: "Couldn't be checked",
+  not_checked: "Not checked",
+  unknown: "Not found in the Bible",
+};
+
+/** The Scripture check: each passage the script draws on, and for one that doesn't match, the translation's words. */
+function ScriptureCheck({ check, bare = false }: { check: RunCheck; bare?: boolean }) {
+  const passages = check.passages ?? [];
+  return (
+    <div
+      className={cn(
+        "space-y-2",
+        !bare && "rounded-lg border p-3",
+        !bare && (check.passed ? "border-border bg-secondary/40" : "border-amber-200 bg-amber-50"),
+      )}
+    >
+      <p className={cn("text-sm text-pretty", check.passed ? "text-muted-foreground" : "font-medium text-amber-900")}>{check.message}</p>
+      {passages.length > 0 && (
+        <ul className="space-y-2">
+          {passages.map((passage, index) => (
+            <li key={`${passage.reference}-${index}`} className="text-sm">
+              <span className="flex items-start gap-2">
+                {passage.ok ? (
+                  <Check aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-emerald-700" />
+                ) : (
+                  <CircleAlert aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-amber-800" />
+                )}
+                <span className="min-w-0">
+                  <span className="font-medium text-foreground">{passage.reference || "A passage"}</span>{" "}
+                  <span className="text-muted-foreground">· {PASSAGE_WORDS[passage.status]}</span>
+                  {passage.problem && <span className="block text-pretty text-amber-900">{passage.problem}</span>}
+                  {passage.status === "mismatch" && (
+                    <>
+                      <span className="mt-1 block text-pretty text-muted-foreground">The script says: “{passage.quote}”</span>
+                      <span className="mt-0.5 block text-pretty text-foreground">The translation reads: “{passage.text}”</span>
+                    </>
+                  )}
+                </span>
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+/** The custom YouTube thumbnail at the video's approval: see it, take another frame, or leave YouTube to pick. */
+function ThumbnailChoice({ run }: { run: RunDetail }) {
+  const act = useRunAction(run.id);
+  const thumbnail = run.custom_thumbnail;
+  if (!thumbnail.status || !run.platforms.includes("youtube")) return null;
+  const busy = act.isPending;
+  return (
+    <div className="space-y-2">
+      <p className="text-sm font-medium text-foreground">YouTube thumbnail</p>
+      {thumbnail.url ? (
+        <img src={thumbnail.url} alt={`Thumbnail for ${run.title}`} className="aspect-video w-full rounded-lg border border-border object-cover" />
+      ) : (
+        <div className="grid aspect-video w-full place-items-center rounded-lg border border-dashed border-border text-muted-foreground">
+          <ImageIcon aria-hidden="true" className="size-6" />
+        </div>
+      )}
+      {thumbnail.note && <p className="text-xs text-pretty text-muted-foreground">{thumbnail.note}</p>}
+      {thumbnail.status === "ready" ? (
+        <p className="text-xs text-pretty text-muted-foreground">Sent to YouTube once the video is up. A new title is put on it when you approve.</p>
+      ) : null}
+      <div className="flex flex-wrap gap-2">
+        {thumbnail.status === "ready" && (
+          <>
+            <button type="button" onClick={() => act.mutate({ action: "thumbnail", body: { choice: "another" } })} disabled={busy} className={buttonStyles({ variant: "secondary", size: "sm" })}>
+              {busy && <LoaderCircle aria-hidden="true" className="size-4 animate-spin" />}
+              Another frame
+            </button>
+            <button type="button" onClick={() => act.mutate({ action: "thumbnail", body: { choice: "none" } })} disabled={busy} className={buttonStyles({ variant: "ghost", size: "sm" })}>
+              Use YouTube&apos;s frame
+            </button>
+          </>
+        )}
+        {thumbnail.status === "none" && thumbnail.note.startsWith("You chose") && (
+          <button type="button" onClick={() => act.mutate({ action: "thumbnail", body: { choice: "custom" } })} disabled={busy} className={buttonStyles({ variant: "secondary", size: "sm" })}>
+            Use a custom thumbnail
+          </button>
+        )}
+      </div>
+      {act.error && <ErrorNote>{errorText(act.error)}</ErrorNote>}
+    </div>
+  );
+}
+
 function ScriptApproval({ run }: { run: RunDetail }) {
   const act = useRunAction(run.id);
   const [script, setScript] = useState(run.script);
@@ -66,12 +163,14 @@ function ScriptApproval({ run }: { run: RunDetail }) {
   const scriptId = useId();
   const words = script.trim().split(/\s+/).filter(Boolean).length;
   const minutes = Math.max(1, Math.round(words / (WORDS_A_MINUTE.warm ?? 135)));
+  const scripture = run.steps.find((step) => step.name === "script")?.detail.scripture_check as RunCheck | null | undefined;
   return (
     <section className="space-y-4 rounded-xl border border-amber-200 bg-card p-5">
       <div>
         <h3 className="font-semibold text-foreground">Approve the script</h3>
         <p className="mt-1 text-sm text-pretty text-muted-foreground">Nothing is narrated or made until you approve it. Change any words here first if you like.</p>
       </div>
+      {scripture && <ScriptureCheck check={scripture} />}
       <div className="space-y-1.5">
         <label htmlFor={scriptId} className="block text-sm font-medium text-foreground">
           Script <span className="font-normal text-muted-foreground tabular-nums">({words} words, about {minutes} min read aloud)</span>
@@ -172,12 +271,18 @@ function VideoApproval({ run }: { run: RunDetail }) {
         <div className="space-y-1.5 rounded-lg border border-amber-200 bg-amber-50 p-3">
           <p className="text-sm font-medium text-amber-900">Checks that didn&apos;t pass</p>
           <ul className="space-y-1">
-            {failed.map((check) => (
-              <li key={check.name} className="flex gap-2 text-sm text-amber-900">
-                <CircleAlert aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
-                {check.message || check.name}
-              </li>
-            ))}
+            {failed.map((check) =>
+              check.name === "scripture" ? (
+                <li key={check.name}>
+                  <ScriptureCheck check={check} bare />
+                </li>
+              ) : (
+                <li key={check.name} className="flex gap-2 text-sm text-amber-900">
+                  <CircleAlert aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+                  {check.message || check.name}
+                </li>
+              ),
+            )}
           </ul>
         </div>
       )}
@@ -189,6 +294,7 @@ function VideoApproval({ run }: { run: RunDetail }) {
               Open in Motion Studio
             </Link>
           )}
+          <ThumbnailChoice run={run} />
         </div>
         <div className="space-y-3">
           <div className="space-y-1.5">
@@ -395,6 +501,11 @@ function Posts({ run }: { run: RunDetail }) {
           </li>
         ))}
       </ul>
+      {(run.custom_thumbnail.status === "set" || run.custom_thumbnail.status === "refused") && (
+        <p className="text-sm text-pretty text-muted-foreground">
+          {run.custom_thumbnail.status === "set" ? "The custom thumbnail is on the YouTube video." : run.custom_thumbnail.note}
+        </p>
+      )}
     </section>
   );
 }
