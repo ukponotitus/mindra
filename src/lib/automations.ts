@@ -315,7 +315,8 @@ export const MODES: Record<AutomationMode, { label: string; description: string 
   approval: { label: "Approve each video", description: "Each video waits for you to watch and approve it before it's posted at its time." },
   automatic: {
     label: "Post automatically",
-    description: "Videos that pass the checks are posted at their time without waiting for you. TikTok posts still wait for your approval.",
+    description:
+      "Mindra uploads each video that passes the checks to your YouTube channel at its time, without asking you each time. TikTok posts still wait for your approval.",
   },
 };
 

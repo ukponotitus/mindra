@@ -116,7 +116,9 @@ export default function PostsTable({
                   </div>
                 </td>
                 {COLUMNS.map((column) => {
-                  const value = piece.results ? column.value(piece.results) : null;
+                  // No engagement worked out for YouTube posts: YouTube's rules don't allow metrics derived from its numbers.
+                  const derived = column.id === "engagement" && (piece.platform === "youtube" || piece.platform === "youtube_shorts");
+                  const value = piece.results && !derived ? column.value(piece.results) : null;
                   return (
                     <td key={column.id} className="px-3 py-3 text-right whitespace-nowrap text-foreground tabular-nums">
                       {value === null ? (

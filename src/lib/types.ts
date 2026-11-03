@@ -244,6 +244,8 @@ export type ClipSummary = {
   uploaded: boolean;
   /** Made with the Free plan's mark. */
   watermarked: boolean;
+  /** Made by Mindra with AI: Motion Studio's AI creator or an automation. */
+  made_with_ai: boolean;
   video_url: string | null;
   download_url: string | null;
   thumbnail_url: string | null;
@@ -346,6 +348,10 @@ export type PublishOptions = {
   allow_stitch?: boolean;
   your_brand?: boolean;
   branded_content?: boolean;
+  /** A TikTok photo post's title (up to 90 characters); the caption's first line when it's left out. */
+  title?: string;
+  /** TikTok shows its "AI-generated" label on it. */
+  ai_generated?: boolean;
 };
 
 /** GET /api/social/accounts/<id>/tiktok-creator/: what TikTok says about the account right now. */

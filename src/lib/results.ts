@@ -81,9 +81,24 @@ export type ResultPost = NumberSet & {
   status_text: string;
   /** Every click on its links so far. */
   clicks: number;
-  period: NumberSet & { engagement: number; clicks: number };
-  /** Likes, comments and shares as a share of views, or null without views. */
+  /** What it gained in the period. A YouTube post's numbers aren't worked out per period (only its clicks are). */
+  period: NumberSet & { engagement: number | null; clicks: number };
+  /** Likes, comments and shares as a share of views, or null without views (and always for YouTube). */
   engagement_rate: number | null;
+  /** A YouTube post: its numbers are shown on their own, as read (YouTube's API policies). */
+  youtube: boolean;
+};
+
+/** The Analytics page's YouTube section (the backend's analytics/summary.py): kept apart from other platforms, as
+ * YouTube's API policies ask. The period's videos Mindra follows, with their numbers as YouTube counted them at the last
+ * reading; day by day as read (never spread between readings); and those videos by views. */
+export type YouTubeResults = {
+  connected: boolean;
+  videos: number;
+  metrics: Record<"views" | "likes" | "comments", number | null>;
+  series: { day: string; views: number | null; likes: number | null; comments: number | null }[];
+  top: ResultPost[];
+  read_at: string | null;
 };
 
 export type MetricName = NumberName | "engagement" | "clicks" | "posts";
@@ -114,7 +129,8 @@ export type ResultsSummary = {
   metrics: MetricSet;
   /** The same for the period before, to compare. */
   previous: MetricSet;
-  /** Day by day (UTC days); views, likes, comments and shares spread evenly between readings. */
+  /** Day by day (UTC days); views, likes, comments and shares spread evenly between readings. Other platforms than
+   * YouTube, which is in `youtube`; clicks and posts are Mindra's own counts, YouTube's included. */
   series: ({ day: string } & Record<MetricName, number>)[];
   top_posts: ResultPost[];
   /** The posts with the most likes, comments and shares in the period. */
@@ -129,7 +145,9 @@ export type ResultsSummary = {
   /** The posts that went out in the period, newest first (up to 500 of `posts_total`). */
   posts: ResultPost[];
   posts_total: number;
-  platforms: (Record<NumberName, number | null> & { platform: Platform; posts: number; engagement: number; clicks: number })[];
+  /** YouTube's rows have its numbers as read and no engagement. */
+  platforms: (Record<NumberName, number | null> & { platform: Platform; posts: number; engagement: number | null; clicks: number })[];
+  youtube: YouTubeResults;
   /** Link clicks in the period by where they came from ("" direct), device, country ("" unknown) and UTC hour. */
   sources: Breakdown;
   devices: Breakdown;

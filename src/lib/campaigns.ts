@@ -143,6 +143,9 @@ export type CampaignReport = { id: number; metric: string; label: string; value:
 
 export type CampaignResults = {
   posts: { planned: number; made: number; out: number; followed: number; links: number };
+  /** The campaign's YouTube videos as YouTube counted them, on their own: YouTube's API policies keep them out of the
+   * targets' platform numbers, progress and cost per result. */
+  youtube: { followed: number; views: number | null; likes: number | null; comments: number | null };
   targets: TargetResult[];
   reports: CampaignReport[];
   summary: string;

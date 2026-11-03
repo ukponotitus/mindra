@@ -46,11 +46,16 @@ test("a post out by hand, then each tab's sections and what fills them", async (
   const overview = page.getByRole("tab", { name: /Posts out/ });
   await expect(overview).toContainText("1");
   await expect(overview).toContainText("No earlier posts to compare");
+  // YouTube's numbers have their own section, kept apart as YouTube's rules ask; without a channel it says how to add one.
+  const youtube = page.getByRole("region", { name: "From YouTube" });
+  await expect(youtube).toContainText("YouTube's rules keep its numbers apart");
+  await expect(youtube.getByRole("link", { name: "Settings" })).toHaveAttribute("href", "/settings#accounts");
 
   // Content: top content and views by content type wait for views.
   await page.getByRole("tab", { name: "Content", exact: true }).click();
   await expect(page.getByRole("region", { name: "Top content" })).toContainText("No views in this period yet");
-  await expect(page.getByRole("region", { name: "Views by content type" })).toContainText("once your posts on YouTube or X have views");
+  await expect(page.getByRole("region", { name: "Views by content type" })).toContainText("once your posts on X have views");
+  await expect(page.getByRole("region", { name: "From YouTube" })).toBeVisible();
 
   // Engagement: each section waits for likes, comments and shares.
   await page.getByRole("tab", { name: "Engagement", exact: true }).click();
