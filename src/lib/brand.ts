@@ -30,6 +30,8 @@ export type BrandProfile = {
   words_to_use: string;
   words_to_avoid: string;
   sample_posts: string;
+  /** The language posts are written in (a code from `useWritingLanguages`). */
+  language: string;
   /** What's filled in, for the setup steps. */
   filled: { basics: boolean; offerings: boolean; pillars: boolean; voice: boolean };
   updated_at: string;

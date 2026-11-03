@@ -1,6 +1,6 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "./api";
-import type { AiProvider, AiStatus, BrandVoice, ContentPiece, Generation, Paginated, Platform, Suggestions } from "./types";
+import type { AiProvider, AiStatus, BrandVoice, ContentPiece, Generation, Paginated, Platform, Suggestions, WritingLanguages } from "./types";
 
 /** How each writer is named in the app. */
 export const AI_PROVIDER_NAMES: Record<AiProvider, string> = { gemini: "Gemini", anthropic: "Claude", fake: "the stand-in writer" };
@@ -11,6 +11,8 @@ export type ContentFilters = {
   project?: string;
   clip?: string;
   platform?: Platform | "";
+  /** Posts in one language (a code). */
+  language?: string;
   favorite?: boolean;
   search?: string;
   /** Only posts on the calendar (true) or only posts that aren't (false). */
@@ -32,6 +34,7 @@ function contentQuery(filters: ContentFilters): string {
   if (filters.project) params.set("project", filters.project);
   if (filters.clip) params.set("clip", filters.clip);
   if (filters.platform) params.set("platform", filters.platform);
+  if (filters.language) params.set("language", filters.language);
   if (filters.favorite) params.set("favorite", "true");
   if (filters.search) params.set("search", filters.search);
   if (filters.scheduled !== undefined) params.set("scheduled", String(filters.scheduled));
@@ -89,7 +92,7 @@ export const LIBRARY_SORTS: { id: LibrarySort; label: string }[] = [
 ];
 
 /** How many posts each tab has, under the same filters (the tab, sort and page aside). */
-export function useContentStages(filters: Pick<ContentFilters, "project" | "platform" | "favorite" | "search">) {
+export function useContentStages(filters: Pick<ContentFilters, "project" | "platform" | "language" | "favorite" | "search">) {
   return useQuery({
     queryKey: ["content", "stages", filters],
     queryFn: () => apiRequest<Record<LibraryStage, number>>(`/api/content/stages/?${contentQuery(filters)}`),
@@ -161,6 +164,36 @@ export function useRewritePiece() {
   });
 }
 
+/** The languages posts are written and translated in, the workspace's own, and the ones its posts are in. */
+export function useWritingLanguages() {
+  return useQuery({
+    queryKey: ["content", "languages"],
+    queryFn: () => apiRequest<WritingLanguages>("/api/content/languages/"),
+    staleTime: 60_000,
+  });
+}
+
+/** "en" → "English", from the API's list (the browser's name for it until the list loads). */
+export function writingLanguageName(code: string, languages: WritingLanguages | undefined): string {
+  const known = languages?.choices.find((choice) => choice.code === code)?.name;
+  if (known) return known;
+  try {
+    return new Intl.DisplayNames(["en"], { type: "language" }).of(code) ?? code;
+  } catch {
+    return code;
+  }
+}
+
+/** A new draft of the post in another language, linked to it (an AI call, counted as an AI-generated post). */
+export function useTranslatePiece() {
+  const refresh = useRefreshContent();
+  return useMutation({
+    mutationFn: ({ id, ...body }: { id: string; language: string; body: string }) =>
+      apiRequest<ContentPiece>(`/api/content/${id}/translate/`, { method: "POST", body }),
+    onSuccess: refresh,
+  });
+}
+
 /** Ideas, openers, calls to action, hashtags and emoji for the post's current text. Each run is an AI call. */
 export function useSuggestPiece() {
   return useMutation({
@@ -171,7 +204,7 @@ export function useSuggestPiece() {
 
 export function useStartGeneration() {
   return useMutation({
-    mutationFn: (body: { project: string; clip?: string; platforms: Platform[]; tone?: string; variations: number }) =>
+    mutationFn: (body: { project: string; clip?: string; platforms: Platform[]; tone?: string; language?: string; variations: number }) =>
       apiRequest<Generation>("/api/generations/", { method: "POST", body }),
   });
 }

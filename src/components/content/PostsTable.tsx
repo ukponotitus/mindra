@@ -1,7 +1,7 @@
 import { ArrowDown, FileText } from "lucide-react";
 import { Link } from "react-router";
 import { cn } from "../../lib/cn";
-import type { LibrarySort } from "../../lib/content";
+import { writingLanguageName, type LibrarySort } from "../../lib/content";
 import { formatDate } from "../../lib/format";
 import { formatCount } from "../../lib/results";
 import type { ContentPiece, PostNumbers } from "../../lib/types";
@@ -110,6 +110,7 @@ export default function PostsTable({
                       <div className="mt-1 flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
                         <PlatformBadge platform={piece.platform} />
                         {when && <span className="shrink-0">· {formatDate(when)}</span>}
+                        {piece.language !== "en" && <span className="shrink-0">· {writingLanguageName(piece.language, undefined)}</span>}
                         {piece.publish_to_name && <span className="truncate">· {piece.publish_to_name}</span>}
                       </div>
                     </div>

@@ -86,7 +86,8 @@ export default function PrivacyPage() {
         <li>
           <strong>Post results:</strong> the views, likes, comments and shares the platform reports for a post Mindra
           posted, one you shared yourself that Mindra found on your connected account, or one whose link you pasted in,
-          read for a month after it goes out. Mindra reads the numbers only, not the comments or who left them.
+          read for a month after it goes out. Mindra reads the numbers only, not the comments or who left them, unless you turn
+          comments on for a YouTube channel (see <a href="#comments">Comments on your YouTube posts</a>).
         </li>
         <li>
           <strong>Follower counts:</strong> once a day, how many people follow each connected YouTube channel, Facebook
@@ -178,8 +179,9 @@ export default function PrivacyPage() {
           now”, sending the post’s text and its photos or video. It keeps the post’s id and link. For 30 days it reads the
           post’s views, likes, comments and shares. When you mark a post as posted yourself, it looks through the account’s
           recent posts for about a day to find it, comparing titles and captions, and keeps only the match. Once a day it reads
-          how many followers a YouTube channel, Facebook Page or Instagram account has. It doesn’t read your messages or
-          comments, or who your followers are, and never posts to a personal Facebook profile.
+          how many followers a YouTube channel, Facebook Page or Instagram account has. It doesn’t read your messages, or who
+          your followers are, reads comments only on YouTube channels you turn them on for (see{" "}
+          <a href="#comments">Comments on your YouTube posts</a>), and never posts to a personal Facebook profile.
         </li>
         <li>
           <strong>YouTube:</strong> Mindra uses the YouTube API Services. By connecting a channel you agree to{" "}
@@ -200,6 +202,18 @@ export default function PrivacyPage() {
       <p>
         The <Link to="/data-deletion">Data Deletion page</Link> explains how to remove Mindra at each service, and what
         happens when Meta sends us a deletion request.
+      </p>
+
+      <h2 id="comments">Comments on your YouTube posts</h2>
+      <p>
+        Mindra reads comments only for a YouTube channel you turn them on for, on the Comments page. It then reads the
+        published comments and replies on the videos it posted to that channel or found there: each comment’s words, the
+        commenter’s name, picture and channel link, its likes, and when it was posted or edited, with the video’s title. It
+        reads them with the access you gave when connecting the channel, a few times in the month after each video goes out
+        and when you press Refresh, and shows them only to the people in your workspace. Comments aren’t sent to the
+        assistant or to any AI, and replying is done on YouTube. Mindra keeps each comment for up to 30 days after it last
+        read it, and deletes the comments at once when you turn comments off for the channel, disconnect it, or the video or
+        comment is no longer on YouTube. If you commented on someone’s video and want to ask about it, email {email}.
       </p>
 
       <h2>Who helps us run Mindra</h2>
@@ -250,6 +264,7 @@ export default function PrivacyPage() {
           ["Recordings, photos, transcripts, posts, clips, videos and plans", "You delete them, or their workspace. Deleting a project deletes its recording, transcript, posts and clips, with their files"],
           ["A connected account and its tokens", "You disconnect it, or Meta sends a deletion request for it"],
           ["A post’s results", "The post is deleted or the account it was read through is disconnected; 30 days after Mindra can no longer use that account’s access"],
+          ["Comments read from YouTube", "30 days after Mindra last read them, or at once when you turn comments off for the channel, disconnect it, or they or the video are no longer on YouTube"],
           ["Counts for a Mindra short link", "The workspace is deleted. The link keeps working after its post is deleted, since it may still be shared"],
           ["Conversations with the assistant", "You delete them, or your account"],
           ["Feedback you send", "You delete your account"],

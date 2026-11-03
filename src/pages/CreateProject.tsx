@@ -638,7 +638,8 @@ export default function CreateProject() {
                   ))}
                 </select>
                 <p id="spoken-language-hint" className="mt-2 text-xs text-pretty text-muted-foreground">
-                  Picking the language gives a more accurate transcript than detecting it.
+                  Picking the language gives a more accurate transcript than detecting it. Yoruba, Hausa, Igbo, Swahili and
+                  Nigerian Pidgin can't be transcribed yet: paste a transcript instead. Posts can still be written in them.
                 </p>
                 <FieldError id="spoken-language-error" message={fieldErrors.language?.[0]} />
               </div>

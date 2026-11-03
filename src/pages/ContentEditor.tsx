@@ -8,13 +8,23 @@ import PostMedia from "../components/content/PostMedia";
 import PostResults from "../components/content/PostResults";
 import PlatformBadge from "../components/content/PlatformBadge";
 import SuggestionsPanel from "../components/content/SuggestionsPanel";
+import TranslatePost from "../components/content/TranslatePost";
 import { ClipStrip, PostPhotos } from "../components/content/ContentCard";
 import ShareButton from "../components/content/ShareButton";
 import ConfirmDialog from "../components/ui/ConfirmDialog";
 import { buttonStyles } from "../components/ui/button";
 import { clipFrame } from "../lib/clips";
 import { cn } from "../lib/cn";
-import { TONES, useContentPiece, useDeletePiece, useRewritePiece, useUpdatePiece, type RewriteAction } from "../lib/content";
+import {
+  TONES,
+  useContentPiece,
+  useDeletePiece,
+  useRewritePiece,
+  useUpdatePiece,
+  useWritingLanguages,
+  writingLanguageName,
+  type RewriteAction,
+} from "../lib/content";
 import { formatDate } from "../lib/format";
 import { postPhotoFiles } from "../lib/photos";
 import { postOrigin } from "../lib/plans";
@@ -96,6 +106,7 @@ export default function ContentEditor() {
   const update = useUpdatePiece();
   const remove = useDeletePiece();
   const rewrite = useRewritePiece();
+  const languages = useWritingLanguages().data;
 
   const [loadedId, setLoadedId] = useState<string | null>(null);
   const [title, setTitle] = useState("");
@@ -412,6 +423,7 @@ export default function ContentEditor() {
             onChange={applySuggestion}
             disabled={rewrite.isPending}
           />
+          <TranslatePost key={`translate-${piece.id}`} piece={piece} text={body} />
 
           <section aria-labelledby="post-preview" className="rounded-xl border border-border bg-card p-5">
             <h3 id="post-preview" className="mb-3 text-sm font-semibold text-foreground">
@@ -474,6 +486,10 @@ export default function ContentEditor() {
               <div className="flex justify-between gap-4">
                 <dt className="text-muted-foreground">Tone</dt>
                 <dd className="text-foreground">{piece.tone || "—"}</dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt className="text-muted-foreground">Language</dt>
+                <dd className="text-foreground">{writingLanguageName(piece.language, languages)}</dd>
               </div>
             </dl>
             <div className="border-t border-border pt-3">
