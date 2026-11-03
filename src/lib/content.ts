@@ -1,6 +1,6 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "./api";
-import type { AiProvider, AiStatus, BrandVoice, ContentPiece, Generation, Paginated, Platform, Suggestions } from "./types";
+import type { AiProvider, AiStatus, BrandVoice, ContentPiece, Countdown, Generation, Paginated, Platform, Suggestions } from "./types";
 
 /** How each writer is named in the app. */
 export const AI_PROVIDER_NAMES: Record<AiProvider, string> = { gemini: "Gemini", anthropic: "Claude", fake: "the stand-in writer" };
@@ -171,7 +171,14 @@ export function useSuggestPiece() {
 
 export function useStartGeneration() {
   return useMutation({
-    mutationFn: (body: { project: string; clip?: string; platforms: Platform[]; tone?: string; variations: number }) =>
+    mutationFn: (body: {
+      project: string;
+      clip?: string;
+      platforms: Platform[];
+      tone?: string;
+      variations: number;
+      countdown?: Pick<Countdown, "event_date" | "days" | "time" | "time_zone">;
+    }) =>
       apiRequest<Generation>("/api/generations/", { method: "POST", body }),
   });
 }

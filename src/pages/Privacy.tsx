@@ -110,8 +110,9 @@ export default function PrivacyPage() {
         </li>
         <li>
           <strong>Usage records:</strong> how much each workspace uses (AI writing, assistant messages, recording hours),
-          so we can apply plan limits and keep costs in check, and when you last used Mindra. These records hold amounts
-          and dates, not your content.
+          so we can apply plan limits and keep costs in check, when you last used Mindra, and when a post, clip or video
+          is shared, copied or downloaded with Mindra’s buttons, so we can see which parts of Mindra are used. These
+          records hold amounts, dates and which post or clip it was, not your content.
         </li>
         <li>
           <strong>Technical logs:</strong> like most websites, our servers keep short-lived logs, such as IP addresses and the

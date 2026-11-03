@@ -4,6 +4,7 @@ import { Check, Clapperboard, Copy, Download, LoaderCircle, PenLine } from "luci
 import ClipPosts from "../project/ClipPosts";
 import { useProjectClips } from "../../lib/clips";
 import { cn } from "../../lib/cn";
+import { recordUse } from "../../lib/usage";
 import { useProject } from "../../lib/projects";
 import { formatSeconds, isRendering, postRender, useProjectRenders, useStartRender, type Composition, type StudioAsset, type StudioRender } from "../../lib/studio";
 import { buttonStyles } from "../ui/button";
@@ -174,7 +175,11 @@ export default function RenderPanel({ projectId, composition, assets, version, f
                 <p className="text-xs text-muted-foreground tabular-nums">
                   {formatSeconds(ready.duration ?? 0)} · {ready.width}×{ready.height}
                 </p>
-                <a href={ready.download_url ?? ready.video_url!} className={buttonStyles({ variant: "secondary", size: "sm" })}>
+                <a
+                  href={ready.download_url ?? ready.video_url!}
+                  onClick={() => recordUse("downloaded", "video")}
+                  className={buttonStyles({ variant: "secondary", size: "sm" })}
+                >
                   <Download aria-hidden="true" className="size-3.5" />
                   Download
                 </a>

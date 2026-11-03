@@ -8,6 +8,7 @@ import NewClipDialog from "./NewClipDialog";
 import SeePlans from "../SeePlans";
 import { buttonStyles } from "../ui/button";
 import { cn } from "../../lib/cn";
+import { recordUse } from "../../lib/usage";
 import {
   CAPTION_STYLES,
   CLIP_SHAPES,
@@ -153,6 +154,7 @@ function ClipEditor({ clip, project }: { clip: Clip; project: Project }) {
   const frame = clipFrame(clip.shape, "aspect-[9/16] w-full max-w-60", "aspect-video w-full");
   const copyCaption = async () => {
     await navigator.clipboard.writeText(clip.caption);
+    recordUse("copied", "post", { clip: clip.id });
     setCopied(true);
     window.setTimeout(() => setCopied(false), 2000);
   };
@@ -363,7 +365,7 @@ function ClipEditor({ clip, project }: { clip: Clip; project: Project }) {
         <div className="flex flex-wrap items-center gap-3 border-t border-border pt-5">
           {rendered ? (
             <>
-              <a href={clip.download_url ?? undefined} download className={buttonStyles()}>
+              <a href={clip.download_url ?? undefined} download onClick={() => recordUse("downloaded", "clip", { clip: clip.id })} className={buttonStyles()}>
                 <Download aria-hidden="true" className="size-4" />
                 Download clip
               </a>

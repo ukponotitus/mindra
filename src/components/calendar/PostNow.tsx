@@ -7,6 +7,7 @@ import ShareButton from "../content/ShareButton";
 import { buttonStyles } from "../ui/button";
 import { useMarkPosted, useStorePiece } from "../../lib/calendar";
 import { cn } from "../../lib/cn";
+import { recordUse } from "../../lib/usage";
 import { postPhotoFiles } from "../../lib/photos";
 import { platformInfo } from "../../lib/projects";
 import { hasOptions, optionsProblem, startingOptions } from "../../lib/publishOptions";
@@ -25,6 +26,7 @@ import {
   type AutoPost,
 } from "../../lib/social";
 import type { ConnectedAccount, ContentPiece, Platform, PublishOptions } from "../../lib/types";
+import PostingNotes from "./PostingNotes";
 import PublishOptionsFields from "./PublishOptionsFields";
 
 /** Where to post a text post on a computer. `prefill` sites take the text in the link; the rest get it pasted. */
@@ -68,6 +70,7 @@ function TextPost({ piece, onShared, variant }: { piece: ContentPiece; onShared:
     const share = async () => {
       try {
         await navigator.share({ title: piece.title || info.label, text: piece.body });
+        recordUse("shared", "post", { piece: piece.id });
         setMessage("");
         onShared();
       } catch (error) {
@@ -95,6 +98,7 @@ function TextPost({ piece, onShared, variant }: { piece: ContentPiece; onShared:
           rel="noopener noreferrer"
           onClick={async () => {
             const copied = await copy(piece.body);
+            recordUse("shared", "post", { piece: piece.id });
             setMessage(
               link.prefill
                 ? `${info.label} opened in a new tab with the text filled in.`
@@ -124,7 +128,9 @@ function TextPost({ piece, onShared, variant }: { piece: ContentPiece; onShared:
       <button
         type="button"
         onClick={async () => {
-          setMessage((await copy(piece.body)) ? "Copied. Paste it where you send it from." : "Couldn't copy. Select the text in the post instead.");
+          const copied = await copy(piece.body);
+          if (copied) recordUse("copied", "post", { piece: piece.id });
+          setMessage(copied ? "Copied. Paste it where you send it from." : "Couldn't copy. Select the text in the post instead.");
           onShared();
         }}
         className={wide}
@@ -299,6 +305,7 @@ function PostToAccount({
           {optionsError}
         </p>
       )}
+      {account && !busy && <PostingNotes piece={piece} withPreview />}
       {(account || busy) && (
         <button
           type="button"
@@ -404,6 +411,7 @@ export default function PostNow({ piece, onPosted }: { piece: ContentPiece; onPo
       {media === "video" && clip ? (
         <ShareButton
           clipId={clip.id}
+          pieceId={piece.id}
           downloadUrl={clip.download_url}
           text={piece.body}
           title={piece.title || clip.title}
@@ -416,6 +424,8 @@ export default function PostNow({ piece, onPosted }: { piece: ContentPiece; onPo
         <ShareButton
           key={piece.photos.map((photo) => photo.id).join()}
           loadFiles={() => postPhotoFiles(piece.id)}
+          pieceId={piece.id}
+          flyer={piece.project_source_type === "flyer"}
           text={piece.body}
           title={piece.title || piece.project_name}
           variant={shareVariant}

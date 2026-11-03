@@ -7,6 +7,7 @@ import ScheduleDialog from "../calendar/ScheduleDialog";
 import ConfirmDialog from "../ui/ConfirmDialog";
 import { buttonStyles } from "../ui/button";
 import { cn } from "../../lib/cn";
+import { recordUse } from "../../lib/usage";
 import { clipFrame, clipPath } from "../../lib/clips";
 import { useDeletePiece, useUpdatePiece } from "../../lib/content";
 import { formatDate, formatDuration } from "../../lib/format";
@@ -54,7 +55,12 @@ export function ClipStrip({ clip, project }: { clip: ClipSummary; project: strin
         </span>
       </span>
       {made && (
-        <a href={clip.download_url ?? undefined} download className={buttonStyles({ variant: "secondary", size: "sm", className: "h-9" })}>
+        <a
+          href={clip.download_url ?? undefined}
+          download
+          onClick={() => recordUse("downloaded", "clip", { clip: clip.id })}
+          className={buttonStyles({ variant: "secondary", size: "sm", className: "h-9" })}
+        >
           <Download aria-hidden="true" className="size-4" />
           Clip
         </a>
@@ -160,6 +166,7 @@ export default function ContentCard({ piece, showProject = false, showClip = tru
 
   const copy = async () => {
     await navigator.clipboard.writeText(piece.body);
+    recordUse("copied", "post", { piece: piece.id });
     setCopied(true);
     window.setTimeout(() => setCopied(false), 2000);
   };
@@ -274,6 +281,7 @@ export default function ContentCard({ piece, showProject = false, showClip = tru
         <div className="mt-4 flex flex-wrap gap-2 border-t border-border pt-4">
           <ShareButton
             clipId={clip.id}
+            pieceId={piece.id}
             downloadUrl={clip.download_url}
             text={piece.body}
             title={piece.title || clip.title}
@@ -288,6 +296,8 @@ export default function ContentCard({ piece, showProject = false, showClip = tru
             // New photos or a new order: fetch the files again.
             key={photos.map((photo) => photo.id).join()}
             loadFiles={() => postPhotoFiles(piece.id)}
+            pieceId={piece.id}
+            flyer={piece.project_source_type === "flyer"}
             text={piece.body}
             title={piece.title || piece.project_name}
             variant="primary"
