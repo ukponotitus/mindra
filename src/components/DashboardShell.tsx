@@ -27,6 +27,7 @@ const pageTitles: [pattern: string, title: string][] = [
   ["/studio", "Motion Studio"],
   ["/planner", "Planner"],
   ["/activity", "Activity Log"],
+  ["/comments", "Comments"],
   ["/analytics", "Analytics"],
   ["/plans/:planId", "Content Plan"],
   ["/plans", "Content Plans"],

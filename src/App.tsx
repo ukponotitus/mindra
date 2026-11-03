@@ -15,6 +15,7 @@ import TermsPage from "./pages/Terms";
 // The signed-in pages load when they're first opened, so a phone downloads the landing page and sign-in first, not the
 // whole app (DashboardShell shows "Loading…" meanwhile).
 const ActivityLog = lazy(() => import("./pages/ActivityLog"));
+const Comments = lazy(() => import("./pages/Comments"));
 const Analytics = lazy(() => import("./pages/Analytics"));
 const Assistant = lazy(() => import("./pages/Assistant"));
 const CalendarPlan = lazy(() => import("./pages/CalendarPlan"));
@@ -124,6 +125,7 @@ export default function App() {
                     <Route path="/studio/:projectId" element={<StudioEditor />} />
                     <Route path="/planner" element={<CalendarPage />} />
                     <Route path="/activity" element={<ActivityLog />} />
+                    <Route path="/comments" element={<Comments />} />
                     <Route path="/calendar" element={<ToPlanner />} />
                     <Route path="/analytics" element={<Analytics />} />
                     <Route path="/results" element={<Navigate to="/analytics" replace />} />

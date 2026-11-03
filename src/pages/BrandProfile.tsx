@@ -21,7 +21,7 @@ import {
   type OrganisationType,
 } from "../lib/brand";
 import { cn } from "../lib/cn";
-import { TONES } from "../lib/content";
+import { TONES, useWritingLanguages } from "../lib/content";
 import { useStudioAssets, useUploadAsset } from "../lib/studio";
 
 const inputClass =
@@ -40,7 +40,7 @@ const TAB_FIELDS: Record<TabId, string[]> = {
   pillars: ["pillars"],
   links: ["website", "whatsapp", "socials"],
   look: ["logo", "photos", "colours"],
-  voice: ["tone", "style_notes", "words_to_use", "words_to_avoid", "sample_posts"],
+  voice: ["tone", "language", "style_notes", "words_to_use", "words_to_avoid", "sample_posts"],
 };
 
 function Section({ id, title, hint, children }: { id: string; title: string; hint?: string; children: ReactNode }) {
@@ -274,6 +274,7 @@ export default function BrandProfilePage() {
   const choose = (value: TabId) => navigate({ search, hash: value === "who" ? "" : `#${value}` }, { replace: true });
   const { data: saved, isPending, isError, error } = useBrandProfile();
   const save = useSaveBrandProfile();
+  const languages = useWritingLanguages().data;
   const [form, setForm] = useState<Form | null>(null);
   const [pillar, setPillar] = useState("");
   const [colour, setColour] = useState("#5B4DE0");
@@ -596,6 +597,20 @@ export default function BrandProfilePage() {
               {TONES.map((tone) => (
                 <option key={tone} value={tone}>
                   {tone}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field
+            id={`${ids}-language`}
+            label="Posts are written in"
+            hint="Mindra writes posts in this language unless you choose another when writing. Any post can also be translated."
+            error={fieldError("language")}
+          >
+            <select id={`${ids}-language`} value={form.language} onChange={(event) => set("language", event.target.value)} className={cn(inputClass, "h-11 py-0")}>
+              {(languages?.choices ?? [{ code: "en", name: "English" }]).map((choice) => (
+                <option key={choice.code} value={choice.code}>
+                  {choice.name}
                 </option>
               ))}
             </select>

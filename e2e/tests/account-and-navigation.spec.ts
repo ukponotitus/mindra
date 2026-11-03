@@ -38,6 +38,7 @@ test("the sidebar groups related pages, and each page opens", async ({ page }) =
     ["Create", "Vertical Videos", "Vertical Videos"],
     ["Create", "Motion Studio", "Motion Studio"],
     ["Content", "Content Library", "Content Library"],
+    ["Content", "Comments", "Comments"],
     ["Content", "Planner", "Planner"],
     ["Insights", "Overview", "Analytics"],
   ];

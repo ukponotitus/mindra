@@ -4,7 +4,7 @@ import { buttonStyles } from "../ui/button";
 import { ApiError } from "../../lib/api";
 import { CLIP_PLATFORMS } from "../../lib/clips";
 import { cn } from "../../lib/cn";
-import { TONES, useBrandVoice, useGeneration, useStartGeneration } from "../../lib/content";
+import { TONES, useBrandVoice, useGeneration, useStartGeneration, useWritingLanguages } from "../../lib/content";
 import { PHOTO_PLATFORMS } from "../../lib/photos";
 import { isPicturePost, PLATFORMS } from "../../lib/projects";
 import type { Platform, Project } from "../../lib/types";
@@ -36,6 +36,10 @@ export default function ContentGenerator({ project, clipId, noun = "clip", onSta
     return chosen.length > 0 ? chosen : clipId ? DEFAULT_CLIP_PLATFORMS : DEFAULT_PLATFORMS;
   });
   const [tone, setTone] = useState("");
+  // The brand profile's language unless another is chosen here.
+  const languages = useWritingLanguages().data;
+  const [language, setLanguage] = useState("");
+  const writeIn = language || voice?.language || languages?.default || "en";
   const [variations, setVariations] = useState(2);
   const [generationId, setGenerationId] = useState<string | null>(null);
   const start = useStartGeneration();
@@ -60,7 +64,7 @@ export default function ContentGenerator({ project, clipId, noun = "clip", onSta
   const submit = (event: FormEvent) => {
     event.preventDefault();
     start.mutate(
-      { project: project.id, platforms, variations, ...(clipId ? { clip: clipId } : {}), ...(tone ? { tone } : {}) },
+      { project: project.id, platforms, variations, language: writeIn, ...(clipId ? { clip: clipId } : {}), ...(tone ? { tone } : {}) },
       {
         onSuccess: (created) => {
           setGenerationId(created.id);
@@ -132,6 +136,24 @@ export default function ContentGenerator({ project, clipId, noun = "clip", onSta
             <option value="">Your brand voice ({brandTone})</option>
             {TONES.map((option) => (
               <option key={option}>{option}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label htmlFor={`${ids}-language`} className="mb-1.5 block text-sm font-semibold text-foreground">
+            Write posts in
+          </label>
+          <select
+            id={`${ids}-language`}
+            value={writeIn}
+            disabled={running}
+            onChange={(e) => setLanguage(e.target.value)}
+            className="h-10 w-full rounded-lg border border-border bg-card px-3 text-sm text-foreground transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-hidden disabled:opacity-60"
+          >
+            {(languages?.choices ?? [{ code: "en", name: "English", check_first: false }]).map((choice) => (
+              <option key={choice.code} value={choice.code}>
+                {choice.name}
+              </option>
             ))}
           </select>
         </div>

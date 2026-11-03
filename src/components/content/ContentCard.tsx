@@ -9,7 +9,7 @@ import { buttonStyles } from "../ui/button";
 import { cn } from "../../lib/cn";
 import { recordUse } from "../../lib/usage";
 import { clipFrame, clipPath } from "../../lib/clips";
-import { useDeletePiece, useUpdatePiece } from "../../lib/content";
+import { useDeletePiece, useUpdatePiece, useWritingLanguages, writingLanguageName } from "../../lib/content";
 import { formatDate, formatDuration } from "../../lib/format";
 import { postPhotoFiles } from "../../lib/photos";
 import { isPicturePost } from "../../lib/projects";
@@ -149,6 +149,7 @@ export function PostPhotos({ photos, project }: { photos: PostPhoto[]; project: 
 }
 
 export default function ContentCard({ piece, showProject = false, showClip = true }: Props) {
+  const languages = useWritingLanguages().data;
   const [expanded, setExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
   const update = useUpdatePiece();
@@ -180,6 +181,11 @@ export default function ContentCard({ piece, showProject = false, showClip = tru
           {piece.title && <p className="mt-1.5 truncate text-xs text-muted-foreground">{piece.title}</p>}
           <ScheduleChip piece={piece} className="mt-2 flex w-fit" />
         </div>
+        {piece.language !== "en" && (
+          <span className="mt-0.5 shrink-0 rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-secondary-foreground">
+            {writingLanguageName(piece.language, languages)}
+          </span>
+        )}
         {piece.status === "approved" && (
           <span className="mt-0.5 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">Approved</span>
         )}

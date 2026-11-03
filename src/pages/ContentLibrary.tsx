@@ -7,7 +7,16 @@ import PostsTable from "../components/content/PostsTable";
 import EmptyState from "../components/EmptyState";
 import { buttonStyles } from "../components/ui/button";
 import { cn } from "../lib/cn";
-import { LIBRARY_SORTS, LIBRARY_STAGES, useContentList, useContentStages, type LibrarySort, type LibraryStage } from "../lib/content";
+import {
+  LIBRARY_SORTS,
+  LIBRARY_STAGES,
+  useContentList,
+  useContentStages,
+  useWritingLanguages,
+  writingLanguageName,
+  type LibrarySort,
+  type LibraryStage,
+} from "../lib/content";
 import { PLATFORMS, useProjects } from "../lib/projects";
 import type { Platform } from "../lib/types";
 import { useMediaQuery } from "../lib/useMediaQuery";
@@ -85,6 +94,7 @@ export default function ContentLibrary() {
     if (location.state) navigate({ pathname: location.pathname, search: location.search }, { replace: true, state: null });
   }, [location, navigate]);
   const platform = (searchParams.get("platform") ?? "") as Platform | "";
+  const language = searchParams.get("language") ?? "";
   const project = searchParams.get("project") ?? "";
   const favorite = searchParams.get("favorite") === "true";
   const search = searchParams.get("search") ?? "";
@@ -115,12 +125,15 @@ export default function ContentLibrary() {
     return () => window.clearTimeout(id);
   });
 
-  const content = useContentList({ platform, project, favorite, search, page, stage: tab, sort });
-  const stages = useContentStages({ platform, project, favorite, search });
+  const content = useContentList({ platform, language, project, favorite, search, page, stage: tab, sort });
+  const stages = useContentStages({ platform, language, project, favorite, search });
+  // The language filter shows once the workspace's posts are in more than one language.
+  const languages = useWritingLanguages().data;
+  const usedLanguages = languages?.used ?? [];
   const projects = useProjects(1);
   const count = content.data?.count ?? 0;
   const pages = Math.max(1, Math.ceil(count / PAGE_SIZE));
-  const filtered = Boolean(platform || project || favorite || search);
+  const filtered = Boolean(platform || language || project || favorite || search);
 
   return (
     <div className="space-y-6">
@@ -208,6 +221,26 @@ export default function ContentLibrary() {
             </option>
           ))}
         </select>
+        {(usedLanguages.length > 1 || language) && (
+          <>
+            <label htmlFor="library-language" className="sr-only">
+              Language
+            </label>
+            <select
+              id="library-language"
+              value={language}
+              onChange={(e) => update({ language: e.target.value })}
+              className={cn(fieldClass, "min-w-0 flex-1 basis-32 sm:flex-none sm:basis-auto")}
+            >
+              <option value="">All languages</option>
+              {usedLanguages.map((option) => (
+                <option key={option.code} value={option.code}>
+                  {writingLanguageName(option.code, languages)} ({option.count})
+                </option>
+              ))}
+            </select>
+          </>
+        )}
         <label htmlFor="library-recording" className="sr-only">
           Recording
         </label>

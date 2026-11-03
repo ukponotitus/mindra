@@ -278,6 +278,12 @@ export type ContentPiece = {
   title: string;
   body: string;
   tone: string;
+  /** The language it's written in, a code from the API's list (`useWritingLanguages`). */
+  language: string;
+  /** The post it was translated from, or null. */
+  translated_from: { id: string; language: string } | null;
+  /** Its translations. */
+  translations: { id: string; language: string }[];
   status: "draft" | "approved";
   is_favorite: boolean;
   /** When the post is planned to go out (ISO 8601), or null when it isn't on the calendar. */
@@ -457,6 +463,7 @@ export type Generation = {
   clip: string | null;
   platforms: Platform[];
   tone: string;
+  language: string;
   variations: number;
   /** Set for countdown posts (FlyerCountdown); empty otherwise. */
   countdown: Countdown | Record<string, never>;
@@ -477,6 +484,8 @@ export type BrandVoice = {
   words_to_use: string;
   words_to_avoid: string;
   sample_posts: string;
+  /** The language posts are written in unless a writing run chooses another. */
+  language: string;
   updated_at: string | null;
 };
 
@@ -676,3 +685,53 @@ export type ActivityEvent = {
 
 /** GET /api/activity/summary/: the period's counts. */
 export type ActivitySummary = { published: number; marked_posted: number; failed: number; reminders: number };
+
+/** GET /api/content/languages/: the languages posts are written and translated in (`check_first`: worth a read by
+ * someone who speaks it before posting), the workspace's own, and how many posts are in each one used. */
+export type WritingLanguage = { code: string; name: string; check_first: boolean };
+export type WritingLanguages = {
+  choices: WritingLanguage[];
+  default: string;
+  used: { code: string; name: string; count: number }[];
+};
+
+/** A comment on one of the workspace's posts, read from its platform (the backend's comments/reading.py). */
+export type PostCommentReply = {
+  id: number;
+  author: { name: string; url: string; image: string };
+  /** Written by the account the post is on. */
+  by_owner: boolean;
+  text: string;
+  likes: number | null;
+  published_at: string;
+  edited: boolean;
+  /** Read since the person last looked at the comments. */
+  is_new: boolean;
+  /** The comment on its platform, to reply there. */
+  url: string;
+};
+
+export type PostComment = PostCommentReply & {
+  /** Its replies on the platform (Mindra may have read only some of them). */
+  reply_count: number;
+  replies: PostCommentReply[];
+  post: { id: string; label: string; video_title: string; platform: Platform; url: string; thumbnail_url: string | null };
+  platform: ConnectedAccountKind;
+};
+
+/** GET /api/comments/summary/. */
+export type CommentsSummary = {
+  total: number;
+  new: number;
+  seen_at: string | null;
+  connected: boolean;
+  channels: { id: ConnectedAccountId; name: string; status: string; reading: boolean; turned_on_at: string | null }[];
+  followed_posts: number;
+  paused: boolean;
+  posts: { id: string; label: string; platform: Platform; count: number }[];
+  platforms: { id: Platform; label: string; count: number }[];
+  refreshing: boolean;
+  next_refresh_at: string | null;
+  last_read_at: string | null;
+  refresh_error: string;
+};

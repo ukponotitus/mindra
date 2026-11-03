@@ -19,6 +19,7 @@ import {
   Link2,
   LogOut,
   Megaphone,
+  MessageSquare,
   MessagesSquare,
   Palette,
   PenLine,
@@ -37,6 +38,7 @@ import { Link, useLocation, useNavigate } from "react-router";
 import { fullName, useAuth } from "../auth/context";
 import { useAutomationsEnabled, useAutomationSummary } from "../lib/automations";
 import { cn } from "../lib/cn";
+import { useCommentsSummary } from "../lib/comments";
 import { initials } from "../lib/format";
 import BrandMark from "./BrandMark";
 import ThemeMenuItems from "./ThemeMenuItems";
@@ -55,6 +57,8 @@ type NavLeaf = {
   icon: LucideIcon;
   /** Only for workspaces that have Automations while they're being built. */
   automations?: boolean;
+  /** Shows how many comments are new since the person last looked. */
+  badge?: "comments";
   /** When the page counts as open; by default its path or a page under it. */
   current?: (place: Place) => boolean;
 };
@@ -111,6 +115,7 @@ const nav: (NavLeaf | NavGroup)[] = [
     icon: Library,
     items: [
       { label: "Content Library", to: "/library", icon: FileText },
+      { label: "Comments", to: "/comments", icon: MessageSquare, badge: "comments" },
       { label: "Planner", to: "/planner", icon: CalendarDays },
       { label: "Activity log", to: "/activity", icon: Clock },
     ],
@@ -181,6 +186,8 @@ export default function Sidebar({ onNavigate }: Props) {
   const automations = useAutomationsEnabled();
   // How many scripts and videos wait for approval, shown on Automations.
   const waiting = useAutomationSummary(automations).data?.waiting ?? 0;
+  // Comments new since the person last looked, shown on Comments.
+  const newComments = useCommentsSummary().data?.new ?? 0;
   const [open, setOpen] = useState<Record<string, boolean>>(savedOpen);
   const currentGroup = groupOf(place);
 
@@ -218,6 +225,12 @@ export default function Sidebar({ onNavigate }: Props) {
           <span className="ml-auto rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-900 tabular-nums">
             {waiting}
             <span className="sr-only"> waiting for approval</span>
+          </span>
+        )}
+        {item.badge === "comments" && newComments > 0 && !here && (
+          <span className="ml-auto rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary tabular-nums">
+            {newComments > 99 ? "99+" : newComments}
+            <span className="sr-only"> new</span>
           </span>
         )}
       </Link>
