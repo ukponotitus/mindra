@@ -86,7 +86,8 @@ export default function PrivacyPage() {
         <li>
           <strong>Post results:</strong> the views, likes, comments and shares the platform reports for a post Mindra
           posted, one you shared yourself that Mindra found on your connected account, or one whose link you pasted in,
-          read for a month after it goes out. Mindra reads the numbers only, not the comments or who left them.
+          read for a month after it goes out (a YouTube video’s are read again at least every 30 days while it’s on
+          YouTube; see <a href="#youtube">YouTube</a>). Mindra reads the numbers only, not the comments or who left them.
         </li>
         <li>
           <strong>Follower counts:</strong> once a day, how many people follow each connected YouTube channel, Facebook
@@ -153,7 +154,8 @@ export default function PrivacyPage() {
         <li>
           <strong>The assistant</strong> runs on Anthropic’s Claude API. Under Anthropic’s commercial terms, what Mindra
           sends it isn’t used to train its models. It sees your brand profile, campaigns, Planner, results and the page you
-          ask from, and reads more only when your question needs it.
+          ask from, and reads more only when your question needs it. Your YouTube numbers go to it only when you ask it
+          about your results.
         </li>
         <li>
           <strong>Transcription</strong> is done by Deepgram. We ask Deepgram not to use your recordings to improve its
@@ -165,8 +167,8 @@ export default function PrivacyPage() {
       <h2 id="connected-accounts">Connected accounts</h2>
       <p>
         Connecting an account is optional. Without one, Mindra reminds you when it’s time to post. You can connect YouTube
-        channels and LinkedIn profiles; Facebook Pages, Instagram professional accounts, TikTok and X are coming, and this
-        section applies to them once they’re available.
+        channels, LinkedIn profiles and TikTok accounts; Facebook Pages, Instagram professional accounts and X are coming,
+        and this section applies to them once they’re available.
       </p>
       <ul>
         <li>
@@ -183,15 +185,6 @@ export default function PrivacyPage() {
           comments, or who your followers are, and never posts to a personal Facebook profile.
         </li>
         <li>
-          <strong>YouTube:</strong> Mindra uses the YouTube API Services. By connecting a channel you agree to{" "}
-          <a href="https://www.youtube.com/t/terms">YouTube’s Terms of Service</a>, and{" "}
-          <a href="https://policies.google.com/privacy">Google’s Privacy Policy</a> applies. Mindra reads the channel’s id,
-          name and picture, its subscriber count once a day, the statistics of videos it posts or finds, and the channel’s recent uploads when looking for a
-          post. You can remove Mindra’s access in Mindra or in{" "}
-          <a href="https://security.google.com/settings/security/permissions">Google’s security settings</a>. If Mindra can
-          no longer use a channel’s access, the numbers read through it are deleted after 30 days.
-        </li>
-        <li>
           <strong>Disconnecting:</strong> Settings, then Connected accounts, then Disconnect deletes the connection and its
           tokens at once, deletes the numbers Mindra read through it, asks Google, X and TikTok to cancel Mindra’s access, and
           turns posts scheduled to go out there back into reminders. Posts already published stay on the platform, under its
@@ -202,6 +195,66 @@ export default function PrivacyPage() {
         The <Link to="/data-deletion">Data Deletion page</Link> explains how to remove Mindra at each service, and what
         happens when Meta sends us a deletion request.
       </p>
+
+      <h3 id="youtube">YouTube</h3>
+      <p>
+        Mindra uses the YouTube API Services. By connecting a channel you agree to{" "}
+        <a href="https://www.youtube.com/t/terms">YouTube’s Terms of Service</a>, and the{" "}
+        <a href="http://www.google.com/policies/privacy">Google Privacy Policy</a> applies. Mindra’s use of information
+        received from Google APIs will adhere to the{" "}
+        <a href="https://developers.google.com/terms/api-services-user-data-policy">Google API Services User Data Policy</a>,
+        including the Limited Use requirements.
+      </p>
+      <ul>
+        <li>
+          <strong>What Mindra reads:</strong> the channel’s id, name, handle and picture, read again every day; its
+          subscriber count, once a day; the views, likes and comment counts of the videos Mindra uploads for you or finds on
+          the channel; and the channel’s recent uploads for about a day when you mark a post as posted yourself, keeping
+          only the video that matches. With your permission Mindra uploads the videos you schedule or post now, with the
+          title, description and visibility you choose. It doesn’t read your messages or who your subscribers are.
+        </li>
+        <li>
+          <strong>What Mindra keeps, and for how long:</strong> the channel’s details while it’s connected; its access token
+          and refresh token, encrypted; each video’s id, link and numbers while the channel is connected and the video is on
+          YouTube. Numbers are read again at least every 30 days, and a video that’s gone or private loses its numbers.
+          Mindra checks every day that it can still use the channel’s access.
+        </li>
+        <li>
+          <strong>How it’s used:</strong> only to post what you ask and to show you how your videos did, on their own and as
+          YouTube counts them. Your YouTube numbers are sent to Anthropic’s Claude only when you ask the assistant about your
+          results. Google data isn’t sold, used for advertising, or used to train AI models, by Mindra or anyone it shares
+          it with.
+        </li>
+        <li>
+          <strong>Taking access back and deleting it:</strong> disconnect the channel in Settings, then Connected accounts,
+          or remove Mindra in{" "}
+          <a href="https://security.google.com/settings/security/permissions">Google’s security settings</a>.
+          Disconnecting deletes everything Mindra read through the channel at once; access removed at Google is found by the
+          next day’s check, and the same is deleted then. You can also ask us at {email} to delete it, and we do within 7
+          days. Deleting it in Mindra doesn’t delete anything on YouTube.
+        </li>
+      </ul>
+
+      <h3 id="tiktok">TikTok</h3>
+      <ul>
+        <li>
+          <strong>What Mindra keeps:</strong> the account’s TikTok id (open_id), display name and username; its access token
+          and refresh token, encrypted; and for each post Mindra makes, TikTok’s id for the upload (publish_id) and the
+          post’s link. Before each post it reads the account’s current posting options from TikTok (who can see posts,
+          whether comments, duets and stitches are allowed) and doesn’t keep them.
+        </li>
+        <li>
+          <strong>What Mindra sends:</strong> only the post you choose, when you post it now or at the time you approved:
+          its caption (and a photo post’s title), its video or photos, and the choices you made on the posting screen. TikTok
+          fetches the video or photos from Mindra’s own address. Mindra adds no mark or branding of its own to what it posts
+          on TikTok.
+        </li>
+        <li>
+          <strong>Taking access back:</strong> disconnect the account in Settings, then Connected accounts, which deletes it
+          and its tokens at once and asks TikTok to cancel Mindra’s access, or remove Mindra in your TikTok account’s
+          settings, where TikTok lists the apps with access to your account.
+        </li>
+      </ul>
 
       <h2>Who helps us run Mindra</h2>
       <p>We send each of these companies only what its part of the work needs:</p>
@@ -215,7 +268,7 @@ export default function PrivacyPage() {
           ["Deepgram", "Transcription", "The audio of your recordings", "United States"],
           ["ElevenLabs", "Voice-overs in Automations, if you use them", "The script", "United States"],
           ["Jamendo", "Music search and previews", "Your searches; listeners’ IP address", "Luxembourg"],
-          ["LinkedIn, and Meta, TikTok and X once available", "Sign-in and publishing", "The posts you publish, with their photos or video", "United States, or as each platform states"],
+          ["LinkedIn and TikTok, and Meta and X once available", "Sign-in and publishing", "The posts you publish, with their photos or video", "United States, or as each platform states"],
           ["Paystack", "Payments", "Your email address, the plan, amount, a reference and your workspace’s number", "Nigeria"],
           ["Resend", "Account and reminder emails", "Your email address; reminder emails include the post’s text", "United States"],
           ["Sentry", "Error reports", "Technical details of what went wrong, not your content", "United States"],
@@ -250,7 +303,7 @@ export default function PrivacyPage() {
           ["Your account", "You delete it (Settings, then Account)"],
           ["Recordings, photos, transcripts, posts, clips, videos and plans", "You delete them, or their workspace. Deleting a project deletes its recording, transcript, posts and clips, with their files"],
           ["A connected account and its tokens", "You disconnect it, or Meta sends a deletion request for it"],
-          ["A post’s results", "The post is deleted or the account it was read through is disconnected; 30 days after Mindra can no longer use that account’s access"],
+          ["A post’s results", "The post is deleted or the account it was read through is disconnected; 30 days after Mindra can no longer use that account’s access. YouTube: deleted at once when Google refuses the channel’s access, and when the video is gone or private"],
           ["Counts for a Mindra short link", "The workspace is deleted. The link keeps working after its post is deleted, since it may still be shared"],
           ["Conversations with the assistant", "You delete them, or your account"],
           ["Feedback you send", "You delete your account"],

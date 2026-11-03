@@ -25,7 +25,8 @@ import {
 } from "../../lib/calendar";
 import { cn } from "../../lib/cn";
 import { platformInfo } from "../../lib/projects";
-import { hasOptions, optionsProblem, sameOptions, startingOptions } from "../../lib/publishOptions";
+import { useUpdatePiece } from "../../lib/content";
+import { TIKTOK_DISCLOSE_NEEDED, disclosureIncomplete, hasOptions, optionsProblem, sameOptions, startingOptions } from "../../lib/publishOptions";
 import { ACCOUNT_KINDS, accountChoice, accountName, accountPlace, defaultAccount, kindPhrase, sameAccount, useAutoPost, type AutoPost } from "../../lib/social";
 import type { ConnectedAccount, ContentPiece, PublishOptions } from "../../lib/types";
 import { backdropClass, popupClass, switchClass, thumbClass } from "./dialogStyles";
@@ -99,6 +100,8 @@ function AutoPostChoice({
   onOptions,
   disclose,
   onDisclose,
+  caption,
+  onCaption,
 }: {
   piece: ContentPiece;
   accounts: ConnectedAccount[];
@@ -111,6 +114,8 @@ function AutoPostChoice({
   onOptions: (options: PublishOptions) => void;
   disclose: boolean;
   onDisclose: (on: boolean) => void;
+  caption: string;
+  onCaption: (text: string) => void;
 }) {
   const ids = { toggle: useId(), note: useId(), account: useId() };
   const several = accounts.length > 1;
@@ -162,7 +167,16 @@ function AutoPostChoice({
       )}
       {on && account && hasOptions(account.kind) && (
         <div className="mt-3 border-t border-border pt-3">
-          <PublishOptionsFields piece={piece} account={account} value={options} onChange={onOptions} disclose={disclose} onDisclose={onDisclose} />
+          <PublishOptionsFields
+            piece={piece}
+            account={account}
+            value={options}
+            onChange={onOptions}
+            disclose={disclose}
+            onDisclose={onDisclose}
+            caption={caption}
+            onCaption={onCaption}
+          />
         </div>
       )}
     </div>
@@ -171,6 +185,9 @@ function AutoPostChoice({
 
 function ScheduleForm({ piece, day, onDone }: { piece: ContentPiece; day?: string; onDone: (piece: ContentPiece) => void }) {
   const schedule = useSchedulePost();
+  const update = useUpdatePiece();
+  // TikTok's caption, changed on its posting screen: saved to the post first.
+  const [caption, setCaption] = useState(piece.body);
   const picks = useMemo(() => quickPicks(), []);
   const scheduled = piece.scheduled_at ? new Date(piece.scheduled_at) : null;
   const dropped = parseDayKey(day);
@@ -200,9 +217,12 @@ function ScheduleForm({ piece, day, onDone }: { piece: ContentPiece; day?: strin
   const [chosenOptions, setChosenOptions] = useState<PublishOptions | null>(null);
   const [disclose, setDisclose] = useState(Boolean(piece.publish_options?.your_brand || piece.publish_options?.branded_content));
   const options =
-    chosenOptions ?? (account ? startingOptions(account.kind, sameAccount(account.id, piece.publish_to) ? piece.publish_options : undefined) : {});
+    chosenOptions ?? (account ? startingOptions(account.kind, sameAccount(account.id, piece.publish_to) ? piece.publish_options : undefined, piece) : {});
   const publishOptions = publishTo != null && account ? options : undefined;
   const optionsError = publishOptions && account ? optionsProblem(account.kind, publishOptions, disclose) : "";
+  // TikTok's guidelines: the button stays off while the disclosure is on and neither box is ticked.
+  const waitsForDisclosure = Boolean(publishOptions) && disclosureIncomplete(account?.kind, publishOptions, disclose);
+  const captionChanged = Boolean(publishOptions) && account?.kind === "tiktok" && caption !== piece.body;
   // Two or more accounts and none picked: it isn't guessed.
   const accountError = autoOn && !account ? `Choose which ${ACCOUNT_KINDS[activeAccounts[0].kind].label} to post to.` : "";
   const sameTarget =
@@ -212,18 +232,26 @@ function ScheduleForm({ piece, day, onDone }: { piece: ContentPiece; day?: strin
 
   const when = combine(date, time);
   const timeProblem = scheduleProblem(when);
-  const problem = timeProblem || accountError || optionsError;
+  const captionProblem = captionChanged && !caption.trim() ? "Add a caption first." : "";
+  const problem = timeProblem || accountError || optionsError || captionProblem;
   const shownProblem = tried ? problem : "";
   // Only a problem with the time (or the API's answer) marks the date and time fields.
   const timeInvalid = Boolean((tried && timeProblem) || apiErrorFor(schedule.error)) || undefined;
-  const apiError = schedule.isError ? schedule.error.message : "";
+  const apiError = schedule.isError ? schedule.error.message : update.isError ? update.error.message : "";
   const unchanged = Boolean(scheduled && when && scheduled.getTime() === when.getTime()) && sameTarget;
   const today = new Date();
 
-  const save = (event: FormEvent) => {
+  const save = async (event: FormEvent) => {
     event.preventDefault();
     setTried(true);
     if (problem || !when) return;
+    if (captionChanged) {
+      try {
+        await update.mutateAsync({ id: piece.id, body: caption });
+      } catch {
+        return; // shown below
+      }
+    }
     if (unchanged) return onDone(piece);
     schedule.mutate(
       { id: piece.id, scheduled_at: toOffsetIso(when), publish_to: publishTo, publish_options: publishOptions },
@@ -332,6 +360,11 @@ function ScheduleForm({ piece, day, onDone }: { piece: ContentPiece; day?: strin
             }}
             disclose={disclose}
             onDisclose={setDisclose}
+            caption={caption}
+            onCaption={(text) => {
+              setCaption(text);
+              update.reset();
+            }}
           />
         )}
         {!piece.posted_at && <PostingNotes piece={piece} withPreview={autoOn} />}
@@ -347,6 +380,11 @@ function ScheduleForm({ piece, day, onDone }: { piece: ContentPiece; day?: strin
       <p id="schedule-problem" role="alert" className={cn("text-sm text-pretty text-red-600", !(shownProblem || apiError) && "sr-only")}>
         {shownProblem || apiError}
       </p>
+      {waitsForDisclosure && !tried && (
+        <p id="schedule-disclose" className="text-sm text-pretty text-muted-foreground">
+          {TIKTOK_DISCLOSE_NEEDED}
+        </p>
+      )}
 
       <div className="flex flex-wrap items-center gap-2 border-t border-border pt-4">
         {scheduled && (
@@ -361,8 +399,14 @@ function ScheduleForm({ piece, day, onDone }: { piece: ContentPiece; day?: strin
         )}
         <div className="ml-auto flex gap-2">
           <Dialog.Close className={buttonStyles({ variant: "secondary" })}>Cancel</Dialog.Close>
-          <button type="submit" disabled={schedule.isPending} className={buttonStyles()}>
-            {schedule.isPending && <LoaderCircle aria-hidden="true" className="size-4 animate-spin" />}
+          <button
+            type="submit"
+            disabled={schedule.isPending || update.isPending || waitsForDisclosure}
+            title={waitsForDisclosure ? TIKTOK_DISCLOSE_NEEDED : undefined}
+            aria-describedby={waitsForDisclosure ? "schedule-disclose" : undefined}
+            className={buttonStyles()}
+          >
+            {(schedule.isPending || update.isPending) && <LoaderCircle aria-hidden="true" className="size-4 animate-spin" />}
             {scheduled ? "Change" : "Schedule"}
           </button>
         </div>

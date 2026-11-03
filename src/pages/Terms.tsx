@@ -138,7 +138,7 @@ export default function TermsPage() {
       <h2>Posting to your accounts</h2>
       <ul>
         <li>
-          You can connect accounts on services such as YouTube and LinkedIn (with Facebook, Instagram, TikTok and X coming).
+          You can connect accounts on services such as YouTube, LinkedIn and TikTok (with Facebook, Instagram and X coming).
           Only connect accounts you’re allowed to post for. A post Mindra publishes for you is yours, as if you had posted it
           yourself, and it must follow that service’s terms and community rules.
         </li>
@@ -147,7 +147,11 @@ export default function TermsPage() {
             By connecting a YouTube channel, you agree to be bound by the{" "}
             <a href="https://www.youtube.com/t/terms">YouTube Terms of Service</a>.
           </strong>{" "}
-          For Facebook and Instagram, <a href="https://www.facebook.com/terms.php">Meta’s Terms of Service</a> and{" "}
+          For TikTok, <a href="https://www.tiktok.com/legal/page/global/terms-of-service/en">TikTok’s Terms of Service</a>{" "}
+          and, when you post, its{" "}
+          <a href="https://www.tiktok.com/legal/page/global/music-usage-confirmation/en">Music Usage Confirmation</a> (and{" "}
+          <a href="https://www.tiktok.com/legal/page/global/bc-policy/en">Branded Content Policy</a> for branded content)
+          apply. For Facebook and Instagram, <a href="https://www.facebook.com/terms.php">Meta’s Terms of Service</a> and{" "}
           <a href="https://help.instagram.com/581066165581870">Instagram’s Terms of Use</a> apply; each other service’s own
           terms apply to posting there.
         </li>

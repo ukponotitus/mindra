@@ -98,7 +98,8 @@ export default function DataDeletionPage() {
         <li>
           <strong>Google and YouTube:</strong> in{" "}
           <a href="https://security.google.com/settings/security/permissions">your Google Account’s third-party access</a>,
-          choose Mindra and remove its access. The numbers Mindra read through it are deleted 30 days later.
+          choose Mindra and remove its access. Mindra checks each channel’s access every day, and deletes the numbers it
+          read through it as soon as it finds the access gone.
         </li>
         <li>
           <strong>LinkedIn:</strong> in LinkedIn’s Settings, then Data privacy, then Permitted services, remove Mindra.
@@ -156,7 +157,8 @@ export default function DataDeletionPage() {
           <strong>Mindra’s database and storage:</strong> deleted at once; database backups keep copies for up to 7 days.
         </li>
         <li>
-          <strong>Posts published on social media:</strong> stay on each platform; delete them there.
+          <strong>Posts published on social media:</strong> stay on each platform; delete them there. Deleting something in
+          Mindra deletes nothing on YouTube, TikTok or any other platform.
         </li>
         <li>
           <strong>Paystack:</strong> keeps its own records of payments, under its privacy policy and the law.

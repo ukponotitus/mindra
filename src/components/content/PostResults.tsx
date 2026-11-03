@@ -84,6 +84,8 @@ function Numbers({ pieceId, result, clicks, hasLinks }: { pieceId: string; resul
   let when = result.source === "found" ? `Mindra found it on your ${service} account. ` : "";
   if (!result.fetched_at) when += "The first numbers come about an hour after it went out.";
   else if (result.next_fetch_at) when += `Updated ${formatRelative(result.fetched_at)}. Next update ${formatRelative(result.next_fetch_at)}.`;
+  else if (result.kind === "youtube")
+    when += `Updated ${formatRelative(result.fetched_at)}. Mindra followed it for its first month, and reads it again once a month while it's on YouTube.`;
   else when += `Updated ${formatRelative(result.fetched_at)}. Mindra followed it for its first month.`;
 
   return (

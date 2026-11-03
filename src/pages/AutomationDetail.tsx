@@ -95,6 +95,7 @@ function AutomaticPosting({ automation }: { automation: Detail }) {
   const action = useAutomationAction(automation.id);
   const on = automation.mode === "automatic";
   const tiktok = automation.config.publishing.platforms.includes("tiktok");
+  const youtube = automation.config.publishing.platforms.includes("youtube");
   if (automation.mode === "draft") {
     return (
       <section className="rounded-xl border border-border bg-card p-4">
@@ -111,7 +112,7 @@ function AutomaticPosting({ automation }: { automation: Detail }) {
       <h3 className="text-sm font-semibold text-foreground">Posting</h3>
       <p className="mt-1 text-sm text-pretty text-muted-foreground">
         {on
-          ? `Videos go out at their time when every check passes; one that doesn't waits for you${tiktok ? ", and TikTok posts always wait for your approval" : ""}. On since ${
+          ? `${youtube ? "Mindra uploads each video to your YouTube channel at its time without asking you each time" : "Videos go out at their time"} when every check passes; one that doesn't waits for you${tiktok ? ", and TikTok posts always wait for your approval" : ""}. On since ${
               automation.automatic_since ? formatScheduled(automation.automatic_since) : "recently"
             }.`
           : automation.approved_once
@@ -132,7 +133,11 @@ function AutomaticPosting({ automation }: { automation: Detail }) {
               </button>
             }
             title="Post without your approval?"
-            description={`Videos will go to ${tiktok ? "YouTube" : automation.config.publishing.platforms.map((platform) => PLATFORM_LABELS[platform]).join(" and ")} at their time without you seeing them first, as long as every quality check passes. One that doesn't pass still waits for you.${tiktok ? " TikTok posts still wait for your approval." : ""} You can switch back at any time.`}
+            description={`${
+              youtube
+                ? "Mindra will upload each video to your YouTube channel at its time without asking you each time, and without you seeing it first"
+                : `Videos will go to ${automation.config.publishing.platforms.map((platform) => PLATFORM_LABELS[platform]).join(" and ")} at their time without you seeing them first`
+            }, as long as every quality check passes. One that doesn't pass still waits for you.${tiktok ? " TikTok posts still wait for your approval." : ""} You can switch back at any time.`}
             confirmLabel="Post automatically"
             onConfirm={() => action.mutate({ action: "automatic", body: { on: true, confirm: true } })}
           />

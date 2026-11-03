@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 import { Target, Trash2 } from "lucide-react";
 import { ApiError } from "../../lib/api";
 import { SOURCE_LABELS, useCampaignResults, useDeleteResult, useRecordResult, type MetricSource } from "../../lib/campaigns";
+import { formatCount } from "../../lib/results";
 import { buttonStyles } from "../ui/button";
 
 // The campaign's numbers against its targets (Phase 6): each says where it comes from, and they're never added
@@ -79,6 +80,16 @@ export default function CampaignResults({ campaignId, metrics }: { campaignId: s
             </li>
           ))}
         </ul>
+      )}
+      {data && data.youtube.followed > 0 && (
+        <div className="mt-4 rounded-lg bg-background p-3 text-sm">
+          <p className="font-medium text-foreground">From YouTube</p>
+          <p className="mt-0.5 text-pretty text-muted-foreground">
+            {formatCount(data.youtube.views)} views · {formatCount(data.youtube.likes)} likes · {formatCount(data.youtube.comments)} comments on{" "}
+            {data.youtube.followed} {data.youtube.followed === 1 ? "video" : "videos"}, as YouTube counts them. YouTube's rules keep its numbers apart, so
+            they don't count towards the targets above.
+          </p>
+        </div>
       )}
       {data && (
         <p className="mt-4 text-xs text-muted-foreground">

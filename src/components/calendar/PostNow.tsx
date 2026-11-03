@@ -10,7 +10,8 @@ import { cn } from "../../lib/cn";
 import { recordUse } from "../../lib/usage";
 import { postPhotoFiles } from "../../lib/photos";
 import { platformInfo } from "../../lib/projects";
-import { hasOptions, optionsProblem, startingOptions } from "../../lib/publishOptions";
+import { useUpdatePiece } from "../../lib/content";
+import { TIKTOK_DISCLOSE_NEEDED, disclosureIncomplete, hasOptions, optionsProblem, startingOptions } from "../../lib/publishOptions";
 import {
   accountName,
   accountChoice,
@@ -242,13 +243,22 @@ function PostToAccount({
   const [disclose, setDisclose] = useState(Boolean(piece.publish_options?.your_brand || piece.publish_options?.branded_content));
   const withOptions = Boolean(account && hasOptions(account.kind));
   const options =
-    chosenOptions ?? (account ? startingOptions(account.kind, sameAccount(account.id, piece.publish_to) ? piece.publish_options : undefined) : {});
+    chosenOptions ?? (account ? startingOptions(account.kind, sameAccount(account.id, piece.publish_to) ? piece.publish_options : undefined, piece) : {});
   const [tried, setTried] = useState(false);
-  const optionsError = account && withOptions ? optionsProblem(account.kind, options, disclose) : "";
+  // TikTok's caption, changed on its posting screen: saved to the post before it goes.
+  const update = useUpdatePiece();
+  const [caption, setCaption] = useState(piece.body);
+  const captionChanged = account?.kind === "tiktok" && caption !== piece.body;
+  const optionsError =
+    (account && withOptions ? optionsProblem(account.kind, options, disclose) : "") || (captionChanged && !caption.trim() ? "Add a caption first." : "");
+  // TikTok's guidelines: the button stays off while the disclosure is on and neither box is ticked.
+  const waitsForDisclosure = withOptions && disclosureIncomplete(account?.kind, options, disclose);
   const start = () => {
     setTried(true);
     if (!account || optionsError) return;
-    onStart(account, withOptions ? options : undefined);
+    const go = () => onStart(account, withOptions ? options : undefined);
+    if (captionChanged) update.mutate({ id: piece.id, body: caption }, { onSuccess: go });
+    else go();
   };
 
   return (
@@ -297,6 +307,11 @@ function PostToAccount({
             onChange={setChosenOptions}
             disclose={disclose}
             onDisclose={setDisclose}
+            caption={caption}
+            onCaption={(text) => {
+              setCaption(text);
+              update.reset();
+            }}
           />
         </div>
       )}
@@ -306,11 +321,23 @@ function PostToAccount({
         </p>
       )}
       {account && !busy && <PostingNotes piece={piece} withPreview />}
+      {update.isError && !busy && (
+        <p role="alert" className="text-sm text-pretty text-red-600">
+          {update.error.message}
+        </p>
+      )}
+      {waitsForDisclosure && !tried && !busy && (
+        <p id="post-now-disclose" className="text-sm text-pretty text-muted-foreground">
+          {TIKTOK_DISCLOSE_NEEDED}
+        </p>
+      )}
       {(account || busy) && (
         <button
           type="button"
           onClick={start}
-          disabled={busy || !account}
+          disabled={busy || !account || update.isPending || waitsForDisclosure}
+          title={waitsForDisclosure ? TIKTOK_DISCLOSE_NEEDED : undefined}
+          aria-describedby={waitsForDisclosure ? "post-now-disclose" : undefined}
           // After a failure, posting it yourself (below) leads; trying again is the other way.
           className={buttonStyles({ variant: phase === "failed" ? "secondary" : "primary", className: "w-full" })}
         >

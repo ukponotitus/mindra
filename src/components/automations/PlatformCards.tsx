@@ -304,7 +304,7 @@ export function TikTokFields({
             <Tick label="Your brand" hint="They promote yourself or your own business. TikTok labels them “Promotional content”." checked={tiktokConfig.your_brand} onChange={(your_brand) => setTiktokConfig({ your_brand })} />
             <Tick
               label="Branded content"
-              hint={tiktokConfig.privacy_level === "SELF_ONLY" ? "Branded content can't be private: choose who else can see it first." : "They promote another brand or a third party. TikTok labels them “Paid partnership”."}
+              hint={tiktokConfig.privacy_level === "SELF_ONLY" ? "Branded content visibility cannot be set to private." : "They promote another brand or a third party. TikTok labels them “Paid partnership”."}
               checked={branded}
               disabled={tiktokConfig.privacy_level === "SELF_ONLY"}
               onChange={(branded_content) => setTiktokConfig({ branded_content })}

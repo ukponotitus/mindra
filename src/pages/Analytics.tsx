@@ -3,6 +3,7 @@ import { ChartColumn, ExternalLink, Info, Send } from "lucide-react";
 import { Link, useSearchParams } from "react-router";
 import EmptyState from "../components/EmptyState";
 import TimeChart, { type ChartPoint } from "../components/analytics/TimeChart";
+import YouTubeSection from "../components/analytics/YouTubeSection";
 import PlatformBadge from "../components/content/PlatformBadge";
 import { buttonStyles } from "../components/ui/button";
 import { cn } from "../lib/cn";
@@ -146,6 +147,16 @@ function StatusChip({ post }: { post: ResultPost }) {
   );
 }
 
+/** Under a chart of views, likes, comments and shares: those come from every platform but YouTube. */
+function OtherPlatformsNote() {
+  return (
+    <p className="mt-2 text-xs text-pretty text-muted-foreground">
+      Views, likes, comments and shares from Facebook, Instagram and X. YouTube's are in their own section, as YouTube's
+      rules ask. Link clicks and posts include YouTube.
+    </p>
+  );
+}
+
 function percentChange(now: number | null, before: number | null) {
   if (now === null || before === null) return null;
   if (before === 0) return now > 0 ? "new" : null;
@@ -248,8 +259,8 @@ function MetricChart({ summary, metrics, id }: { summary: ResultsSummary; metric
       <div role="tabpanel" id={`${id}-panel`} aria-labelledby={`${id}-${metric}`} className="p-5">
         {summary.metrics[metric] === null ? (
           <NotEnough>
-            None of your followed posts shares {METRIC_LABELS[metric].toLowerCase()} with Mindra yet. YouTube and X share views; YouTube, X, Facebook
-            and Instagram share likes and comments.
+            None of your followed posts shares {METRIC_LABELS[metric].toLowerCase()} with Mindra yet. X shares views; X, Facebook and Instagram
+            share likes and comments. YouTube's numbers are in the YouTube section.
           </NotEnough>
         ) : (
           <TimeChart points={points(summary, metric)} name={METRIC_LABELS[metric]} unit={METRIC_UNITS[metric]} />
@@ -498,11 +509,13 @@ function Overview({ summary, go }: { summary: ResultsSummary; go: (tab: TabId) =
       <div className="min-w-0 space-y-6">
         <div>
           <MetricChart id="overview" summary={summary} metrics={["views", "engagement", "clicks", "posts"]} />
+          <OtherPlatformsNote />
           <button type="button" onClick={() => go("content")} className={buttonStyles({ variant: "secondary", size: "sm", className: "mt-3" })}>
             See more
           </button>
         </div>
         <TopContent posts={summary.top_posts} />
+        <YouTubeSection summary={summary} top={false} />
       </div>
       <div className="min-w-0 space-y-6">
         <RecentClicks summary={summary} onSeeMore={() => go("audience")} />
@@ -606,21 +619,25 @@ function ContentTab({ summary }: { summary: ResultsSummary }) {
   const viewed = summary.top_posts.filter((post) => (post.period.views ?? 0) > 0);
   return (
     <div className="space-y-6">
-      <MetricChart id="content" summary={summary} metrics={["views", "likes", "comments", "shares"]} />
+      <div>
+        <MetricChart id="content" summary={summary} metrics={["views", "likes", "comments", "shares"]} />
+        <OtherPlatformsNote />
+      </div>
       <TopContentCards
         id="top-viewed"
         title="Top content"
         posts={viewed}
         value={(post) => post.period.views ?? 0}
         unit="Views"
-        empty="No views in this period yet. YouTube and X share views with Mindra; Facebook and Instagram share likes and comments."
+        empty="No views in this period yet. X shares views with Mindra; Facebook and Instagram share likes and comments. YouTube's are in the YouTube section."
       />
+      <YouTubeSection summary={summary} />
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card id="views-by-type" title="Views by content type" subtitle="Views gained in this period">
           <ContentTypeBars
             summary={summary}
             metric="views"
-            empty="Views by photo, video and text posts show once your posts on YouTube or X have views in this period."
+            empty="Views by photo, video and text posts show once your posts on X have views in this period. YouTube's are in the YouTube section."
           />
         </Card>
         <Card id="sources" title="How people found your links" subtitle="Link clicks, by where they came from">
@@ -686,7 +703,10 @@ function InteractionSplit({ summary }: { summary: ResultsSummary }) {
 function EngagementTab({ summary }: { summary: ResultsSummary }) {
   return (
     <div className="space-y-6">
-      <MetricChart id="engagement" summary={summary} metrics={["engagement", "likes", "comments", "shares"]} />
+      <div>
+        <MetricChart id="engagement" summary={summary} metrics={["engagement", "likes", "comments", "shares"]} />
+        <OtherPlatformsNote />
+      </div>
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <InteractionSplit summary={summary} />
         <Card id="engagement-by-type" title="By content type" subtitle="Likes, comments and shares gained in this period">
@@ -697,9 +717,9 @@ function EngagementTab({ summary }: { summary: ResultsSummary }) {
         id="top-engaged"
         title="Top content"
         posts={summary.top_engaged}
-        value={(post) => post.period.engagement}
+        value={(post) => post.period.engagement ?? 0}
         unit="Engagement"
-        empty="No likes, comments or shares in this period yet. Facebook, Instagram, YouTube and X share them for posts Mindra follows."
+        empty="No likes, comments or shares in this period yet. Facebook, Instagram and X share them for posts Mindra follows."
       />
     </div>
   );
@@ -709,7 +729,7 @@ function EngagementTab({ summary }: { summary: ResultsSummary }) {
 
 function PlatformsCard({ summary }: { summary: ResultsSummary }) {
   return (
-    <Card id="platforms" title="By platform" subtitle="Posts out and what they gained in this period">
+    <Card id="platforms" title="By platform" subtitle="Posts out and what they gained in this period; YouTube's numbers as YouTube counted them, without engagement">
       {summary.platforms.length === 0 ? (
         <NotEnough>No posts went out in this period.</NotEnough>
       ) : (
@@ -805,7 +825,9 @@ function AccountFollowersRow({ account }: { account: AccountFollowers }) {
             {account.followers.toLocaleString()} <span className="text-sm font-normal text-muted-foreground">{account.followers === 1 ? unit[0] : unit[1]}</span>
           </p>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            {account.change === null ? (
+            {account.kind === "youtube" ? (
+              "As YouTube counts them, once a day."
+            ) : account.change === null ? (
               "The change shows once Mindra has counted on two days."
             ) : (
               <>
@@ -967,7 +989,8 @@ function groupBy(posts: ResultPost[], keyOf: (date: Date) => number, labels: { l
 }
 
 function TrendsTab({ summary }: { summary: ResultsSummary }) {
-  const measured = summary.posts.filter((post) => post.following && post.fetched_at);
+  // YouTube's numbers aren't averaged with other platforms' (its rules), so its videos aren't counted here.
+  const measured = summary.posts.filter((post) => post.following && post.fetched_at && !post.youtube);
   const platformMax = Math.max(0, ...summary.platforms.map((row) => row.posts));
   let best: ReactNode;
   if (measured.length < BEST_TIMES_MIN_POSTS) {
