@@ -28,6 +28,7 @@ const SERVICES: Record<PostResult["kind"], string> = {
   facebook_page: "Facebook",
   instagram: "Instagram",
   linkedin: "LinkedIn",
+  linkedin_page: "LinkedIn",
   tiktok: "TikTok",
   wordpress: "WordPress",
 };
@@ -78,7 +79,7 @@ function Numbers({ pieceId, result, clicks, hasLinks }: { pieceId: string; resul
   const stop = useStopFollowing(pieceId);
   const shown = NUMBER_NAMES.filter((name) => result[name] !== null);
   const label = (name: (typeof NUMBER_NAMES)[number]) =>
-    name === "likes" && result.kind === "facebook_page" ? "Reactions" : NUMBER_LABELS[name];
+    name === "likes" && (result.kind === "facebook_page" || result.kind === "linkedin") ? "Reactions" : NUMBER_LABELS[name];
   const service = SERVICES[result.kind];
 
   let when = result.source === "found" ? `Mindra found it on your ${service} account. ` : "";
@@ -93,6 +94,9 @@ function Numbers({ pieceId, result, clicks, hasLinks }: { pieceId: string; resul
       {(result.fetched_at || hasLinks) && (
         <dl className="grid grid-cols-2 gap-2">
           {result.fetched_at && shown.map((name) => <Tile key={name} label={label(name)} value={formatCount(result[name])} />)}
+          {/* LinkedIn's own two. */}
+          {result.fetched_at && result.reach != null && <Tile label="People reached" value={formatCount(result.reach)} />}
+          {result.fetched_at && result.platform_clicks != null && <Tile label={`Clicks on ${service}`} value={formatCount(result.platform_clicks)} />}
           {hasLinks && <Tile label="Link clicks" value={formatCount(clicks)} />}
         </dl>
       )}

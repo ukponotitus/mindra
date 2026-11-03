@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # The Mindra API and its two workers for the journey tests, on a fresh database in e2e/.data each run. Every outside
 # service is a stand-in or switched off (no AI, transcription, image, posting, payment or email calls leave this
-# machine), so the tests are free and repeatable. Stopping this script stops the workers too.
+# machine), so the tests are free and repeatable. LinkedIn is a stand-in on a port of its own (linkedin.py), which the
+# API and the workers are pointed at (manage.py here). Stopping this script stops the workers and the stand-in too.
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")/.." && pwd)"
 BACKEND="${MINDRA_BACKEND:-$HERE/../../mindra-backend}"
@@ -9,6 +10,7 @@ PY="$BACKEND/.venv/bin/python"
 DATA="$HERE/.data"
 API_PORT="${E2E_API_PORT:-8030}"
 APP_PORT="${E2E_APP_PORT:-5199}"
+LINKEDIN_PORT="${E2E_LINKEDIN_PORT:-$((API_PORT + 5))}"
 
 rm -rf "$DATA"
 mkdir -p "$DATA/media"
@@ -21,11 +23,17 @@ export GEMINI_API_KEY= ANTHROPIC_API_KEY= DEEPGRAM_API_KEY= ELEVENLABS_API_KEY= 
 export SENTRY_DSN= EMAIL_HOST= BETA_INVITE_CODES= VAPID_PRIVATE_KEY= VAPID_PUBLIC_KEY=
 export FRONTEND_URL="http://127.0.0.1:$APP_PORT" API_URL="http://127.0.0.1:$API_PORT" CORS_ALLOWED_ORIGINS="http://127.0.0.1:$APP_PORT"
 export AUTOMATIONS_WORKSPACES='*'
+# Connecting accounts needs a key to encrypt their tokens: a new one each run. LinkedIn's second app, against the stand-in.
+export TOKEN_ENCRYPTION_KEY="$("$PY" -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())')"
+export LINKEDIN_CLIENT_ID= LINKEDIN_CLIENT_SECRET= LINKEDIN_PAGES_CLIENT_ID=stand-in LINKEDIN_PAGES_CLIENT_SECRET=stand-in
+export E2E_LINKEDIN_URL="http://127.0.0.1:$LINKEDIN_PORT"
+MANAGE="$HERE/servers/manage.py"
 
 cd "$BACKEND"
 "$PY" manage.py migrate --noinput -v 0
 trap 'kill 0' EXIT
+"$PY" "$HERE/servers/linkedin.py" "$LINKEDIN_PORT" >>"$DATA/linkedin.log" 2>&1 &
 # Their logs go to e2e/.data/, to read after a failure.
-"$PY" manage.py db_worker --queue-name default --no-reload --no-startup-delay >>"$DATA/worker.log" 2>&1 &
-"$PY" manage.py db_worker --queue-name renders --no-reload --no-startup-delay >>"$DATA/renders.log" 2>&1 &
-"$PY" manage.py runserver "127.0.0.1:$API_PORT" --noreload --no-worker >>"$DATA/api.log" 2>&1
+"$PY" "$MANAGE" db_worker --queue-name default --no-reload --no-startup-delay >>"$DATA/worker.log" 2>&1 &
+"$PY" "$MANAGE" db_worker --queue-name renders --no-reload --no-startup-delay >>"$DATA/renders.log" 2>&1 &
+"$PY" "$MANAGE" runserver "127.0.0.1:$API_PORT" --noreload --no-worker >>"$DATA/api.log" 2>&1

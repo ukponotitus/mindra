@@ -185,6 +185,15 @@ export default function PrivacyPage() {
           comments, or who your followers are, and never posts to a personal Facebook profile.
         </li>
         <li>
+          <strong>LinkedIn:</strong> Mindra connects your profile and, if you choose, the LinkedIn Pages you administer, and
+          posts there only what you schedule or post now. It reads your name, picture and member id, and each Page’s name,
+          logo and id, again every week (if it can’t for 8 weeks, it stops showing them). For the posts it publishes it reads
+          their impressions, the people reached, reactions or likes, comments, reshares and clicks, and once a day how many
+          followers each Page has; it doesn’t read comments’ text, or who reacted, commented or follows. LinkedIn’s numbers
+          are kept for a year and are shown only to your workspace; Mindra’s assistant doesn’t receive them. Disconnecting
+          deletes them at once, and you can also remove Mindra under “Permitted services” in LinkedIn’s settings.
+        </li>
+        <li>
           <strong>Disconnecting:</strong> Settings, then Connected accounts, then Disconnect deletes the connection and its
           tokens at once, deletes the numbers Mindra read through it, asks Google, X and TikTok to cancel Mindra’s access, and
           turns posts scheduled to go out there back into reminders. Posts already published stay on the platform, under its
