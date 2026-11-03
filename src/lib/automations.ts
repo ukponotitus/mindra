@@ -54,6 +54,8 @@ export type AutomationConfig = {
   visuals: { assets: string[]; use_all: boolean; motion: boolean; transition: string; effect: string; pace: "slow" | "medium" | "fast" };
   captions: { on: boolean; style: "highlight" | "plain"; position: "bottom" | "middle" };
   branding: { logo: string | null; corner: string; accent: string; closing_text: string };
+  /** A custom YouTube thumbnail for landscape videos, with the title on it unless `title` is off. */
+  thumbnail: { on: boolean; title: boolean };
   publishing: { platforms: PlatformId[]; privacy: "public" | "unlisted" | "private"; made_for_kids: boolean };
   tiktok: TikTokConfig;
 };
@@ -210,12 +212,29 @@ export type RunStep = {
   post?: PostState | null;
 };
 
+/** A passage the script draws on, checked against the translation (the backend's automations/scripture.py). */
+export type ScripturePassage = {
+  reference: string;
+  quoted: boolean;
+  quote: string;
+  ok: boolean;
+  status: "matches" | "paraphrase" | "mismatch" | "not_quoted_now" | "not_listed" | "not_checked" | "unknown";
+  problem: string;
+  /** The passage in the translation. */
+  text: string;
+};
+
+export type RunCheck = { name: string; passed: boolean; message: string; passages?: ScripturePassage[] };
+
 export type RunDetail = Run & {
   script: string;
   description: string;
   tags: string[];
   caption: string;
-  checks: { name: string; passed: boolean; message: string }[];
+  checks: RunCheck[];
+  /** The custom YouTube thumbnail: "" until the video is made, then ready, set (on YouTube), refused (by YouTube) or
+   * none, with why (`note`). */
+  custom_thumbnail: { status: "" | "ready" | "set" | "refused" | "none"; note: string; url: string | null };
   review_note: string;
   voice_characters: number;
   narration_seconds: number | null;
@@ -636,7 +655,8 @@ export type RunAction =
   | { action: "approve"; body?: ApproveBody }
   | { action: "revise"; body: { part: string; note?: string } }
   | { action: "reject"; body?: { note?: string } }
-  | { action: "retry" | "cancel"; body?: undefined };
+  | { action: "retry" | "cancel"; body?: undefined }
+  | { action: "thumbnail"; body: { choice: "another" | "none" | "custom" } };
 
 export function useRunAction(id: string) {
   const queryClient = useQueryClient();

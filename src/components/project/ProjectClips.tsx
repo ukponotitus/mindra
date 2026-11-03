@@ -1,21 +1,24 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Check, Clapperboard, Copy, Download, LoaderCircle, Minus, Plus, RefreshCw, Trash2 } from "lucide-react";
 import EmptyState from "../EmptyState";
 import ConfirmDialog from "../ui/ConfirmDialog";
 import ShareButton from "../content/ShareButton";
 import ClipPosts from "./ClipPosts";
 import NewClipDialog from "./NewClipDialog";
+import TrimBar from "./TrimBar";
 import SeePlans from "../SeePlans";
 import { buttonStyles } from "../ui/button";
 import { cn } from "../../lib/cn";
 import { recordUse } from "../../lib/usage";
 import {
   CAPTION_STYLES,
+  CLIP_FRAMINGS,
   CLIP_SHAPES,
   clipFrame,
   SHORTEST_CLIP_SECONDS,
   clipStatusLabel,
   formatClipTime,
+  useClipWords,
   useDeleteClip,
   useFindClips,
   useProjectClips,
@@ -36,6 +39,18 @@ function makingMinutes(seconds: number) {
 
 // Trimming moves a clip's start or end by this much at a time.
 const NUDGE_SECONDS = 0.5;
+// The trim bar shows this much of the recording either side of the clip.
+const TRIM_MARGIN_SECONDS = 30;
+
+/** `value`, once it has stopped changing for `wait` ms (the preview reloads only after a handle stops). */
+function useSettled<T>(value: T, wait = 400) {
+  const [settled, setSettled] = useState(value);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setSettled(value), wait);
+    return () => window.clearTimeout(timer);
+  }, [value, wait]);
+  return settled;
+}
 
 /** The whole recording as a bar, with each clip's span marked on it. */
 function ClipTimeline({ duration, clips, selectedId, onSelect }: { duration: number; clips: Clip[]; selectedId: string; onSelect: (id: string) => void }) {
@@ -111,8 +126,8 @@ function ClipCard({ clip, selected, onSelect }: { clip: Clip; selected: boolean;
   );
 }
 
-/** The selected clip: a preview in its shape, its timing, shape and caption style, and making or downloading the
- * video. */
+/** The selected clip: a preview in its shape, its timing (a trim bar with the words said), shape, framing and caption
+ * style, and making or downloading the video. */
 function ClipEditor({ clip, project }: { clip: Clip; project: Project }) {
   const update = useUpdateClip();
   const render = useRenderClip();
@@ -126,14 +141,19 @@ function ClipEditor({ clip, project }: { clip: Clip; project: Project }) {
   const end = draft.id === clip.id ? draft.end : clip.end;
   const timingChanged = Math.abs(start - clip.start) > 0.01 || Math.abs(end - clip.end) > 0.01;
   const total = project.duration_seconds ?? clip.end;
+  const words = useClipWords(clip);
+  // The trim bar: the clip and half a minute either side, widened when the start or end is moved past that.
+  const trimFrom = Math.max(0, Math.min(clip.start - TRIM_MARGIN_SECONDS, start - 2));
+  const trimTo = Math.min(total, Math.max(clip.end + TRIM_MARGIN_SECONDS, end + 2));
 
   /** Move one edge to `at` (seconds into the recording), keeping the clip inside it and at least the shortest length. */
   const setEdge = (edge: "start" | "end", at: number) => {
     const next = { ...draft, id: clip.id, start, end };
     if (edge === "start") next.start = Math.min(Math.max(at, 0), end - SHORTEST_CLIP_SECONDS);
     else next.end = Math.max(Math.min(at, total), start + SHORTEST_CLIP_SECONDS);
-    next.start = Math.round(next.start * 10) / 10;
-    next.end = Math.round(next.end * 10) / 10;
+    // To the hundredth, so a clip can start and end exactly on a word.
+    next.start = Math.round(next.start * 100) / 100;
+    next.end = Math.round(next.end * 100) / 100;
     setDraft(next);
   };
   const nudge = (edge: "start" | "end", by: number) => setEdge(edge, (edge === "start" ? start : end) + by);
@@ -149,7 +169,16 @@ function ClipEditor({ clip, project }: { clip: Clip; project: Project }) {
     const media = player.current;
     if (media) setEdge(edge, (rendered ? clip.start : 0) + media.currentTime);
   };
+  // Show the moment a trim handle is at, in the recording's preview.
+  const scrub = (seconds: number) => {
+    const media = player.current;
+    if (media && !rendered && project.source_url && Number.isFinite(seconds)) media.currentTime = seconds;
+  };
+  // The recording's preview plays the clip's part; it reloads once a handle stops moving.
+  const preview = useSettled(`${start}-${end}`);
+  const [previewStart, previewEnd] = preview.split("-").map(Number);
   const longForm = clip.shape === "original";
+  const follows = !longForm && clip.framing === "follow";
   // Short form previews tall and narrow; long form wide, in a wider column.
   const frame = clipFrame(clip.shape, "aspect-[9/16] w-full max-w-60", "aspect-video w-full");
   const copyCaption = async () => {
@@ -183,8 +212,8 @@ function ClipEditor({ clip, project }: { clip: Clip; project: Project }) {
           <>
             <video
               ref={player}
-              key={`${start}-${end}`}
-              src={`${project.source_url}#t=${start},${end}`}
+              key={preview}
+              src={`${project.source_url}#t=${previewStart},${previewEnd}`}
               controls
               playsInline
               preload="metadata"
@@ -194,7 +223,9 @@ function ClipEditor({ clip, project }: { clip: Clip; project: Project }) {
             <p className={cn("mx-auto mt-2 text-xs text-pretty text-muted-foreground", !longForm && "max-w-60")}>
               {longForm
                 ? "A preview from the recording. The finished clip keeps this shape, with captions."
-                : "A preview from the recording. The finished clip is vertical, with the whole picture on a blurred background, and captioned."}
+                : follows
+                  ? "A preview from the recording. The finished clip is vertical and follows the speaker, so the sides are cut off. It's captioned."
+                  : "A preview from the recording. The finished clip is vertical, with the whole picture on a blurred background, and captioned."}
             </p>
           </>
         ) : (
@@ -218,7 +249,19 @@ function ClipEditor({ clip, project }: { clip: Clip; project: Project }) {
 
         <fieldset>
           <legend className="text-sm font-medium text-foreground">Timing</legend>
-          <div className="mt-2 grid gap-2 sm:grid-cols-2">
+          <div className="mt-2">
+            <TrimBar
+              start={start}
+              end={end}
+              from={trimFrom}
+              to={trimTo}
+              words={words.data?.words ?? []}
+              disabled={rendering}
+              onChange={setEdge}
+              onScrub={scrub}
+            />
+          </div>
+          <div className="mt-3 grid gap-2 sm:grid-cols-2">
             {(["start", "end"] as const).map((edge) => (
               <div key={edge} className="rounded-lg border border-border px-3 py-2">
                 <div className="flex items-center justify-between gap-2">
@@ -317,6 +360,49 @@ function ClipEditor({ clip, project }: { clip: Clip; project: Project }) {
             })}
           </div>
         </fieldset>
+
+        {!longForm && (
+          <fieldset>
+            <legend className="text-sm font-medium text-foreground">Framing</legend>
+            <div role="group" className="mt-2 grid gap-2 sm:grid-cols-2">
+              {CLIP_FRAMINGS.map((framing) => {
+                const selected = clip.framing === framing.id;
+                return (
+                  <button
+                    key={framing.id}
+                    type="button"
+                    aria-pressed={selected}
+                    disabled={update.isPending || rendering}
+                    onClick={() => !selected && update.mutate({ id: clip.id, framing: framing.id })}
+                    className={cn(
+                      "flex items-start gap-3 rounded-lg border px-3 py-2 text-left transition-colors disabled:opacity-60",
+                      "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
+                      selected ? "border-primary bg-primary/5" : "border-border hover:border-muted-foreground/40",
+                    )}
+                  >
+                    <span
+                      aria-hidden="true"
+                      className={cn(
+                        "relative mt-0.5 h-6 w-3.5 shrink-0 overflow-hidden rounded-sm border-2",
+                        selected ? "border-primary bg-primary/15" : "border-muted-foreground/40",
+                      )}
+                    >
+                      {framing.id === "whole" ? (
+                        <span className={cn("absolute inset-x-0 top-1/2 h-1.5 -translate-y-1/2", selected ? "bg-primary/60" : "bg-muted-foreground/40")} />
+                      ) : (
+                        <span className={cn("absolute inset-0", selected ? "bg-primary/60" : "bg-muted-foreground/40")} />
+                      )}
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block text-sm font-medium text-foreground">{framing.label}</span>
+                      <span className="block text-xs text-pretty text-muted-foreground">{framing.description}</span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </fieldset>
+        )}
 
         <fieldset>
           <legend className="text-sm font-medium text-foreground">Captions</legend>

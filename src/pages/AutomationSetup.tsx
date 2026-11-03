@@ -447,10 +447,19 @@ function ContentStep({ automation, save, saving, error, first }: StepProps) {
         </Field>
         {scripture && (
           <div className="space-y-3 rounded-lg bg-secondary/50 p-3">
-            <Checkbox checked={script.scripture} onChange={(value) => setS({ scripture: value })} label="Draw on Scripture" hint="Quotes are word for word from the translation you choose, with the reference read aloud; anything else is called a paraphrase." />
+            <Checkbox
+              checked={script.scripture}
+              onChange={(value) => setS({ scripture: value })}
+              label="Draw on Scripture"
+              hint="Quotes are word for word from the translation you choose, with the reference read aloud; anything else is called a paraphrase. Mindra checks each quote against the translation, word for word, before you approve the script."
+            />
             {script.scripture && (
               <div className="max-w-xs">
                 <SelectField label="Translation" value={script.translation} options={TRANSLATIONS} onChange={(value) => setS({ translation: value as "web" | "kjv" })} />
+                <p className="mt-1.5 text-xs text-pretty text-muted-foreground">
+                  Both are public domain, so Mindra carries them to check quotes. Translations under copyright, such as the NIV, can&apos;t be carried
+                  without a licence, so they can&apos;t be chosen.
+                </p>
               </div>
             )}
           </div>
@@ -538,8 +547,9 @@ function VideoStep({ automation, save, saving, error, first }: StepProps) {
   const [music, setMusic] = useState(config.music);
   const [captions, setCaptions] = useState(config.captions);
   const [branding, setBranding] = useState(config.branding);
+  const [thumbnail, setThumbnail] = useState(config.thumbnail);
   const ids = { speed: useId(), stability: useId(), volume: useId(), accent: useId() };
-  const changes = (): AutomationChanges => ({ config: { content, voice, visuals, music, captions, branding } });
+  const changes = (): AutomationChanges => ({ config: { content, voice, visuals, music, captions, branding, thumbnail } });
   const submit = (event: FormEvent) => {
     event.preventDefault();
     save(changes(), "next");
@@ -672,11 +682,22 @@ function VideoStep({ automation, save, saving, error, first }: StepProps) {
               Your colour
             </label>
             <input id={ids.accent} type="color" value={branding.accent} onChange={(event) => setBranding((current) => ({ ...current, accent: event.target.value.toUpperCase() }))} className="h-10 w-20 cursor-pointer rounded-lg border border-border bg-card p-1" />
-            <p className="text-xs text-muted-foreground">For the word being said in the captions.</p>
+            <p className="text-xs text-muted-foreground">For the word being said in the captions, and the thumbnail.</p>
           </div>
           <Field label="Closing line (optional)" hint="Shown for the last few seconds.">
             {(id, hint) => <input id={id} aria-describedby={hint} value={branding.closing_text} onChange={(event) => setBranding((current) => ({ ...current, closing_text: event.target.value }))} maxLength={120} placeholder="See you tomorrow" className={inputClass} />}
           </Field>
+        </div>
+        <div className="space-y-3 border-t border-border pt-4">
+          <Checkbox
+            checked={thumbnail.on}
+            onChange={(on) => setThumbnail((current) => ({ ...current, on }))}
+            label="Make a YouTube thumbnail"
+            hint="For landscape videos: the clearest frame of the video, with your colour and logo. You see it, and can change it, when you approve each video. YouTube takes custom thumbnails only from verified channels; Shorts show a frame YouTube picks."
+          />
+          {thumbnail.on && (
+            <Checkbox checked={thumbnail.title} onChange={(title) => setThumbnail((current) => ({ ...current, title }))} label="Put the title on it" />
+          )}
         </div>
       </Section>
 

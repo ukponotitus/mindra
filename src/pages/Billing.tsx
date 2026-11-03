@@ -18,6 +18,7 @@ import {
   type PricingPlan,
 } from "../lib/billing";
 import { useAssistantStatus } from "../lib/assistant";
+import { useAutomationsEnabled } from "../lib/automations";
 import { formatDayLong } from "../lib/calendar";
 import { cn } from "../lib/cn";
 import { CONTACT_EMAIL } from "../lib/legal";
@@ -203,6 +204,7 @@ export default function Billing() {
   const renewal = useChangeRenewal();
   const card = useChangeCard();
   const assistantOn = useAssistantStatus().data?.available ?? false;
+  const automationsOn = useAutomationsEnabled();
   const [searchParams, setSearchParams] = useSearchParams();
   const [notice, setNotice] = useState<Notice | null>(null);
   const [chosenInterval, setChosenInterval] = useState<BillingInterval | null>(null);
@@ -452,6 +454,7 @@ export default function Billing() {
               plan.clips_per_recording == null ? "Each clip counts the first time it's made" : `Up to ${plan.clips_per_recording} from each recording`,
               plan.watermark ? ", with a small “Made with Mindra” mark." : ", without a watermark.",
               plan.max_recording_minutes != null ? ` Recordings up to ${Math.round(plan.max_recording_minutes)} minutes long.` : "",
+              automationsOn ? " New videos your automations make count too (not samples)." : "",
             ].join("")}
           />
           <Meter
