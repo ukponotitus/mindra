@@ -25,6 +25,9 @@ export type PostResult = {
   likes: number | null;
   comments: number | null;
   shares: number | null;
+  /** LinkedIn's alone: the people it reached and the clicks on it there (null elsewhere). */
+  reach?: number | null;
+  platform_clicks?: number | null;
   /** When the numbers were last read (null until the first reading, about an hour after it went out). */
   fetched_at: string | null;
   /** When they're read next (null once the post has been followed for a month). */

@@ -85,7 +85,7 @@ const TIMES_OF_DAY = [
 // What each connected account whose platform doesn't share followers with Mindra says instead (WordPress has none).
 const NO_FOLLOWERS: Partial<Record<ConnectedAccountKind, string>> = {
   x: "X charges for every read, so Mindra doesn't read follower numbers there.",
-  linkedin: "LinkedIn doesn't share follower numbers with apps yet.",
+  linkedin: "Mindra counts the followers of LinkedIn Pages, not of profiles.",
   tiktok: "TikTok doesn't share follower numbers with Mindra yet.",
 };
 const card = "rounded-xl border border-border bg-card p-5";

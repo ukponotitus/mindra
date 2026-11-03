@@ -26,7 +26,7 @@ import {
 import { cn } from "../../lib/cn";
 import { platformInfo } from "../../lib/projects";
 import { hasOptions, optionsProblem, sameOptions, startingOptions } from "../../lib/publishOptions";
-import { ACCOUNT_KINDS, accountChoice, accountName, accountPlace, defaultAccount, kindPhrase, sameAccount, useAutoPost, type AutoPost } from "../../lib/social";
+import { accountChoice, accountsLabel, accountName, accountPlace, defaultAccount, kindPhrase, sameAccount, useAutoPost, type AutoPost } from "../../lib/social";
 import type { ConnectedAccount, ContentPiece, PublishOptions } from "../../lib/types";
 import { backdropClass, popupClass, switchClass, thumbClass } from "./dialogStyles";
 import PostNow from "./PostNow";
@@ -113,7 +113,7 @@ function AutoPostChoice({
 }) {
   const ids = { toggle: useId(), note: useId(), account: useId() };
   const several = accounts.length > 1;
-  const kind = ACCOUNT_KINDS[accounts[0].kind].plural;
+  const kind = accountsLabel(accounts);
   return (
     <div className="rounded-lg border border-border p-3">
       <div className="flex items-start justify-between gap-4">
@@ -203,7 +203,7 @@ function ScheduleForm({ piece, day, onDone }: { piece: ContentPiece; day?: strin
   const publishOptions = publishTo != null && account ? options : undefined;
   const optionsError = publishOptions && account ? optionsProblem(account.kind, publishOptions, disclose) : "";
   // Two or more accounts and none picked: it isn't guessed.
-  const accountError = autoOn && !account ? `Choose which ${ACCOUNT_KINDS[activeAccounts[0].kind].label} to post to.` : "";
+  const accountError = autoOn && !account ? `Choose which ${accountsLabel(activeAccounts, false)} to post to.` : "";
   const sameTarget =
     publishTo === undefined ||
     (publishTo === null ? piece.publish_to == null : sameAccount(publishTo, piece.publish_to) && sameOptions(publishOptions, piece.publish_options));

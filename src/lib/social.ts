@@ -23,7 +23,8 @@ export const ACCOUNT_KINDS: Record<ConnectedAccountKind, { label: string; plural
   facebook_page: { label: "Facebook Page", plural: "Pages", service: "meta", phrase: "your Facebook Page" },
   instagram: { label: "Instagram", plural: "Instagram accounts", service: "meta", phrase: "your Instagram business or creator account" },
   youtube: { label: "YouTube channel", plural: "YouTube channels", service: "youtube", phrase: "your YouTube channel" },
-  linkedin: { label: "LinkedIn profile", plural: "LinkedIn profiles", service: "linkedin", phrase: "your LinkedIn profile" },
+  linkedin: { label: "LinkedIn profile", plural: "LinkedIn profiles", service: "linkedin", phrase: "your LinkedIn profile or Page" },
+  linkedin_page: { label: "LinkedIn Page", plural: "LinkedIn Pages", service: "linkedin", phrase: "your LinkedIn Page" },
   x: { label: "X account", plural: "X accounts", service: "x", phrase: "your X account" },
   tiktok: { label: "TikTok account", plural: "TikTok accounts", service: "tiktok", phrase: "your TikTok account" },
   wordpress: { label: "WordPress site", plural: "WordPress sites", service: "wordpress", phrase: "your WordPress site" },
@@ -46,6 +47,23 @@ const HANDLE_KINDS: ConnectedAccountKind[] = ["instagram", "x", "tiktok", "youtu
 
 export function accountKindFor(platform: Platform): ConnectedAccountKind | null {
   return KIND_FOR_PLATFORM[platform] ?? null;
+}
+
+/** Every kind of account a platform's posts can go to: a LinkedIn post to a profile or a Page, the others to one. */
+export function accountKindsFor(platform: Platform): ConnectedAccountKind[] {
+  const kind = accountKindFor(platform);
+  if (!kind) return [];
+  return kind === "linkedin" ? ["linkedin", "linkedin_page"] : [kind];
+}
+
+/** What a list of accounts to choose from is called: "LinkedIn Pages", or "LinkedIn profiles and Pages" when mixed. */
+export function accountsLabel(accounts: Pick<ConnectedAccount, "kind">[], plural = true): string {
+  const kinds = new Set(accounts.map((account) => account.kind));
+  if (kinds.size > 1 && [...kinds].every((kind) => ACCOUNT_KINDS[kind].service === "linkedin")) {
+    return plural ? "LinkedIn profiles and Pages" : "LinkedIn profile or Page";
+  }
+  const kind = ACCOUNT_KINDS[accounts[0]?.kind ?? "linkedin"];
+  return plural ? kind.plural : kind.label;
 }
 
 /** Account ids compared whatever their type (the API may send numbers; selects give strings). */
@@ -71,6 +89,8 @@ export function accountPlace(account: Pick<ConnectedAccount, "kind" | "name" | "
       return `${name} on YouTube`;
     case "linkedin":
       return `${name} on LinkedIn`;
+    case "linkedin_page":
+      return `${name}${/s$/i.test(name) ? "'" : "'s"} LinkedIn Page`;
     case "x":
       return `${accountName(account)} on X`;
     case "tiktok":
@@ -129,7 +149,8 @@ export function autoPostFor(
   const needed = mediaNeeded(piece);
   if (needed) return { state: "needs-media", message: needed };
   if (!accounts) return { state: failed ? "unavailable" : "loading" };
-  const ofKind = accounts.filter((account) => account.kind === kind);
+  const kinds = accountKindsFor(piece.platform);
+  const ofKind = accounts.filter((account) => kinds.includes(account.kind));
   const active = ofKind.filter((account) => account.status === "active");
   if (active.length > 0) return { state: "ready", kind, accounts: active };
   if (ofKind.length > 0) return { state: "needs-reconnect", kind, accounts: ofKind };
@@ -250,8 +271,12 @@ export function usePendingConnection(id: string) {
 export function useConfirmPending() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) =>
-      apiRequest<ConfirmedConnection>(`/api/social/pending/${encodeURIComponent(id)}/confirm/`, { method: "POST" }),
+    // `choose`: the positions of the accounts to connect (all of them without it).
+    mutationFn: ({ id, choose }: { id: string; choose?: number[] }) =>
+      apiRequest<ConfirmedConnection>(`/api/social/pending/${encodeURIComponent(id)}/confirm/`, {
+        method: "POST",
+        body: choose ? { choose } : undefined,
+      }),
     onSuccess: ({ accounts: saved }) => {
       queryClient.setQueryData<ConnectedAccount[]>(ACCOUNTS_KEY, (accounts) => [
         ...(accounts ?? []).filter((account) => !saved.some((item) => sameAccount(item.id, account.id))),

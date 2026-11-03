@@ -316,7 +316,15 @@ export type PostNumbers = {
 };
 
 /** GET /api/social/accounts/: a Facebook Page or an Instagram professional account Mindra can post to. */
-export type ConnectedAccountKind = "facebook_page" | "instagram" | "youtube" | "linkedin" | "x" | "tiktok" | "wordpress";
+export type ConnectedAccountKind =
+  | "facebook_page"
+  | "instagram"
+  | "youtube"
+  | "linkedin"
+  | "linkedin_page"
+  | "x"
+  | "tiktok"
+  | "wordpress";
 
 /** The services accounts are connected on: "meta" (Facebook Pages and Instagram) and the others. */
 export type SocialServiceId = "meta" | "youtube" | "linkedin" | "x" | "tiktok" | "wordpress";
@@ -380,6 +388,8 @@ export type ConnectedAccount = {
   last_error: string;
   /** When Mindra's access ends unless it's connected again (LinkedIn's 60 days, TikTok's year), or null. */
   access_ends_at: string | null;
+  /** A LinkedIn profile connected before Mindra could read LinkedIn's numbers: connecting it again shows them. */
+  reconnect_for_numbers?: boolean;
   connected_at: string;
 };
 

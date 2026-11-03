@@ -62,7 +62,7 @@ function AccountPicture({ account }: { account: AccountLook }) {
 
 /** Picture, name, and "YouTube channel · @handle", plus anything after (such as a status). */
 function AccountSummary({ account, children }: { account: AccountLook; children?: ReactNode }) {
-  const handle = account.kind !== "wordpress" && account.kind !== "linkedin" && account.username;
+  const handle = account.kind !== "wordpress" && account.kind !== "linkedin" && account.kind !== "linkedin_page" && account.username;
   return (
     <div className="flex min-w-0 flex-1 basis-48 items-center gap-3">
       <AccountPicture account={account} />
@@ -143,7 +143,7 @@ function AccountRow({
 }) {
   const disconnect = useDisconnectAccount();
   const needsReconnect = account.status === "needs_reconnect";
-  const offerReconnect = needsReconnect || accessEndsSoon(account);
+  const offerReconnect = needsReconnect || accessEndsSoon(account) || account.reconnect_for_numbers;
 
   return (
     <li className="py-3 first:pt-0 last:pb-0">
@@ -188,6 +188,12 @@ function AccountRow({
           {account.last_error || `${account.service} stopped accepting Mindra's access to this account.`} Reconnect to post here again.
         </p>
       )}
+      {account.reconnect_for_numbers && !needsReconnect && (
+        <p className="mt-2 text-sm text-pretty text-muted-foreground">
+          Reconnect to see numbers. Once you do, Mindra reads this profile's views, reactions, comments and reshares on
+          LinkedIn, and can post to the Pages you administer.
+        </p>
+      )}
       <AccessEnds account={account} />
       {disconnect.isError && (
         <p role="alert" className="mt-2 text-sm text-pretty text-red-600">
@@ -201,6 +207,7 @@ function AccountRow({
 /**
  * Back from a sign-in with ?pending=<id>: "Connect this to Grace Chapel?" with what the service shared. Nothing is
  * saved until the signed-in person presses Connect, so a link from someone else can't connect their accounts here.
+ * With several (a LinkedIn profile and the Pages it administers, say), each has a tick, all on to start with.
  */
 function PendingPanel({
   pending,
@@ -215,7 +222,8 @@ function PendingPanel({
   /** Undefined while it loads. */
   pending: PendingConnection | undefined;
   workspace: string;
-  onConfirm: () => void;
+  /** With the positions of the ticked accounts when there were several to choose from. */
+  onConfirm: (choose?: number[]) => void;
   onCancel: () => void;
   confirming: boolean;
   cancelling: boolean;
@@ -225,8 +233,19 @@ function PendingPanel({
   onRetry?: () => void;
 }) {
   const headingId = useId();
+  const tickId = useId();
   const count = pending?.accounts.length ?? 0;
   const busy = confirming || cancelling;
+  const [left, setLeft] = useState<Set<number>>(() => new Set());
+  const choosing = count > 1;
+  const chosen = Array.from({ length: count }, (_, index) => index).filter((index) => !left.has(index));
+  const toggle = (index: number, on: boolean) =>
+    setLeft((before) => {
+      const next = new Set(before);
+      if (on) next.delete(index);
+      else next.add(index);
+      return next;
+    });
 
   return (
     <section
@@ -240,21 +259,39 @@ function PendingPanel({
       {pending ? (
         <>
           <p className="mt-0.5 text-sm text-pretty text-muted-foreground">
-            {pending.service_name} shared {count === 1 ? "this account" : "these accounts"}. Mindra saves{" "}
-            {count === 1 ? "it" : "them"} and can post there once you connect.
+            {pending.service_name} shared {count === 1 ? "this account" : "these accounts"}.{" "}
+            {choosing
+              ? "Untick any you don't want Mindra to post to, then connect."
+              : "Mindra saves it and can post there once you connect."}
           </p>
           <ul className="mt-3 divide-y divide-border rounded-lg border border-border bg-card">
-            {pending.accounts.map((account) => (
-              <li key={`${account.kind}-${account.username}-${account.name}`} className="flex px-3 py-2.5">
+            {pending.accounts.map((account, index) => (
+              <li key={`${account.kind}-${account.username}-${account.name}-${index}`} className="flex items-center gap-3 px-3 py-2.5">
+                {choosing && (
+                  <input
+                    id={`${tickId}-${index}`}
+                    type="checkbox"
+                    checked={!left.has(index)}
+                    disabled={busy}
+                    onChange={(event) => toggle(index, event.target.checked)}
+                    aria-label={`Connect ${account.name} (${ACCOUNT_KINDS[account.kind].label})`}
+                    className="size-4 shrink-0 rounded border-border accent-primary disabled:opacity-50"
+                  />
+                )}
                 <AccountSummary account={account} />
               </li>
             ))}
           </ul>
           {pending.notice && <p className="mt-3 text-sm text-pretty text-amber-800">{pending.notice}</p>}
           <div className="mt-4 flex flex-wrap gap-2">
-            <button type="button" onClick={onConfirm} disabled={busy} className={buttonStyles()}>
+            <button
+              type="button"
+              onClick={() => onConfirm(choosing ? chosen : undefined)}
+              disabled={busy || (choosing && chosen.length === 0)}
+              className={buttonStyles()}
+            >
               {confirming && <LoaderCircle aria-hidden="true" className="size-4 animate-spin" />}
-              Connect
+              {choosing && chosen.length !== count ? `Connect ${chosen.length} of ${count}` : "Connect"}
             </button>
             <button type="button" onClick={onCancel} disabled={busy} className={buttonStyles({ variant: "secondary" })}>
               {cancelling && <LoaderCircle aria-hidden="true" className="size-4 animate-spin" />}
@@ -450,7 +487,7 @@ function ServiceCard({
   onConnect,
   onReconnect,
 }: {
-  service: Pick<SocialService, "id" | "name" | "available">;
+  service: Pick<SocialService, "id" | "name" | "available" | "kinds">;
   accounts: ConnectedAccount[];
   connecting: string | null;
   canConnect: boolean;
@@ -460,7 +497,10 @@ function ServiceCard({
   const titleId = useId();
   const busy = connecting === `connect-${service.id}`;
   const count = accounts.length;
-  const copy = SERVICE_COPY[service.id];
+  const copy =
+    service.id === "linkedin" && service.kinds.includes("linkedin_page")
+      ? { ...SERVICE_COPY.linkedin, connects: "Your LinkedIn profile, and the LinkedIn Pages you administer." }
+      : SERVICE_COPY[service.id];
   return (
     <section aria-labelledby={titleId} className={cn("rounded-xl border bg-card p-4", count ? "border-primary/30" : "border-border")}>
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -543,8 +583,8 @@ export default function ConnectedAccounts() {
   const expired = waiting && (is404(pending.error) || is404(confirm.error));
   const nothingShared = waiting && !expired && pending.data?.accounts.length === 0;
   const askToConfirm = waiting && !expired && !nothingShared;
-  const confirmPending = () =>
-    confirm.mutate(result.pending, {
+  const confirmPending = (choose?: number[]) =>
+    confirm.mutate({ id: result.pending, choose }, {
       onSuccess: ({ accounts: confirmed, notice }) => {
         setOutcome("connected");
         setOutcomeNotice(notice);
@@ -578,7 +618,7 @@ export default function ConnectedAccounts() {
     else startConnect(service, `account-${account.id}`);
   };
   // A card for every service Mindra offers, and for any that's since been switched off but still has accounts.
-  const cards: { service: Pick<SocialService, "id" | "name" | "available">; accounts: ConnectedAccount[] }[] = (services.data ?? [])
+  const cards: { service: Pick<SocialService, "id" | "name" | "available" | "kinds">; accounts: ConnectedAccount[] }[] = (services.data ?? [])
     .filter((service) => service.available || list.some((account) => ACCOUNT_KINDS[account.kind].service === service.id))
     .map((service) => ({ service, accounts: list.filter((account) => ACCOUNT_KINDS[account.kind].service === service.id) }));
   const connectTo = (service: SocialServiceId) => (service === "wordpress" ? setWordPress({ open: true, site: "" }) : startConnect(service, `connect-${service}`));
