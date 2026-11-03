@@ -1,13 +1,23 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { Check, Clapperboard, ImagePlus, LoaderCircle, PenLine } from "lucide-react";
+import { Check, Clapperboard, ImagePlus, LayoutTemplate, LoaderCircle, PenLine } from "lucide-react";
 import { Link, useSearchParams } from "react-router";
+import GraphicEditor from "../components/content/GraphicEditor";
 import PlatformBadge from "../components/content/PlatformBadge";
 import SeePlans from "../components/SeePlans";
 import { buttonStyles } from "../components/ui/button";
 import { ApiError } from "../lib/api";
 import { formatLabel } from "../lib/calendars";
 import { cn } from "../lib/cn";
-import { studioVideoLink, useApprovePost, useMakeAll, useMakePost, useStudioQueue, type StudioItem } from "../lib/studioQueue";
+import {
+  inProgress,
+  useApprovePost,
+  useMakeAll,
+  useMakeItemGraphic,
+  useMakeItemVideo,
+  useMakePost,
+  useStudioQueue,
+  type StudioItem,
+} from "../lib/studioQueue";
 
 // The Content Studio (Phase 5): every approved brief, with its post made from it, reviewed and approved. Approved posts
 // are planned at their time in the Planner and go out by themselves or with a reminder.
@@ -18,7 +28,7 @@ function when(item: StudioItem) {
 
 const GROUPS: { id: string; title: string; hint: string; statuses: string[] }[] = [
   { id: "make", title: "Ready to make", hint: "Their briefs are approved. Mindra writes each post from its brief.", statuses: ["plan_approved"] },
-  { id: "production", title: "In production", hint: "Written, and waiting for what their format needs: photos or a video.", statuses: ["in_production"] },
+  { id: "production", title: "In production", hint: "Written, and waiting for what their format needs: pictures or a video, which Mindra can make from the brief.", statuses: ["in_production"] },
   { id: "review", title: "Ready for review", hint: "Read each post, change it in the editor if you like, and approve it.", statuses: ["ready"] },
   { id: "approved", title: "Approved", hint: "Planned at their time in the Planner. Changing one sends it back for review.", statuses: ["content_approved"] },
 ];
@@ -33,10 +43,31 @@ const SCHEDULE_WORDS: Record<string, string> = {
   missed: "Missed",
 };
 
+const spinner = <LoaderCircle aria-hidden="true" className="size-4 animate-spin motion-reduce:animate-none" />;
+
+/** Where the server is with the item's graphic or video, while it works on it. */
+function Working({ item }: { item: StudioItem }) {
+  let words = "";
+  if (item.writing) words = "Writing the post.";
+  else if (item.graphic?.working) words = item.graphic.status === "writing" ? "Writing the words of the graphic." : "Drawing the graphic.";
+  else if (item.video?.stage === "drafting") words = "Planning the video with AI.";
+  else if (item.video?.stage === "rendering") words = `Making the video: ${item.video.progress}%.`;
+  if (!words) return null;
+  return (
+    <p role="status" className="flex items-center gap-2 text-sm text-muted-foreground">
+      {spinner}
+      {words} You can leave this page: it carries on.
+    </p>
+  );
+}
+
 function Card({ item, chosen }: { item: StudioItem; chosen: boolean }) {
   const make = useMakePost();
   const approve = useApprovePost();
+  const makeGraphic = useMakeItemGraphic();
+  const makeVideo = useMakeItemVideo();
   const [error, setError] = useState<unknown>(null);
+  const [editing, setEditing] = useState(false);
 
   const run = async (work: () => Promise<unknown>) => {
     setError(null);
@@ -47,35 +78,52 @@ function Card({ item, chosen }: { item: StudioItem; chosen: boolean }) {
     }
   };
 
-  const busy = make.isPending || item.writing;
+  const working = inProgress(item);
+  const busy = make.isPending || makeGraphic.isPending || makeVideo.isPending || working;
+  const pictures = item.format === "image" || item.format === "carousel";
+  const videoFormat = item.format === "short_video" || item.format === "video";
+  const video = item.video;
   let actions: ReactNode = null;
-  if (item.writing) {
-    actions = (
-      <p role="status" className="flex items-center gap-2 text-sm text-muted-foreground">
-        <LoaderCircle aria-hidden="true" className="size-4 animate-spin motion-reduce:animate-none" />
-        Writing the post. You can leave this page: it carries on.
-      </p>
-    );
+  if (working) {
+    actions = <Working item={item} />;
   } else if (item.status === "plan_approved") {
     actions = (
       <button type="button" onClick={() => run(() => make.mutateAsync(item.id))} disabled={busy} className={buttonStyles({ size: "sm" })}>
-        {busy ? <LoaderCircle aria-hidden="true" className="size-4 animate-spin motion-reduce:animate-none" /> : <PenLine aria-hidden="true" className="size-4" />}
+        {make.isPending ? spinner : <PenLine aria-hidden="true" className="size-4" />}
         {item.post_error ? "Try again" : "Make the post"}
       </button>
     );
   } else if (item.post) {
     actions = (
       <>
+        {pictures && item.missing === "photos" && !item.graphic && (
+          <button type="button" onClick={() => run(() => makeGraphic.mutateAsync(item.id))} disabled={busy} className={buttonStyles({ size: "sm" })}>
+            {makeGraphic.isPending ? spinner : <LayoutTemplate aria-hidden="true" className="size-4" />}
+            {item.format === "carousel" ? "Make the slides" : "Make the graphic"}
+          </button>
+        )}
+        {item.graphic && (
+          <button type="button" onClick={() => setEditing(true)} className={buttonStyles({ variant: item.missing ? "primary" : "secondary", size: "sm" })}>
+            <LayoutTemplate aria-hidden="true" className="size-4" />
+            {item.graphic.status === "failed" ? "Try the graphic again" : item.format === "carousel" ? "Change the slides" : "Change the graphic"}
+          </button>
+        )}
+        {videoFormat && item.missing === "video" && (!video || video.stage === "failed") && (
+          <button type="button" onClick={() => run(() => makeVideo.mutateAsync(item.id))} disabled={busy} className={buttonStyles({ size: "sm" })}>
+            {makeVideo.isPending ? spinner : <Clapperboard aria-hidden="true" className="size-4" />}
+            {video ? "Try again" : "Make the video"}
+          </button>
+        )}
+        {video && (video.stage === "waiting" || video.stage === "ready" || video.stage === "failed") && (
+          <Link to={`/studio/${video.project}`} className={buttonStyles({ variant: video.stage === "waiting" ? "primary" : "secondary", size: "sm" })}>
+            <Clapperboard aria-hidden="true" className="size-4" />
+            Open in Motion Studio
+          </Link>
+        )}
         <Link to={`/library/${item.post.id}`} className={buttonStyles({ variant: "secondary", size: "sm" })}>
           {item.missing === "photos" ? <ImagePlus aria-hidden="true" className="size-4" /> : <PenLine aria-hidden="true" className="size-4" />}
           {item.missing === "photos" ? "Add photos" : item.missing === "video" ? "Add a video" : "Open the post"}
         </Link>
-        {item.missing === "video" && (
-          <Link to={studioVideoLink(item)} className={buttonStyles({ variant: "secondary", size: "sm" })}>
-            <Clapperboard aria-hidden="true" className="size-4" />
-            Make it in Motion Studio
-          </Link>
-        )}
         {(item.status === "ready" || item.status === "in_production") && (
           <button type="button" onClick={() => run(() => make.mutateAsync(item.id))} disabled={busy} className={buttonStyles({ variant: "ghost", size: "sm" })}>
             Write it again
@@ -105,10 +153,11 @@ function Card({ item, chosen }: { item: StudioItem; chosen: boolean }) {
       <p className="mt-1.5 font-medium text-foreground">{item.topic}</p>
       {item.brief?.hook && !item.post && <p className="mt-1 text-sm text-muted-foreground">Hook: {item.brief.hook}</p>}
       {item.post && <p className="mt-2 line-clamp-4 rounded-lg bg-secondary/60 p-3 text-sm whitespace-pre-wrap text-foreground">{item.post.body}</p>}
-      {item.missing && (
-        <p className="mt-2 text-sm text-amber-800">
-          A {formatLabel(item.format).toLowerCase()} needs {item.missing === "photos" ? "photos" : "a video"}: add {item.missing === "photos" ? "them" : "it"} in the post editor (from your
-          uploads{item.missing === "photos" ? " or as AI pictures" : ""}){item.missing === "video" ? ", or make it in Motion Studio" : ""}.
+      {item.missing && !working && (
+        <p className="mt-2 text-sm text-pretty text-amber-800">
+          {item.missing === "photos"
+            ? `A ${formatLabel(item.format).toLowerCase()} needs pictures: Mindra can make ${item.format === "carousel" ? "the slides" : "a graphic"} from the brief in your brand colours, or add your own photos in the post editor.`
+            : `A ${formatLabel(item.format).toLowerCase()} needs a video: Mindra can make it from the brief and your photos and clips in Motion Studio, or add your own in the post editor.`}
         </p>
       )}
       {actions && <div className="mt-3 flex flex-wrap gap-2">{actions}</div>}
@@ -118,10 +167,30 @@ function Card({ item, chosen }: { item: StudioItem; chosen: boolean }) {
           Couldn't write this post: {item.post_error} <SeePlans text={item.post_error} />
         </p>
       )}
+      {item.graphic?.error && !item.graphic.working && (
+        <p className="mt-2 text-sm text-pretty text-red-600">
+          {item.graphic.status === "failed" ? "Couldn't make the graphic: " : ""}
+          {item.graphic.error} <SeePlans text={item.graphic.error} />
+        </p>
+      )}
+      {video?.error && (video.stage === "failed" || video.stage === "waiting") && (
+        <p className={cn("mt-2 text-sm text-pretty", video.stage === "failed" ? "text-red-600" : "text-amber-800")}>
+          {video.stage === "failed" ? "Couldn't make the video: " : ""}
+          {video.error}
+        </p>
+      )}
       {Boolean(error) && (
         <p role="alert" className="mt-2 text-sm text-red-600">
           {error instanceof ApiError ? error.message : "Something went wrong. Try again."} <SeePlans error={error} />
         </p>
+      )}
+      {item.post && (
+        <GraphicEditor
+          open={editing}
+          onOpenChange={setEditing}
+          piece={{ id: item.post.id }}
+          startTemplate={item.format === "carousel" ? "carousel" : undefined}
+        />
       )}
     </li>
   );
@@ -144,8 +213,8 @@ export default function ContentStudio() {
       <div>
         <h2 className="text-2xl font-semibold text-balance text-foreground">Content studio</h2>
         <p className="mt-1 max-w-2xl text-sm text-pretty text-muted-foreground">
-          Every approved brief from your content calendars. Mindra writes each post from its brief; you add photos or a video where its
-          format needs them, review it and approve it. Only approved posts go out, at their time in the Planner.
+          Every approved brief from your content calendars. Mindra writes each post from its brief, and can make its graphic, carousel
+          slides or video too; you review it and approve it. Only approved posts go out, at their time in the Planner.
         </p>
       </div>
       {queue.isPending ? (

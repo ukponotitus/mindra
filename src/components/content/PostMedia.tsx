@@ -1,24 +1,33 @@
 import { useRef, useState } from "react";
 import { Dialog } from "@base-ui/react/dialog";
-import { Check, Film, ImagePlus, LoaderCircle, Sparkles, Trash2, Upload, X } from "lucide-react";
+import { Check, Film, ImagePlus, LayoutTemplate, LoaderCircle, Sparkles, Trash2, Upload, X } from "lucide-react";
 import { backdropClass, popupClass } from "../calendar/dialogStyles";
 import ConfirmDialog from "../ui/ConfirmDialog";
 import { buttonStyles } from "../ui/button";
 import { clipFrame } from "../../lib/clips";
 import { cn } from "../../lib/cn";
 import { useSetPostMedia } from "../../lib/content";
+import { usePostGraphics, type GraphicSize } from "../../lib/graphics";
 import { formatDuration } from "../../lib/format";
 import { postPhotoFiles } from "../../lib/photos";
 import { useStudioAssets, useUploadAsset, type ImageAspect, type StudioAsset } from "../../lib/studio";
 import type { ContentPiece, Platform } from "../../lib/types";
 import AiImageForm from "./AiImageForm";
 import { PostPhotos } from "./ContentCard";
+import GraphicEditor from "./GraphicEditor";
 import ShareButton from "./ShareButton";
 
 const MAX_PHOTOS = 10;
 const ACCEPT = "image/*,.heic,.heif,video/*,.m4v,.mov";
 
 type Sending = { id: string; name: string; fraction: number; error: string };
+
+/** The size a graphic starts in for the post's platform (as the backend's graphic_posts.default_size). */
+function graphicSizeFor(platform: Platform): GraphicSize {
+  if (platform === "whatsapp" || platform === "tiktok" || platform === "youtube_shorts") return "9:16";
+  if (platform === "x") return "1:1";
+  return "4:5";
+}
 
 /** The shape an AI picture starts on for the post's platform. */
 function aspectFor(platform: Platform): ImageAspect {
@@ -257,7 +266,10 @@ function MediaPicker({ open, onOpenChange, piece }: { open: boolean; onOpenChang
  */
 export default function PostMedia({ piece, text }: { piece: ContentPiece; text: string }) {
   const [picking, setPicking] = useState(false);
+  const [designing, setDesigning] = useState(false);
   const setMedia = useSetPostMedia();
+  const graphics = usePostGraphics(piece.id);
+  const graphic = graphics.data?.[0] ?? null;
   const clip = piece.clip?.uploaded ? piece.clip : null;
   const photos = piece.photos;
   const has = Boolean(clip) || photos.length > 0;
@@ -282,8 +294,8 @@ export default function PostMedia({ piece, text }: { piece: ContentPiece; text: 
       {photos.length > 0 && <PostPhotos photos={photos} project={null} />}
       {!has && (
         <p className="text-sm text-pretty text-muted-foreground">
-          Add photos or a video to go out with the text. Instagram and TikTok posts need one, and posts with a picture
-          usually get more attention.
+          Add photos or a video to go out with the text, or have Mindra make a graphic or carousel slides in your brand
+          colours. Instagram and TikTok posts need one, and posts with a picture usually get more attention.
         </p>
       )}
 
@@ -304,6 +316,10 @@ export default function PostMedia({ piece, text }: { piece: ContentPiece; text: 
         <button type="button" disabled={Boolean(locked)} onClick={() => setPicking(true)} className={buttonStyles({ variant: "secondary" })}>
           <ImagePlus aria-hidden="true" className="size-4" />
           {has ? "Change" : "Add photos or a video"}
+        </button>
+        <button type="button" disabled={Boolean(locked)} onClick={() => setDesigning(true)} className={buttonStyles({ variant: "secondary" })}>
+          {graphic?.working ? <LoaderCircle aria-hidden="true" className="size-4 animate-spin motion-reduce:animate-none" /> : <LayoutTemplate aria-hidden="true" className="size-4" />}
+          {graphic ? "Change the graphic" : "Make a graphic"}
         </button>
         {has && !locked && (
           <ConfirmDialog
@@ -326,6 +342,7 @@ export default function PostMedia({ piece, text }: { piece: ContentPiece; text: 
         </p>
       )}
       <MediaPicker open={picking} onOpenChange={setPicking} piece={piece} />
+      {!locked && <GraphicEditor open={designing} onOpenChange={setDesigning} piece={piece} startSize={graphicSizeFor(piece.platform)} />}
     </section>
   );
 }

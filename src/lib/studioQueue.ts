@@ -26,7 +26,24 @@ export type StudioItem = PlanItem & {
   writing: boolean;
   /** Why the last try to write its post failed, until the next try; or "". */
   post_error: string;
+  /** Its post's newest graphic (src/lib/graphics.ts), or null. */
+  graphic: { id: string; template: string; status: "writing" | "rendering" | "ready" | "failed"; error: string; working: boolean; slides: number } | null;
+  /** Its video made from the brief in Motion Studio, or null before one is asked for. */
+  video: StudioVideo | null;
 };
+
+export type StudioVideo = {
+  project: string;
+  /** drafting: the AI writes the draft; waiting: the draft needs the person in Motion Studio; then rendering, ready or failed. */
+  stage: "drafting" | "waiting" | "rendering" | "ready" | "failed";
+  progress: number;
+  error: string;
+};
+
+/** Whether the server is working on the item: its post, graphic or video. */
+export function inProgress(item: StudioItem) {
+  return item.writing || Boolean(item.graphic?.working) || item.video?.stage === "drafting" || item.video?.stage === "rendering";
+}
 
 /** The item statuses the Content Studio lists (its brief approved, or further). */
 export const IN_STUDIO = ["plan_approved", "in_production", "ready", "content_approved"];
@@ -37,8 +54,8 @@ export function useStudioQueue() {
   return useQuery({
     queryKey: queueKey,
     queryFn: () => apiRequest<StudioItem[]>("/api/studio-queue/"),
-    // While posts are written, until each is in (or says why not).
-    refetchInterval: (query) => (query.state.data?.some((item) => item.writing) ? 3000 : false),
+    // While posts, graphics and videos are made, until each is in (or says why not).
+    refetchInterval: (query) => (query.state.data?.some(inProgress) ? 3000 : false),
   });
 }
 
@@ -76,10 +93,20 @@ export function useApprovePost() {
   });
 }
 
-/** Where to make a video for the item: Motion Studio's "Create with AI", started from its brief. */
-export function studioVideoLink(item: StudioItem) {
-  const brief = item.brief;
-  const prompt = [item.topic, brief?.hook, brief?.outline].filter(Boolean).join("\n\n");
-  const params = new URLSearchParams({ name: item.topic, prompt: prompt.slice(0, 1500) });
-  return `/studio/new?${params.toString()}`;
+/** Have the AI write the item's graphic or carousel slides from its brief, drawn onto its post. */
+export function useMakeItemGraphic() {
+  const changed = useQueueChanged();
+  return useMutation({
+    mutationFn: (itemId: string) => apiRequest<StudioItem>(`/api/calendar-items/${itemId}/graphic/`, { method: "POST" }),
+    onSuccess: changed,
+  });
+}
+
+/** Have Motion Studio's AI make the item's video from its brief, then put it on its post. */
+export function useMakeItemVideo() {
+  const changed = useQueueChanged();
+  return useMutation({
+    mutationFn: (itemId: string) => apiRequest<StudioItem>(`/api/calendar-items/${itemId}/video/`, { method: "POST" }),
+    onSuccess: changed,
+  });
 }
