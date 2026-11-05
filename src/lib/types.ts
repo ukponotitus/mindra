@@ -374,6 +374,8 @@ export type PublishOptions = {
 
 /** GET /api/social/accounts/<id>/tiktok-creator/: what TikTok says about the account right now. */
 export type TikTokCreator = {
+  /** False until TikTok's audit of Mindra: only "Only you" is offered, to a private account. */
+  audited?: boolean;
   nickname: string;
   username: string;
   avatar_url: string;

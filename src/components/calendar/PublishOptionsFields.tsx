@@ -259,6 +259,12 @@ function TikTokFields(props: Props) {
             </option>
           ))}
         </select>
+        {info.audited === false && (
+          <p className="mt-1.5 text-xs text-pretty text-muted-foreground">
+            Until TikTok approves Mindra, posts go up as “Only you”, and the TikTok account must be set to private. You can
+            change who sees a post in TikTok afterwards.
+          </p>
+        )}
       </div>
       <fieldset className="space-y-2">
         <legend className="mb-1 text-sm font-medium text-foreground">Let others</legend>
