@@ -139,16 +139,16 @@ export const BUILT_IN_PLANS: PricingPlan[] = [
     connected_accounts: 0,
     clips_per_recording: 2,
     watermark: true,
-    posts_per_month: 15,
+    posts_per_month: 6,
     clips_per_month: 2,
-    picture_projects_per_month: 3,
-    ai_images_per_month: 5,
+    picture_projects_per_month: 2,
+    ai_images_per_month: 2,
     tagline: "Explore AI content creation",
     features: [
-      { text: "15 AI-generated posts", soon: false, included: true },
+      { text: "6 AI-generated posts", soon: false, included: true },
       { text: "2 watermarked video clips", soon: false, included: true },
-      { text: "3 image or flyer projects", soon: false, included: true },
-      { text: "5 AI images", soon: false, included: true },
+      { text: "2 image or flyer projects", soon: false, included: true },
+      { text: "2 AI images", soon: false, included: true },
       { text: "1 brand profile", soon: false, included: true },
       { text: "Content library", soon: false, included: true },
       { text: "Manual downloads and sharing", soon: false, included: true },
@@ -240,7 +240,7 @@ export const BUILT_IN_PLANS: PricingPlan[] = [
   },
 ];
 
-const BUILT_IN_LIST: PlanList = { plans: BUILT_IN_PLANS, in_beta: true, beta_ends_on: null, new_account_days: 7 };
+const BUILT_IN_LIST: PlanList = { plans: BUILT_IN_PLANS, in_beta: true, beta_ends_on: null, new_account_days: 0 };
 
 /** The launch offer's last day ("15 November"), from `beta_ends_on`, the first day after it; null when it has no end. */
 export function offerLastDay(betaEndsOn: string | null): string | null {
@@ -260,7 +260,7 @@ function hoursText(value: number) {
   return `${value} hour${value === 1 ? "" : "s"}`;
 }
 
-/** "15 AI-written posts, 30 minutes of recordings and 2 clips a month, with Mindra's mark on clips". */
+/** "6 AI-written posts, 30 minutes of recordings and 2 clips a month, with Mindra's mark on clips". */
 export function freeAllowances(plan: PricingPlan | undefined): string {
   if (!plan) return "smaller monthly allowances";
   const parts = [

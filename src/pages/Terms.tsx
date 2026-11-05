@@ -17,9 +17,9 @@ export default function TermsPage() {
       <ul>
         <li>Mindra is new and still growing. Features may change, stop working or be removed as we build it.</li>
         <li>
-          At launch, every account has everything open, free, until the date shown on the Billing page; an account made after
-          that has everything open for its first week. After that your workspace is on the Free plan unless you choose a paid
-          one. Paid plans are optional: we never charge you unless you choose one and pay for it on the Billing page.
+          At launch, every account has everything open, free, until the date shown on the Billing page. After that your
+          workspace is on the Free plan unless you choose a paid one, and an account made after that date starts on the Free
+          plan. Paid plans are optional: we never charge you unless you choose one and pay for it on the Billing page.
         </li>
       </ul>
 
