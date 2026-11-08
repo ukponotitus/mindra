@@ -42,7 +42,8 @@ export default function TermsPage() {
           Mindra has a Free plan and paid plans. The Billing page shows what each plan includes and what it costs, in naira,
           before you pay. Each plan has monthly limits, such as recording hours, AI-written posts, clips, AI pictures and
           assistant messages; Mindra tells you when you reach one. Clips made on the Free plan carry a small “Made with
-          Mindra” mark.
+          Mindra” mark, and the Free plan connects one social account, which can be changed for a different one once
+          every 30 days.
         </li>
         <li>
           Payments are taken by Paystack, a payment company. You enter your card or bank details on Paystack’s page, not in

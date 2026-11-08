@@ -326,6 +326,7 @@ export default function PrivacyPage() {
           ["Your account", "You delete it (Settings, then Account)"],
           ["Recordings, photos, transcripts, posts, clips, videos and plans", "You delete them, or their workspace. Deleting a project deletes its recording, transcript, posts and clips, with their files"],
           ["A connected account and its tokens", "You disconnect it, or Meta sends a deletion request for it"],
+          ["On the Free plan, a one-way code of the last account connected (not the account itself), so its one account can be changed once a month", "Your workspace is deleted"],
           ["A post’s results", "The post is deleted or the account it was read through is disconnected; 30 days after Mindra can no longer use that account’s access. YouTube: deleted at once when Google refuses the channel’s access, and when the video is gone or private"],
           ["Comments read from YouTube", "30 days after Mindra last read them, or at once when you turn comments off for the channel, disconnect it, or they or the video are no longer on YouTube"],
           ["Counts for a Mindra short link", "The workspace is deleted. The link keeps working after its post is deleted, since it may still be shared"],
