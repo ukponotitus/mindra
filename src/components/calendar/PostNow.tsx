@@ -411,7 +411,7 @@ export default function PostNow({ piece, onPosted }: { piece: ContentPiece; onPo
         // "Being posted right now": it was started before (from another tab, or its scheduled time came) and this
         // copy of the post hadn't caught up. Follow it instead of showing that as an error.
         onError: (error) => {
-          if (error instanceof ApiError && error.status === 409) {
+          if (error instanceof ApiError && error.status === 409 && !error.message.includes("already out")) {
             publish.reset();
             queryClient.invalidateQueries({ queryKey: publishProgressKey(piece.id) });
             setWatching(true);
