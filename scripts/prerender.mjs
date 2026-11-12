@@ -1,6 +1,7 @@
-// Runs after `vite build` (see "build" in package.json). Writes the privacy policy, terms and data deletion page as
-// static HTML (dist/privacy.html, dist/terms.html, dist/data-deletion.html) with their full text, so Meta's app
-// review and URL checker, which may not run JavaScript, can read them. Cloudflare serves dist/privacy.html at /privacy
+// Runs after `vite build` (see "build" in package.json). Writes the landing page into dist/index.html, and the privacy
+// policy, terms and data deletion page as static HTML (dist/privacy.html, dist/terms.html, dist/data-deletion.html),
+// each with its full text, so search engines, and Meta's app review and URL checker, which may not run JavaScript, can
+// read them. Cloudflare serves dist/privacy.html at /privacy
 // (the default html_handling, "auto-trailing-slash"); every other path still gets index.html and the app.
 //
 // The text comes from the app's own page components, rendered by scripts/prerender-entry.tsx, so it can't drift from
@@ -58,23 +59,36 @@ const template = await readFile(path.join(dist, "index.html"), "utf8").catch(() 
 if (!template.includes('<div id="root"></div>')) fail('dist/index.html has no empty <div id="root"></div>');
 if (!/<title>[^<]*<\/title>/.test(template)) fail("dist/index.html has no <title>");
 
-for (const page of pages) {
-  const body = renderPage(page);
+// The landing page (file index.html) goes last: the others fill a copy of the shell as it was built.
+const ordered = [...pages].sort((a, b) => Number(a.file === "index.html") - Number(b.file === "index.html"));
+// Decoration drawn as very large inline SVGs (the landing page's silk ribbons: hundreds of kilobytes of paths) is left
+// out of the static HTML; the app draws it again when it starts. Search engines want the words, not the paths.
+const BIG_SVG = 4000;
+function withoutBigSvgs(body) {
+  return body.replace(/<svg[^>]*>[\s\S]*?<\/svg>/g, (svg) => (svg.length > BIG_SVG ? "" : svg));
+}
+
+for (const page of ordered) {
+  const body = withoutBigSvgs(renderPage(page));
   // The page's own heading names it, as the browser tab does (src/lib/useDocumentTitle.ts).
   const heading = body.match(/<h1[^>]*>([\s\S]*?)<\/h1>/)?.[1]?.replace(/<[^>]+>/g, "").trim();
   if (!heading) fail(`${page.path} rendered without an <h1>`);
-  const title = `${heading} · Mindra`;
+  if (!/\w/.test(body.replace(/<[^>]+>/g, ""))) fail(`${page.path} rendered without any text`);
 
-  let html = template.replace(/<title>[^<]*<\/title>/, () => `<title>${title}</title>`);
-  html = setMeta(html, "name", "description", page.description);
-  html = setMeta(html, "property", "og:title", title);
-  html = setMeta(html, "property", "og:description", page.description);
-  // index.html's canonical address is the home page's; each page gets its own on the same site.
-  const home = html.match(/<link rel="canonical" href="([^"]*)"/)?.[1];
-  if (home) {
-    const address = new URL(page.path, home).href;
-    html = html.replace(/<link rel="canonical" href="[^"]*"/, () => `<link rel="canonical" href="${escapeAttribute(address)}"`);
-    html = setMeta(html, "property", "og:url", address);
+  let html = template;
+  if (page.description) {
+    const title = `${heading} · Mindra`;
+    html = html.replace(/<title>[^<]*<\/title>/, () => `<title>${title}</title>`);
+    html = setMeta(html, "name", "description", page.description);
+    html = setMeta(html, "property", "og:title", title);
+    html = setMeta(html, "property", "og:description", page.description);
+    // index.html's canonical address is the home page's; each page gets its own on the same site.
+    const home = html.match(/<link rel="canonical" href="([^"]*)"/)?.[1];
+    if (home) {
+      const address = new URL(page.path, home).href;
+      html = html.replace(/<link rel="canonical" href="[^"]*"/, () => `<link rel="canonical" href="${escapeAttribute(address)}"`);
+      html = setMeta(html, "property", "og:url", address);
+    }
   }
   html = html.replace('<div id="root"></div>', () => `<div id="root">${body}</div>`);
 

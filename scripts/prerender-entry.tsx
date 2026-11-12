@@ -3,10 +3,12 @@
 // not run JavaScript, so the text has to be in the HTML. These are the same components the app shows; when the app's
 // JavaScript starts, it renders the page again in place.
 import type { ComponentType } from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderToString } from "react-dom/server";
 import { Route, Routes, StaticRouter } from "react-router";
 import { AuthContext, type AuthContextValue } from "../src/auth/context";
 import DataDeletionPage from "../src/pages/DataDeletion";
+import LandingPage from "../src/pages/Landing";
 import PrivacyPage from "../src/pages/Privacy";
 import TermsPage from "../src/pages/Terms";
 
@@ -15,11 +17,20 @@ export interface StaticPage {
   path: string;
   /** The file written into dist/; Cloudflare serves dist/privacy.html at /privacy. */
   file: string;
+  /** "" keeps index.html's own title, description and canonical address (the landing page's are set there). */
   description: string;
   Component: ComponentType;
 }
 
 export const pages: StaticPage[] = [
+  {
+    // The landing page itself, so search engines read its words without running JavaScript (index.html is otherwise an
+    // empty shell until the app starts). It's rendered last, after the other pages have taken their copy of the shell.
+    path: "/",
+    file: "index.html",
+    description: "",
+    Component: LandingPage,
+  },
   {
     path: "/privacy",
     file: "privacy.html",
@@ -57,13 +68,18 @@ const basename = new URL(import.meta.env.BASE_URL, "https://example.invalid").pa
 export function renderPage(page: StaticPage): string {
   const { Component } = page;
   const location = basename === "/" ? page.path : `${basename}${page.path}`;
+  // The landing page reads the plans and the launch offer with TanStack Query; on the server nothing is fetched, so it
+  // renders its built-in plan list, as the browser does until the API answers.
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, enabled: false } } });
   return renderToString(
-    <StaticRouter basename={basename} location={location}>
-      <AuthContext.Provider value={signedOut}>
-        <Routes>
-          <Route path={page.path} element={<Component />} />
-        </Routes>
-      </AuthContext.Provider>
-    </StaticRouter>,
+    <QueryClientProvider client={queryClient}>
+      <StaticRouter basename={basename} location={location}>
+        <AuthContext.Provider value={signedOut}>
+          <Routes>
+            <Route path={page.path} element={<Component />} />
+          </Routes>
+        </AuthContext.Provider>
+      </StaticRouter>
+    </QueryClientProvider>,
   );
 }
