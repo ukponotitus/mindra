@@ -5,6 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router";
 import ShareButton from "../content/ShareButton";
 import { buttonStyles } from "../ui/button";
+import { ApiError } from "../../lib/api";
 import { useMarkPosted, useStorePiece } from "../../lib/calendar";
 import { cn } from "../../lib/cn";
 import { recordUse } from "../../lib/usage";
@@ -406,6 +407,15 @@ export default function PostNow({ piece, onPosted }: { piece: ContentPiece; onPo
         onSuccess: (saved) => {
           queryClient.setQueryData(publishProgressKey(piece.id), saved);
           setWatching(true);
+        },
+        // "Being posted right now": it was started before (from another tab, or its scheduled time came) and this
+        // copy of the post hadn't caught up. Follow it instead of showing that as an error.
+        onError: (error) => {
+          if (error instanceof ApiError && error.status === 409) {
+            publish.reset();
+            queryClient.invalidateQueries({ queryKey: publishProgressKey(piece.id) });
+            setWatching(true);
+          }
         },
       },
     );
