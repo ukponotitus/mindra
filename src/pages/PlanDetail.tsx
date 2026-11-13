@@ -314,8 +314,8 @@ export default function PlanDetail() {
         title={missing ? "This plan isn't here" : "Couldn't load this plan"}
         description={missing ? "It may have been deleted." : (query.error?.message ?? "Try again in a moment.")}
         action={
-          <Link to="/plans" className={buttonStyles({ variant: "secondary" })}>
-            Back to Content Plans
+          <Link to="/content-calendar#own" className={buttonStyles({ variant: "secondary" })}>
+            Back to your plans
           </Link>
         }
       />
@@ -336,8 +336,8 @@ export default function PlanDetail() {
         <nav aria-label="Breadcrumb" className="mb-3">
           <ol className="flex min-w-0 items-center gap-1.5 text-sm text-muted-foreground">
             <li className="shrink-0">
-              <Link to="/plans" className={crumbLink}>
-                Content Plans
+              <Link to="/content-calendar#own" className={crumbLink}>
+                Your plans
               </Link>
             </li>
             <li aria-hidden="true">
@@ -368,7 +368,7 @@ export default function PlanDetail() {
             title={`Delete "${plan.name}"?`}
             description="The plan and the posts it wrote are deleted, and they come out of your Planner. Posts that already went out stay in your Content Library. This can't be undone."
             confirmLabel="Delete plan"
-            onConfirm={() => remove.mutate(plan.id, { onSuccess: () => navigate("/plans", { replace: true }) })}
+            onConfirm={() => remove.mutate(plan.id, { onSuccess: () => navigate("/content-calendar#own", { replace: true }) })}
           />
         </div>
         {remove.isError && (

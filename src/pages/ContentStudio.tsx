@@ -209,7 +209,7 @@ export default function ContentStudio() {
   }, [found, chosen]);
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
+    <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-semibold text-balance text-foreground">Content studio</h2>
         <p className="mt-1 max-w-2xl text-sm text-pretty text-muted-foreground">
@@ -260,7 +260,7 @@ export default function ContentStudio() {
                   {makeAll.error.message} <SeePlans error={makeAll.error} />
                 </p>
               )}
-              <ul className="grid gap-3 md:grid-cols-2">
+              <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                 {list.map((item) => (
                   <Card key={item.id} item={item} chosen={item.id === chosen} />
                 ))}

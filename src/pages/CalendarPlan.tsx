@@ -298,7 +298,7 @@ export default function CalendarPlan() {
   const inStudio = items.filter((item) => IN_STUDIO.includes(item.status)).length;
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
+    <div className="max-w-4xl space-y-6">
       <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-sm text-muted-foreground">
         <Link to="/content-calendar" className={crumbLink}>
           Content calendar
@@ -309,11 +309,11 @@ export default function CalendarPlan() {
         </Link>
         <ChevronRight aria-hidden="true" className="size-4" />
         <span aria-current="page" className="text-foreground">
-          Plan
+          Plan and briefs
         </span>
       </nav>
       <div>
-        <h2 className="text-2xl font-semibold text-balance text-foreground">The content plan</h2>
+        <h2 className="text-2xl font-semibold text-balance text-foreground">Plan and briefs</h2>
         <p className="mt-1 text-sm text-pretty text-muted-foreground">
           How each approved item is made: the strategy for these dates, and a brief for each post with its hook, talking points, script
           and visuals. Change anything, then approve; approved briefs go to the Content Studio.

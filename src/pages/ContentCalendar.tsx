@@ -197,7 +197,7 @@ export default function ContentCalendarPage() {
   const add = (day: string) => setDialog({ item: null, day });
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
+    <div className="max-w-6xl space-y-6">
       <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-sm text-muted-foreground">
         <Link to="/content-calendar" className={crumbLink}>
           Content calendar
@@ -227,7 +227,7 @@ export default function ContentCalendarPage() {
         <div className="flex flex-wrap gap-2">
         {data.approved_items > 0 && (
           <Link to={`/content-calendar/${data.id}/plan`} className={buttonStyles({ size: "sm" })}>
-            The plan: briefs for {data.approved_items} item{data.approved_items === 1 ? "" : "s"}
+            Plan and briefs for {data.approved_items} item{data.approved_items === 1 ? "" : "s"}
           </Link>
         )}
         <ConfirmDialog

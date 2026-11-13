@@ -82,7 +82,7 @@ function Summary({ automation }: { automation: Detail }) {
             <h3 className="text-xs font-medium text-muted-foreground">{row.title}</h3>
             <p className="mt-0.5 text-sm text-pretty text-foreground">{row.text}</p>
           </div>
-          <Link to={`/automations/${automation.id}/setup?step=${row.step}`} className={buttonStyles({ variant: "ghost", size: "sm" })}>
+          <Link to={`/automations/${automation.id}/settings?step=${row.step}`} className={buttonStyles({ variant: "ghost", size: "sm" })}>
             Change
           </Link>
         </div>
@@ -101,7 +101,7 @@ function AutomaticPosting({ automation }: { automation: Detail }) {
       <section className="rounded-xl border border-border bg-card p-4">
         <h3 className="text-sm font-semibold text-foreground">Posting</h3>
         <p className="mt-1 text-sm text-pretty text-muted-foreground">Each video is saved in your Content Library as a draft. Nothing is posted until you post it.</p>
-        <Link to={`/automations/${automation.id}/setup?step=schedule`} className={buttonStyles({ variant: "secondary", size: "sm", className: "mt-3" })}>
+        <Link to={`/automations/${automation.id}/settings?step=schedule`} className={buttonStyles({ variant: "secondary", size: "sm", className: "mt-3" })}>
           Change
         </Link>
       </section>
@@ -270,7 +270,7 @@ export default function AutomationDetail() {
                 <span>
                   {item.message}{" "}
                   {item.field && (
-                    <Link to={`/automations/${data.id}/setup?step=${item.field}`} className="font-medium underline underline-offset-2">
+                    <Link to={`/automations/${data.id}/settings?step=${item.field}`} className="font-medium underline underline-offset-2">
                       Fix it
                     </Link>
                   )}

@@ -316,7 +316,7 @@ export default function Calendar() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Link to="/plans" className={buttonStyles({ variant: "secondary", size: "sm", className: "h-10" })}>
+          <Link to="/content-calendar#own" className={buttonStyles({ variant: "secondary", size: "sm", className: "h-10" })}>
             <ClipboardList aria-hidden="true" className="size-4" />
             Import a plan
           </Link>

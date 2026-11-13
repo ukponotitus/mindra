@@ -1,29 +1,35 @@
+import { Tabs } from "@base-ui/react/tabs";
 import { CalendarRange, ChevronRight, Plus } from "lucide-react";
-import { Link } from "react-router";
+import { Link, useLocation, useNavigate } from "react-router";
 import PlatformBadge from "../components/content/PlatformBadge";
+import OwnPlans from "../components/plans/OwnPlans";
 import { buttonStyles } from "../components/ui/button";
 import { parseDayKey } from "../lib/calendar";
 import { leadingVersion, useCalendars, VERSION_LABELS } from "../lib/calendars";
 import type { Platform } from "../lib/types";
 
+// The page's two tabs; the address's #part names the open one, so links such as /content-calendar#own open it.
+const TABS = [
+  { id: "mindra", label: "Mindra plans it" },
+  { id: "own", label: "Bring your own plan" },
+] as const;
+type TabId = (typeof TABS)[number]["id"];
+
 function shortDate(key: string) {
   return parseDayKey(key)?.toLocaleDateString(undefined, { day: "numeric", month: "short" }) ?? key;
 }
 
-/** Every content calendar of the workspace, and starting a new one. */
-export default function ContentCalendars() {
+/** The calendars Mindra drafts, and starting a new one. */
+function MindraCalendars() {
   const calendars = useCalendars();
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
+    <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <div className="min-w-0">
-          <h2 className="text-2xl font-semibold text-balance text-foreground">Content calendar</h2>
-          <p className="mt-1 max-w-xl text-sm text-pretty text-muted-foreground">
-            Plan what goes out, when and where. Mindra drafts it from your brand profile; you change it and approve it, and the
-            approved items wait in the Planner for their brief and post.
-          </p>
-        </div>
+        <p className="max-w-xl text-sm text-pretty text-muted-foreground">
+          Mindra drafts what goes out, when and where, from your brand profile; you change it and approve it, and the approved
+          items wait in the Planner for their brief and post.
+        </p>
         <Link to="/content-calendar/new" className={buttonStyles()}>
           <Plus aria-hidden="true" className="size-4" />
           New calendar
@@ -84,6 +90,48 @@ export default function ContentCalendars() {
           })}
         </ul>
       )}
+    </div>
+  );
+}
+
+/** The Content calendar page: the calendars Mindra drafts, and, in its second tab, plans people bring in themselves.
+ * Both end the same way, as approved posts in the Planner. */
+export default function ContentCalendars() {
+  const { hash, search } = useLocation();
+  const navigate = useNavigate();
+  const tab: TabId = TABS.find((candidate) => `#${candidate.id}` === hash)?.id ?? "mindra";
+  // Changing the tab leaves the other tab's ?page= behind; the address keeps the open tab.
+  const choose = (value: TabId) => navigate({ search: value === tab ? search : "", hash: value === "mindra" ? "" : `#${value}` }, { replace: true });
+
+  return (
+    <div className="max-w-4xl space-y-6">
+      <div>
+        <h2 className="text-2xl font-semibold text-balance text-foreground">Content calendar</h2>
+        <p className="mt-1 max-w-xl text-sm text-pretty text-muted-foreground">
+          Plan what goes out, when and where: let Mindra draft it, or bring a plan you already have.
+        </p>
+      </div>
+
+      <Tabs.Root value={tab} onValueChange={(value) => choose(value as TabId)}>
+        <Tabs.List aria-label="Content calendar" className="mb-5 inline-flex max-w-full gap-1 overflow-x-auto rounded-xl bg-muted p-1">
+          {TABS.map(({ id, label }) => (
+            <Tabs.Tab
+              key={id}
+              value={id}
+              className="shrink-0 rounded-lg px-3.5 py-1.5 text-sm font-medium whitespace-nowrap text-muted-foreground transition-colors outline-none hover:text-foreground focus-visible:outline-2 focus-visible:outline-primary data-[active]:bg-card data-[active]:text-foreground data-[active]:shadow-sm"
+            >
+              {label}
+            </Tabs.Tab>
+          ))}
+        </Tabs.List>
+
+        <Tabs.Panel value="mindra" className="outline-none">
+          <MindraCalendars />
+        </Tabs.Panel>
+        <Tabs.Panel value="own" className="outline-none">
+          <OwnPlans />
+        </Tabs.Panel>
+      </Tabs.Root>
     </div>
   );
 }

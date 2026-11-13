@@ -46,7 +46,7 @@ function videoOf(run: RunDetail): { url: string | null; poster: string | null; t
   return { url: null, poster: null, tall: run.shape === "9:16" };
 }
 
-function Player({ run, className }: { run: RunDetail; className?: string }) {
+export function Player({ run, className }: { run: RunDetail; className?: string }) {
   const video = videoOf(run);
   return (
     <div className={cn("overflow-hidden rounded-lg bg-black", video.tall ? "mx-auto aspect-[9/16] max-h-[28rem]" : "aspect-video", className)}>
@@ -155,7 +155,7 @@ function ThumbnailChoice({ run }: { run: RunDetail }) {
   );
 }
 
-function ScriptApproval({ run }: { run: RunDetail }) {
+export function ScriptApproval({ run }: { run: RunDetail }) {
   const act = useRunAction(run.id);
   const [script, setScript] = useState(run.script);
   const [note, setNote] = useState("");
@@ -227,7 +227,7 @@ function CaptionField({ value, onChange }: { value: string; onChange: (value: st
 
 /** The video waits: watch it, edit its texts, choose when it goes out and TikTok's settings, then approve, ask for a
  * part again, or reject. */
-function VideoApproval({ run }: { run: RunDetail }) {
+export function VideoApproval({ run }: { run: RunDetail }) {
   const act = useRunAction(run.id);
   const [title, setTitle] = useState(run.title);
   const [description, setDescription] = useState(run.description);
@@ -417,7 +417,7 @@ function VideoApproval({ run }: { run: RunDetail }) {
 }
 
 /** In automatic mode, the TikTok post waits on its own: TikTok asks that people see and approve each post. */
-function TikTokApproval({ run }: { run: RunDetail }) {
+export function TikTokApproval({ run }: { run: RunDetail }) {
   const act = useRunAction(run.id);
   const edit = useEditRun(run.id);
   const [caption, setCaption] = useState(run.caption);

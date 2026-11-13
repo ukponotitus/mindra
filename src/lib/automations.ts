@@ -28,11 +28,29 @@ export type TikTokConfig = {
   delay_hours: number;
 };
 
+export type ScriptSource = "mindra" | "mine" | "both";
+export type VisualSource = "library" | "ai_images" | "ai_video";
+export type ReviewMode = "script_and_video" | "video_only" | "auto" | "drafts";
+
 export type AutomationConfig = {
-  content: { niche: string; audience: string; language: string; tone: string; minutes: number; shape: Shape; quality: "standard" | "high" };
+  content: {
+    niche: string;
+    audience: string;
+    language: string;
+    tone: string;
+    minutes: number;
+    shape: Shape;
+    quality: "standard" | "high";
+    /** The look of AI-made pictures and clips (ART_STYLES). */
+    art_style: string;
+    /** Each video opens and looks a little different. */
+    vary: boolean;
+  };
   topics: { source: "list" | "ai" | "both"; guidance: string; repeat_after_days: number };
   source: { clips: "chosen" | "newest" };
   script: {
+    /** Who writes the scripts: Mindra from the queue's topics, the person (the queue holds scripts), or both. */
+    source: ScriptSource;
     approve_first: boolean;
     opening: string;
     closing: string;
@@ -51,12 +69,20 @@ export type AutomationConfig = {
     pronunciations: { word: string; say_as: string }[];
   };
   music: { tracks: string[]; volume: number; fade: boolean };
-  visuals: { assets: string[]; use_all: boolean; motion: boolean; transition: string; effect: string; pace: "slow" | "medium" | "fast" };
+  visuals: { source: VisualSource; assets: string[]; use_all: boolean; motion: boolean; transition: string; effect: string; pace: "slow" | "medium" | "fast" };
   captions: { on: boolean; style: "highlight" | "plain"; position: "bottom" | "middle" };
   branding: { logo: string | null; corner: string; accent: string; closing_text: string };
   /** A custom YouTube thumbnail for landscape videos, with the title on it unless `title` is off. */
   thumbnail: { on: boolean; title: boolean };
-  publishing: { platforms: PlatformId[]; privacy: "public" | "unlisted" | "private"; made_for_kids: boolean };
+  publishing: {
+    platforms: PlatformId[];
+    privacy: "public" | "unlisted" | "private";
+    made_for_kids: boolean;
+    /** The platforms' AI-generated label on each post (YouTube and TikTok require it on realistic AI-made videos). */
+    ai_label: boolean;
+    /** How long before its slot a run starts; 0 for the review mode's own lead. */
+    lead_hours: number;
+  };
   tiktok: TikTokConfig;
 };
 
@@ -94,6 +120,7 @@ export type LastRun = {
   waiting_for: WaitingFor;
   trigger: Trigger;
   mode: AutomationMode;
+  step: string;
   step_label: string;
   error: string;
   title: string;
@@ -118,6 +145,14 @@ export type Automation = {
   next_slot: string | null;
   minutes: number | null;
   shape: Shape | null;
+  /** How long before its slot each run starts, in hours; null for the review mode's own lead (a day with approval, 3 hours without). */
+  lead_hours: number | null;
+  review_mode: ReviewMode;
+  /** About how many credits one video uses, and a month of them on the schedule (the backend's automations/credits.py). */
+  credits_per_video: number;
+  credits_per_month: number;
+  /** What waits on the list, not used yet; `low` when fewer than 3 (new videos only). */
+  queue: { count: number; what: "topics" | "scripts" | "clips" | "videos"; low: boolean };
   /** Videos saved in the Content Library. */
   made: number;
   posted: number;
@@ -133,10 +168,28 @@ export type Problem = { field: string; message: string };
 /** What the API sends of a clip on an automation's list. */
 export type ClipSummary = Pick<Clip, "id" | "title" | "duration" | "shape" | "status" | "video_url" | "thumbnail_url">;
 
+export type Character = {
+  id: number;
+  name: string;
+  kind: string;
+  description: string;
+  picture: string | null;
+  picture_url: string | null;
+  voice_id: string;
+  voice_name: string;
+  position: number;
+};
+
+export type CharacterChanges = Partial<Pick<Character, "name" | "kind" | "description" | "picture" | "voice_id" | "voice_name">>;
+
 export type Topic = {
   id: number;
   text: string;
+  /** A finished script the person wrote, read as it is (`text` is its title). */
+  script: string;
+  has_script: boolean;
   source: "list" | "ai";
+  status: "queued" | "used";
   position: number;
   used_at: string | null;
   used_by: string | null;
@@ -150,6 +203,7 @@ export type AutomationDetail = Automation & {
   ends_on: string | null;
   automatic_since: string | null;
   topics: Topic[];
+  characters: Character[];
   /** What's in the way of switching it on. */
   problems: Problem[];
   /** What's in the way of a sample. */
@@ -165,7 +219,11 @@ export type Run = {
   id: string;
   automation: string;
   automation_name: string;
+  preset: string;
   kind: AutomationKind;
+  shape: Shape;
+  /** Credits the run's steps have used, and about what the whole video costs. */
+  credits: { used: number; estimate: number };
   platforms: PlatformId[];
   trigger: Trigger;
   mode: AutomationMode;
@@ -226,7 +284,27 @@ export type ScripturePassage = {
 
 export type RunCheck = { name: string; passed: boolean; message: string; passages?: ScripturePassage[] };
 
+/** One scene of a run's video (made by the new pipeline; older runs have none). */
+export type Scene = {
+  id: number;
+  position: number;
+  label: string;
+  script: string;
+  on_screen_text: string;
+  visual_prompt: string;
+  picture_url: string | null;
+  start: number;
+  end: number;
+  status: "pending" | "ready" | "redo" | "failed";
+  note: string;
+  error: string;
+  credits: number;
+};
+
 export type RunDetail = Run & {
+  scenes: Scene[];
+  /** About what redoing one scene costs. */
+  redo_credits: number;
   script: string;
   description: string;
   tags: string[];
@@ -244,7 +322,6 @@ export type RunDetail = Run & {
   project: string | null;
   render: { id: string; status: string; progress: number; video_url: string | null; thumbnail_url: string | null; error?: string } | null;
   posts: Partial<Record<PlatformId, PostState | null>>;
-  shape: Shape;
   minutes: number | null;
   source: ({ kind: "clip" } & ClipSummary) | ({ kind: "video" } & StudioAsset) | null;
   tiktok: TikTokConfig;
@@ -263,11 +340,19 @@ export type Preset = {
   config: AutomationConfig;
   schedule: { weekdays: number[]; post_time: string };
   topics: string[];
+  /** What the template's card says: how many credits it uses, how fast it is, what's special. */
+  tags: string[];
+  /** Kept for the automations made from it, not offered any more. */
+  hidden: boolean;
+  credits_per_video: number;
 };
 
 export type AutomationSummary = {
   counts: Record<AutomationStatus, number>;
-  stats: { made: number; posted: number; failed: number; days: number };
+  stats: { made: number; posted: number; rejected: number; failed: number; credits_used: number; days: number };
+  /** The month's credits: `limit` and `left` are null when the plan doesn't count them; `month_estimate` is what the
+   * automations that are on will use at their schedules. */
+  credits: { used: number; limit: number | null; left: number | null; month_estimate: number };
   waiting: number;
   needs_attention: Run[];
   coming_up: { automation: string; name: string; slot: string }[];
@@ -541,6 +626,9 @@ export function useCreateAutomation() {
 export type AutomationChanges = {
   name?: string;
   config?: ConfigChanges;
+  /** The setup's one choice for when Mindra waits; "auto" needs an owner or admin. */
+  review_mode?: Exclude<ReviewMode, "drafts">;
+  lead_hours?: number | null;
   account?: number | null;
   tiktok_account?: number | null;
   mode?: "draft" | "approval";
@@ -593,8 +681,21 @@ export function useStartRun(id: string) {
 export function useAddTopics(id: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (items: { topics: string[] } | { clips: string[] } | { videos: string[] }) =>
+    mutationFn: (items: { topics: string[] } | { scripts: { title: string; text: string }[] } | { clips: string[] } | { videos: string[] }) =>
       apiRequest<Topic[]>(`/api/automations/${id}/topics/`, { method: "POST", body: items }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: automationKey(id) }),
+  });
+}
+
+export function useCharacterAction(id: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (change: { action: "add"; body: CharacterChanges } | { action: "change"; character: number; body: CharacterChanges } | { action: "remove"; character: number }): Promise<Character[] | void> =>
+      change.action === "add"
+        ? apiRequest<Character[]>(`/api/automations/${id}/characters/`, { method: "POST", body: change.body })
+        : change.action === "change"
+          ? apiRequest<Character[]>(`/api/automations/${id}/characters/${change.character}/`, { method: "PATCH", body: change.body })
+          : apiRequest<void>(`/api/automations/${id}/characters/${change.character}/`, { method: "DELETE" }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: automationKey(id) }),
   });
 }
@@ -684,3 +785,77 @@ export const REVISABLE: { part: string; label: string }[] = [
   { part: "voice", label: "Narration" },
   { part: "visuals", label: "Visuals and music" },
 ];
+
+
+// The new Automations screens (11 November 2026)
+
+export const ART_STYLES: Record<string, string> = {
+  photo: "Photo-real",
+  storybook: "Soft 3D storybook",
+  flat: "Flat cartoon",
+  watercolour: "Watercolour",
+  papercut: "Paper cut-out",
+};
+
+export const REVIEW_MODES: Record<Exclude<ReviewMode, "drafts">, { label: string; detail: string }> = {
+  script_and_video: { label: "Approve the script, then the final video", detail: "Rejecting a script costs almost nothing. Rejecting a finished video uses its credits." },
+  video_only: { label: "Approve the final video only", detail: "" },
+  auto: { label: "Post without waiting", detail: "You can still remove a post afterwards. Owners and admins only." },
+};
+
+/** The six stages every video goes through, as the progress bar shows them, each made of the run's own steps. The
+ * narration comes before the visuals, since the pictures are laid over its timing. */
+export const PIPELINE: { id: string; label: string; steps: string[] }[] = [
+  { id: "script", label: "Script", steps: ["topic", "script"] },
+  { id: "voice", label: "Voiceover", steps: ["voice"] },
+  { id: "visuals", label: "Visuals", steps: ["visuals"] },
+  { id: "assemble", label: "Put together", steps: ["render", "library"] },
+  { id: "review", label: "Your review", steps: ["review"] },
+  { id: "post", label: "Posted", steps: ["youtube", "tiktok", "monitor"] },
+];
+export type StageState = "done" | "working" | "waiting" | "failed" | "pending";
+
+/** Each stage's state from a run's steps (or, for a run in a list, from where it's got to). */
+export function stageStates(run: Pick<Run, "status" | "waiting_for" | "step"> & { steps?: Pick<RunStep, "name" | "status">[] }): Record<string, StageState> {
+  const states: Record<string, StageState> = {};
+  const byName = new Map((run.steps ?? []).map((step) => [step.name, step.status]));
+  const current = run.step;
+  let reached = true;
+  for (const stage of PIPELINE) {
+    const statuses = stage.steps.map((name) => byName.get(name));
+    const holdsCurrent = stage.steps.includes(current);
+    let state: StageState;
+    if (run.steps?.length) {
+      if (statuses.some((status) => status === "failed") || (holdsCurrent && run.status === "failed")) state = "failed";
+      else if (statuses.every((status) => status === "done" || status === "skipped")) state = "done";
+      else if (holdsCurrent && run.status === "waiting") state = "waiting";
+      else if (statuses.some((status) => status === "running" || status === "waiting") || (holdsCurrent && runIsWorking(run))) state = "working";
+      else state = "pending";
+    } else if (run.status === "published" || run.status === "done") {
+      state = "done";
+    } else if (!reached) {
+      state = "pending";
+    } else if (holdsCurrent) {
+      state = run.status === "failed" ? "failed" : run.status === "waiting" ? "waiting" : runIsWorking(run) ? "working" : "done";
+      reached = false;
+    } else {
+      state = "done";
+    }
+    states[stage.id] = state;
+  }
+  return states;
+}
+
+/** A run's state in a few words for the dashboard's "Next video" line. */
+export function nextVideoState(run: Pick<Run, "status" | "waiting_for" | "step_label">): { text: string; tone: "waiting" | "working" | "failed" | "done" } {
+  if (run.status === "waiting") {
+    return {
+      text: run.waiting_for === "script" ? "Script waiting for approval" : run.waiting_for === "tiktok" ? "TikTok post waiting for approval" : "Waiting for your review",
+      tone: "waiting",
+    };
+  }
+  if (run.status === "failed") return { text: `Stopped at ${run.step_label || "a step"}`, tone: "failed" };
+  if (runIsWorking(run)) return { text: run.step_label ? `Working on: ${run.step_label}` : "Being made", tone: "working" };
+  if (run.status === "scheduled") return { text: "Approved and scheduled", tone: "done" };
+  return { text: runStatus(run as Run).label, tone: "done" };
+}

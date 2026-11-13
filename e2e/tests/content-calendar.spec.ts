@@ -47,7 +47,7 @@ test("draft a content calendar, change an item, approve it and see it planned", 
 
   // Phase 4: the plan. A strategy and a brief for each approved item, then approved.
   await page.goBack();
-  await main.getByRole("link", { name: /The plan: briefs for/ }).click();
+  await main.getByRole("link", { name: /Plan and briefs for/ }).click();
   await main.getByRole("button", { name: "Write the plan" }).click();
   await expect(main.getByRole("heading", { name: "The strategy" })).toBeVisible({ timeout: 30_000 });
   await expect(main.getByText("Why sunscreen every day").first()).toBeVisible();

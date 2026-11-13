@@ -94,7 +94,6 @@ const nav: (NavLeaf | NavGroup)[] = [
     items: [
       { label: "Campaigns", to: "/campaigns", icon: Megaphone },
       { label: "Content calendar", to: "/content-calendar", icon: CalendarRange },
-      { label: "Content Plans", to: "/plans", icon: ClipboardList },
     ],
   },
   {

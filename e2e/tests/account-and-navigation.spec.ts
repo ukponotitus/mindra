@@ -32,7 +32,7 @@ test("the sidebar groups related pages, and each page opens", async ({ page }) =
   const pages: [group: string, link: string, title: string][] = [
     ["Brand", "Brand profile", "Brand Profile"],
     ["Plan", "Campaigns", "Campaigns"],
-    ["Plan", "Content Plans", "Content Plans"],
+    ["Plan", "Content calendar", "Content Calendar"],
     ["Create", "Projects", "Projects"],
     ["Create", "Clips", "Clips"],
     ["Create", "Vertical Videos", "Vertical Videos"],
@@ -60,6 +60,22 @@ test("the sidebar groups related pages, and each page opens", async ({ page }) =
   await nav.getByRole("link", { name: "Audience", exact: true }).click();
   await expect(page).toHaveURL(/\/analytics\?tab=audience/);
   await expect(nav.getByRole("link", { name: "Audience", exact: true })).toHaveAttribute("aria-current", "page");
+});
+
+test("the Content calendar page has a tab for plans people bring in, which the old Content Plans links open", async ({ page }) => {
+  await logIn(page, person);
+  await page.goto("/content-calendar");
+  const tabs = page.getByRole("tablist", { name: "Content calendar" });
+  await expect(tabs.getByRole("tab", { name: "Mindra plans it" })).toHaveAttribute("aria-selected", "true");
+  await tabs.getByRole("tab", { name: "Bring your own plan" }).click();
+  await expect(page).toHaveURL(/\/content-calendar#own$/);
+  await expect(page.getByRole("button", { name: "Read the plan" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Your plans" })).toBeVisible();
+
+  await page.goto("/plans");
+  await expect(page).toHaveURL(/\/content-calendar#own$/);
+  await expect(tabs.getByRole("tab", { name: "Bring your own plan" })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Content Plans" })).toHaveCount(0);
 });
 
 test("AI Studio's old links open the Content Library", async ({ page }) => {

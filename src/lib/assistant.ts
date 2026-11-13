@@ -72,7 +72,7 @@ const PAGE_LABELS: [pattern: string, label: string][] = [
   ["/campaigns/:campaignId/edit", "This campaign"],
   ["/campaigns/:campaignId", "This campaign"],
   ["/projects/:projectId", "This project"],
-  ["/plans/:planId", "This content plan"],
+  ["/plans/:planId", "This plan of yours"],
   ["/studio/:projectId", "This video"],
   ["/content-calendar/:calendarId/plan", "This calendar's plan"],
   ["/content-studio", "Content studio"],
@@ -83,7 +83,6 @@ const PAGE_LABELS: [pattern: string, label: string][] = [
   ["/analytics", "Analytics"],
   ["/library", "Content Library"],
   ["/campaigns", "Campaigns"],
-  ["/plans", "Content Plans"],
   ["/projects", "Projects"],
   ["/dashboard", "Home"],
 ];

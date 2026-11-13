@@ -29,6 +29,7 @@ const AutomationNew = lazy(() => import("./pages/AutomationNew"));
 const AutomationRun = lazy(() => import("./pages/AutomationRun"));
 const Automations = lazy(() => import("./pages/Automations"));
 const AutomationSetup = lazy(() => import("./pages/AutomationSetup"));
+const AutomationSettings = lazy(() => import("./pages/AutomationSettings"));
 const Billing = lazy(() => import("./pages/Billing"));
 const CalendarPage = lazy(() => import("./pages/Calendar"));
 const BrandProfile = lazy(() => import("./pages/BrandProfile"));
@@ -38,7 +39,6 @@ const Campaigns = lazy(() => import("./pages/Campaigns"));
 const ContentEditor = lazy(() => import("./pages/ContentEditor"));
 const Clips = lazy(() => import("./pages/Clips"));
 const PlanDetail = lazy(() => import("./pages/PlanDetail"));
-const Plans = lazy(() => import("./pages/Plans"));
 const VerticalVideos = lazy(() => import("./pages/VerticalVideos"));
 const Studio = lazy(() => import("./pages/Studio"));
 const StudioCreate = lazy(() => import("./pages/StudioCreate"));
@@ -70,6 +70,12 @@ const basename = new URL(import.meta.env.BASE_URL, window.location.origin).pathn
 function ToPlanner() {
   const { search } = useLocation();
   return <Navigate to={`/planner${search}`} replace />;
+}
+
+/** Content Plans are the Content calendar page's "Bring your own plan" tab now; old links open it. */
+function ToOwnPlans() {
+  const { search } = useLocation();
+  return <Navigate to={{ pathname: "/content-calendar", search, hash: "#own" }} replace />;
 }
 
 /** AI Studio was taken out (the same posts are in the Content Library, and on each project's page): old links open
@@ -129,13 +135,14 @@ export default function App() {
                     <Route path="/calendar" element={<ToPlanner />} />
                     <Route path="/analytics" element={<Analytics />} />
                     <Route path="/results" element={<Navigate to="/analytics" replace />} />
-                    <Route path="/plans" element={<Plans />} />
+                    <Route path="/plans" element={<ToOwnPlans />} />
                     <Route path="/automations" element={<Automations />} />
                     <Route path="/automations/new" element={<AutomationNew />} />
                     <Route path="/automations/approvals" element={<AutomationApprovals />} />
                     <Route path="/automations/runs/:runId" element={<AutomationRun />} />
                     <Route path="/automations/:automationId" element={<AutomationDetail />} />
                     <Route path="/automations/:automationId/setup" element={<AutomationSetup />} />
+                    <Route path="/automations/:automationId/settings" element={<AutomationSettings />} />
                     <Route path="/plans/:planId" element={<PlanDetail />} />
                     <Route path="/assistant" element={<Assistant />} />
                     <Route path="/content-studio" element={<ContentStudio />} />

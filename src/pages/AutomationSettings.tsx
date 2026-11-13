@@ -1018,8 +1018,8 @@ function ReviewStep({ automation, go }: { automation: AutomationDetail; go: (ste
   );
 }
 
-/** Setting an automation up in six steps, each saved as you go on. */
-export default function AutomationSetup() {
+/** Every setting of an automation, in six steps (the setup page's "More settings"), each saved as you go on. */
+export default function AutomationSettings() {
   const enabled = useAutomationsEnabled();
   const { automationId } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();

@@ -222,7 +222,7 @@ export default function ActivityLog() {
   const period = ACTIVITY_PERIODS.find((item) => item.id === days)?.label ?? "All time";
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
+    <div className="max-w-4xl space-y-6">
       <div>
         <h2 className="text-2xl font-semibold text-balance text-foreground">Activity log</h2>
         <p className="mt-1 text-sm text-pretty text-muted-foreground">

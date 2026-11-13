@@ -1,13 +1,13 @@
 import { useId, useState, type DragEvent, type FormEvent } from "react";
 import { ChevronRight, ClipboardList, FileSpreadsheet, FileText, ImageIcon, LoaderCircle, Upload } from "lucide-react";
-import { Link, useNavigate, useSearchParams } from "react-router";
-import EmptyState from "../components/EmptyState";
-import { buttonStyles } from "../components/ui/button";
-import { ApiError } from "../lib/api";
-import { formatDayShort, parseDayKey, timeZoneName } from "../lib/calendar";
-import { cn } from "../lib/cn";
-import { formatDate, formatExtensions, formatFileSize } from "../lib/format";
-import { photoAccept, photoRules, preparePhoto } from "../lib/photos";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router";
+import EmptyState from "../EmptyState";
+import { buttonStyles } from "../ui/button";
+import { ApiError } from "../../lib/api";
+import { formatDayShort, parseDayKey, timeZoneName } from "../../lib/calendar";
+import { cn } from "../../lib/cn";
+import { formatDate, formatExtensions, formatFileSize } from "../../lib/format";
+import { photoAccept, photoRules, preparePhoto } from "../../lib/photos";
 import {
   nextMonday,
   PLAN_MAX_MB,
@@ -20,9 +20,9 @@ import {
   useCreatePlan,
   usePlans,
   type PlanFileKind,
-} from "../lib/plans";
-import { useUploadOptions } from "../lib/projects";
-import type { ContentPlan } from "../lib/types";
+} from "../../lib/plans";
+import { useUploadOptions } from "../../lib/projects";
+import type { ContentPlan } from "../../lib/types";
 
 const inputClass =
   "w-full rounded-lg border border-border bg-card px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-60 aria-invalid:border-red-400";
@@ -396,25 +396,26 @@ function PlanRow({ plan }: { plan: ContentPlan }) {
   );
 }
 
-/** Give Mindra a content plan; it reads, writes and (once approved) schedules every post in it. */
-export default function Plans() {
-  const [searchParams, setSearchParams] = useSearchParams();
+/** The Content calendar page's "Bring your own plan" tab: give Mindra a content plan, and it reads, writes and (once
+ * approved) schedules every post in it. */
+export default function OwnPlans() {
+  const [searchParams] = useSearchParams();
+  const { hash } = useLocation();
+  const navigate = useNavigate();
   const page = Math.max(1, Number(searchParams.get("page")) || 1);
   const plans = usePlans(page);
   const list = plans.data?.results ?? [];
   const pages = Math.max(1, Math.ceil((plans.data?.count ?? 0) / PLANS_PAGE_SIZE));
-  const goToPage = (next: number) => setSearchParams(next === 1 ? {} : { page: String(next) });
+  // The tab stays in the address (#own) while the pages change.
+  const goToPage = (next: number) => navigate({ search: next === 1 ? "" : `?page=${next}`, hash });
 
   return (
     <div className="space-y-8">
-      <div>
-        <h2 className="text-2xl font-semibold text-balance text-foreground">Content Plans</h2>
-        <p className="mt-1 max-w-3xl text-sm text-pretty text-muted-foreground">
-          Give Mindra your content plan. It finds every post in it and writes each one from your recordings, clips,
-          flyers or the plan&apos;s own words. You check them, and the ones you approve go in your Planner to go out at their
-          time.
-        </p>
-      </div>
+      <p className="max-w-3xl text-sm text-pretty text-muted-foreground">
+        Already have a plan? Give it to Mindra: it finds every post in it and writes each one from your recordings, clips,
+        flyers or the plan&apos;s own words. You check them, and the ones you approve go in your Planner to go out at their
+        time.
+      </p>
 
       <div className="max-w-3xl">
         <NewPlan />
