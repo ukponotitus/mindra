@@ -1,7 +1,7 @@
 import { useRef, useState, type DragEvent, type PointerEvent, type ReactNode } from "react";
 import { Blend, Copy, Image as ImageIcon, Music, Plus, Scissors, Trash2, Type, Volume2, VolumeX, ZoomIn, ZoomOut } from "lucide-react";
 import { cn } from "../../lib/cn";
-import { formatSeconds, textTimes, timeline, transitionOverlap, type Composition, type StudioAsset } from "../../lib/studio";
+import { ASSET_DRAG_TYPE, LIMITS, formatSeconds, textTimes, timeline, transitionOverlap, type Composition, type StudioAsset } from "../../lib/studio";
 import { buttonStyles } from "../ui/button";
 import { panelClass } from "./styles";
 
@@ -16,6 +16,8 @@ interface Props {
   selected: Selection;
   onSelect: (selection: Selection) => void;
   onMoveScene: (from: number, to: number) => void;
+  /** A media tile dropped on the timeline: the asset goes in as a clip at `index` (the end when past the last). */
+  onDropAsset: (assetId: string, index: number) => void;
   /** A scene's length dragged on the timeline. */
   onSceneLength: (id: string, seconds: number) => void;
   /** A text, logo or music moved or stretched to `start`–`end`, in seconds in the video. */
@@ -73,6 +75,9 @@ export default function Timeline(props: Props) {
   const [scale, setScale] = useState(48); // pixels a second
   const [dragging, setDragging] = useState<number | null>(null);
   const [dropAt, setDropAt] = useState<number | null>(null);
+  // A media tile from the Media panel held over the clips.
+  const [assetOver, setAssetOver] = useState(false);
+  const carriesAsset = (event: DragEvent) => Array.from(event.dataTransfer.types).includes(ASSET_DRAG_TYPE);
   const [drag, setDrag] = useState<Drag | null>(null);
   const [note, setNote] = useState("");
   const dragRef = useRef<Drag | null>(null);
@@ -90,9 +95,13 @@ export default function Timeline(props: Props) {
 
   const drop = (event: DragEvent, index: number) => {
     event.preventDefault();
-    if (dragging !== null && dragging !== index) props.onMoveScene(dragging, index);
+    event.stopPropagation();
+    const assetId = event.dataTransfer.getData(ASSET_DRAG_TYPE);
+    if (assetId) props.onDropAsset(assetId, index);
+    else if (dragging !== null && dragging !== index) props.onMoveScene(dragging, index);
     setDragging(null);
     setDropAt(null);
+    setAssetOver(false);
   };
 
   // Moving and stretching ------------------------------------------------------------------------------------------
@@ -285,7 +294,20 @@ export default function Timeline(props: Props) {
 
           <div className="mt-1.5 space-y-1.5" onPointerDown={(event) => event.target === event.currentTarget && seekFrom(event)}>
             {/* Clips */}
-            <ol className="relative h-16" aria-label="Clips">
+            <ol
+              className={cn("relative h-16 rounded-md", assetOver && "ring-2 ring-primary/50")}
+              aria-label="Clips"
+              onDragOver={(event) => {
+                if (!carriesAsset(event)) return;
+                event.preventDefault();
+                event.dataTransfer.dropEffect = "copy";
+                setAssetOver(true);
+              }}
+              onDragLeave={(event) => {
+                if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setAssetOver(false);
+              }}
+              onDrop={(event) => drop(event, composition.scenes.length)}
+            >
               {composition.scenes.map((scene, index) => {
                 const asset = scene.asset ? assets[scene.asset] : undefined;
                 const placeholder = scene.type === "placeholder";
@@ -297,7 +319,7 @@ export default function Timeline(props: Props) {
                 const next = composition.scenes[index + 1];
                 const tail = next ? transitionOverlap(next) / 2 : 0;
                 const sounding = scene.type === "media" && asset?.kind === "video" && asset.has_audio;
-                const most = asset?.kind === "video" && asset.duration ? starts[index] + Math.min(asset.duration - scene.trim_start, 60) : starts[index] + 60;
+                const most = asset?.kind === "video" && asset.duration ? starts[index] + Math.min(asset.duration - scene.trim_start, LIMITS.sceneSeconds[1]) : starts[index] + LIMITS.sceneSeconds[1];
                 const name = placeholder ? scene.label || "Add media" : (asset?.name ?? (scene.type === "color" ? "Title card" : "Media"));
                 return (
                   <li
@@ -316,6 +338,7 @@ export default function Timeline(props: Props) {
                     }}
                     onDragOver={(event) => {
                       event.preventDefault();
+                      event.dataTransfer.dropEffect = carriesAsset(event) ? "copy" : "move";
                       setDropAt(index);
                     }}
                     onDragLeave={() => setDropAt((value) => (value === index ? null : value))}
@@ -396,7 +419,7 @@ export default function Timeline(props: Props) {
               })}
               {composition.scenes.length === 0 && (
                 <li className="absolute inset-y-0 left-0 grid w-80 place-items-center rounded-md border border-dashed border-border text-xs text-muted-foreground">
-                  Add photos or clips from your media
+                  Click or drag photos and clips here from your media
                 </li>
               )}
             </ol>
@@ -474,7 +497,7 @@ export default function Timeline(props: Props) {
         </div>
       </div>
       <p className="mt-1 text-[11px] text-pretty text-muted-foreground">
-        Drag clips to reorder them and their right edge to change their length. Drag a text, the logo or the music to
+        Drag photos and clips in from Media. Drag clips to reorder them and their right edge to change their length. Drag a text, the logo or the music to
         move it, or either edge to stretch it across as many clips as you like. The marker between two clips sets the
         transition.
       </p>

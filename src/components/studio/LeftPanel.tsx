@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react"
+import { useState, type DragEvent, type ReactNode } from "react"
 import {
   Blend,
   Check,
@@ -18,6 +18,7 @@ import {
 import { cn } from "../../lib/cn"
 import { formatDuration } from "../../lib/format"
 import {
+  ASSET_DRAG_TYPE,
   SCENE_EFFECTS,
   TRANSITIONS,
   fontFor,
@@ -187,9 +188,28 @@ function SendingList({ sending, dismiss }: { sending: Sending[]; dismiss: (id: s
 function MediaTab({ projectId, composition, media, selectedScene, onUploaded, onAddScene, onReplace, onMusic, onBringIn, onRemove }: Props) {
   const { sending, send, dismiss } = useSend(projectId, onUploaded)
   const [earlier, setEarlier] = useState(false)
+  const [filesOver, setFilesOver] = useState(false)
   const visual = media.filter((asset) => asset.kind !== "audio")
+  const carriesFiles = (event: DragEvent) => Array.from(event.dataTransfer.types).includes("Files")
   return (
-    <div className="space-y-3">
+    <div
+      className={cn("space-y-3 rounded-lg transition-shadow", filesOver && "ring-2 ring-primary/50")}
+      onDragOver={(event) => {
+        if (!carriesFiles(event)) return
+        event.preventDefault()
+        event.dataTransfer.dropEffect = "copy"
+        setFilesOver(true)
+      }}
+      onDragLeave={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setFilesOver(false)
+      }}
+      onDrop={(event) => {
+        if (!carriesFiles(event)) return
+        event.preventDefault()
+        setFilesOver(false)
+        void send(event.dataTransfer.files)
+      }}
+    >
       <div className="grid grid-cols-2 gap-2">
         <label htmlFor="studio-upload" className={buttonStyles({ size: "sm", className: "cursor-pointer" })}>
           <Upload aria-hidden="true" className="size-3.5" />
@@ -213,7 +233,7 @@ function MediaTab({ projectId, composition, media, selectedScene, onUploaded, on
       <SendingList sending={sending} dismiss={dismiss} />
       {visual.length === 0 && !sending.length ? (
         <p className="rounded-lg border border-dashed border-border px-3 py-6 text-center text-xs text-pretty text-muted-foreground">
-          Import the photos and clips for this video, or bring in earlier uploads. Add a logo from the timeline or the Video panel.
+          Import the photos and clips for this video, drop files here, or bring in earlier uploads. Add a logo from the timeline or the Video panel.
         </p>
       ) : (
         <ul className="grid grid-cols-2 gap-2">
@@ -270,7 +290,13 @@ function MediaTile({
         disabled={!ready}
         onClick={() => onAddScene(asset)}
         aria-label={`Add ${asset.name} to the video`}
-        className="relative aspect-video bg-secondary focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary disabled:cursor-wait"
+        title={ready ? "Click to add it to the video, or drag it onto the timeline" : undefined}
+        draggable={ready}
+        onDragStart={(event) => {
+          event.dataTransfer.setData(ASSET_DRAG_TYPE, asset.id)
+          event.dataTransfer.effectAllowed = "copy"
+        }}
+        className="relative aspect-video cursor-grab bg-secondary focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary active:cursor-grabbing disabled:cursor-wait"
       >
         {asset.thumbnail_url && !broken ? (
           <img src={asset.thumbnail_url} alt="" onError={() => setBroken(true)} className="absolute inset-0 size-full object-cover" />

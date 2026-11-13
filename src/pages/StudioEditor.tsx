@@ -278,9 +278,9 @@ function Editor({ project }: { project: StudioProject }) {
     if (item?.kind === "text" && !["text", "style", "animation"].includes(inspectorTab)) setInspectorTab("text");
   };
 
-  const addScene = (asset: StudioAsset) => {
+  const addScene = (asset: StudioAsset, where?: number) => {
     const scene = edit.sceneFor(asset, composition);
-    const at = selectedSceneIndex >= 0 ? selectedSceneIndex + 1 : composition.scenes.length;
+    const at = where ?? (selectedSceneIndex >= 0 ? selectedSceneIndex + 1 : composition.scenes.length);
     const next = edit.addScene(composition, scene, at);
     change(next);
     setSelected({ kind: "scene", id: scene.id });
@@ -514,6 +514,10 @@ function Editor({ project }: { project: StudioProject }) {
         }
       }}
       onMoveScene={(from, to) => change((current) => edit.moveScene(current, from, to))}
+      onDropAsset={(assetId, at) => {
+        const asset = assets[assetId];
+        if (asset && asset.status === "ready") addScene(asset, Math.min(at, composition.scenes.length));
+      }}
       onSceneLength={(id, seconds) => change((current) => edit.updateScene(current, id, { duration: seconds }, assets))}
       onTime={(kind, id, start, end) =>
         change((current) =>

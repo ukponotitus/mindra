@@ -310,13 +310,17 @@ export const TEXT_EFFECTS: { id: TextEffect; label: string }[] = [
   { id: "backdrop", label: "Soft backdrop" },
 ]
 
+/** The drag-and-drop type of a media tile dragged from the Media panel onto the timeline: its data is the asset's id. */
+export const ASSET_DRAG_TYPE = "application/x-mindra-asset"
+
 export const LIMITS = {
   scenes: 60,
   texts: 60,
   overlays: 8,
   audio: 4,
   seconds: 600,
-  sceneSeconds: [0.5, 60] as const,
+  // A clip can play through: as long as the whole video.
+  sceneSeconds: [0.5, 600] as const,
   transitionSeconds: [0.2, 2] as const,
   animationSeconds: [0.1, 3] as const,
   textCharacters: 200,

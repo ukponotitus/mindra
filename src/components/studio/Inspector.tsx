@@ -467,7 +467,7 @@ export default function Inspector({
               label="Length"
               value={scene.duration}
               min={LIMITS.sceneSeconds[0]}
-              max={Math.min(longest, 30)}
+              max={asset?.kind === "video" ? longest : Math.min(longest, 30)}
               step={0.1}
               show={seconds}
               onChange={(value) => set({ duration: value }, "duration")}
