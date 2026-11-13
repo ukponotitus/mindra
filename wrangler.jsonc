@@ -1,6 +1,7 @@
 // Cloudflare Workers config for the frontend: `pnpm run build`, then `npx wrangler deploy` serves dist/ as static
 // assets. Every path that isn't a file gets index.html, so React Router's deep links (/projects/…, /privacy) work.
-// Only Mindra's short links (/l/<code>) run the Worker's script (worker/index.js), which passes them to the API.
+// Only Mindra's short links (/l/<code>) and the website's visit notes (/v) run the Worker's script (worker/index.js),
+// which passes them to the API with the visitor's country.
 {
   "name": "mindra",
   "main": "worker/index.js",
@@ -15,6 +16,6 @@
     "directory": "./dist",
     "binding": "ASSETS",
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/l/*"]
+    "run_worker_first": ["/l/*", "/v"]
   }
 }

@@ -102,6 +102,15 @@ export default function PrivacyPage() {
           browser’s details or any cookie, and link previews (WhatsApp, Facebook and the like) aren’t counted.
         </li>
         <li>
+          <strong>Visits to mindra.online:</strong> when you open a page of the website, or sign in to the app, your browser
+          sends Mindra a note of which page it was (every signed-in page counts only as “the app”, once per visit), the page
+          that sent you here, any advertising tags in the address you arrived on, and, from Cloudflare, your country and
+          state or region. With it goes a visitor number that is a scrambled mix of the day, your IP address and your browser,
+          which changes every day and can’t be turned back into either, so Mindra can count how many people came on a day
+          without following anyone from one day to the next. Mindra doesn’t keep your IP address or set any cookie for this,
+          doesn’t count programs or link previews, and only its own staff see these counts.
+        </li>
+        <li>
           <strong>Reminders:</strong> if you turn on phone notifications, your browser’s push address for that device.
           Reminder emails include the post’s text.
         </li>
@@ -131,6 +140,7 @@ export default function PrivacyPage() {
           ["Take payments and keep their records", "Our agreement with you, and our legal duty to keep records"],
           ["Keep Mindra secure, prevent misuse, fix problems and keep costs in check", "Our legitimate interests"],
           ["Count clicks on Mindra short links", "Our and your legitimate interest in knowing which posts work, without keeping who clicked"],
+          ["Count visits to mindra.online", "Our legitimate interest in knowing how many people come to the website and from where, without keeping who they are"],
           ["Connect your social accounts and send phone notifications", "Your consent, which you withdraw by disconnecting or turning them off"],
           ["Email you about your account and important changes", "Our agreement with you"],
           ["Send follow-up emails when you haven't used Mindra for a while (at most one every few days), and see how Mindra is used", "Our legitimate interest in helping you get value from Mindra; stop them from any of them, or in Settings, under Reminders"],
@@ -361,7 +371,8 @@ export default function PrivacyPage() {
       <p>
         Mindra keeps your sign-in in your browser’s local storage, so you stay signed in until you log out, and remembers there
         an unfinished upload (so it can continue), your light or dark choice, which sidebar groups are open, and whether the
-        assistant’s panel is open with which conversation. We don’t use advertising or analytics cookies. Your browser
+        assistant’s panel is open with which conversation, and for the visit any advertising tags from the address you
+        arrived on. We don’t use advertising or analytics cookies, and the visit counts above use none. Your browser
         connects to Google Fonts for the website’s font, and to Jamendo when you preview a song.
       </p>
 

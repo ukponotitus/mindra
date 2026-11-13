@@ -7,6 +7,7 @@ import BrandMark from "../components/BrandMark";
 import PasswordInput from "../components/ui/PasswordInput";
 import { buttonStyles } from "../components/ui/button";
 import { ApiError, apiRequest, type FieldErrors } from "../lib/api";
+import { recordSignup } from "../lib/visits";
 import { firstDays, offerLastDay, usePricingPlans } from "../lib/billing";
 import { cn } from "../lib/cn";
 import type { AuthResponse } from "../lib/types";
@@ -170,6 +171,7 @@ export default function AuthPage({ mode }: Props) {
         const invite = askInviteCode ? { invite_code: inviteCode.trim() } : {};
         const body = { email, password, first_name: firstName, last_name: rest.join(" "), confirms_age: adult, ...invite };
         signIn(await apiRequest<AuthResponse>("/api/auth/register/", { method: "POST", body }));
+        recordSignup();
         navigate("/dashboard", { replace: true });
       } else {
         signIn(await apiRequest<AuthResponse>("/api/auth/login/", { method: "POST", body: { email, password } }));

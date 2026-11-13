@@ -6,6 +6,7 @@ import RequireAuth from "./auth/RequireAuth";
 import DashboardShell from "./components/DashboardShell";
 import PageErrorBoundary from "./components/PageErrorBoundary";
 import { ApiError } from "./lib/api";
+import { useRecordVisits } from "./lib/visits";
 import AuthPage from "./pages/Auth";
 import DataDeletionPage from "./pages/DataDeletion";
 import LandingPage from "./pages/Landing";
@@ -88,6 +89,7 @@ function FromAIStudio() {
 /** Every page, with a message and Reload instead of a blank screen if one fails to show. */
 function Pages({ children }: { children: ReactNode }) {
   const { pathname } = useLocation();
+  useRecordVisits();
   return (
     <PageErrorBoundary resetKey={pathname} fullPage>
       {children}
