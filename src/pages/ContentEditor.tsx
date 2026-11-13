@@ -20,6 +20,7 @@ import {
   useContentPiece,
   useDeletePiece,
   useRewritePiece,
+  useSetPostMedia,
   useUpdatePiece,
   useWritingLanguages,
   writingLanguageName,
@@ -63,14 +64,35 @@ function EditorSkeleton() {
 }
 
 /** Edit one post, with AI help to shorten, lengthen, rephrase or change its tone. */
-/** The clip this post is the caption for: watch and download it next to the text. */
-function PostClip({ clip, project, text, title }: { clip: ClipSummary; project: string; text: string; title: string }) {
+/** The clip this post is the caption for: watch and download it next to the text, or take it off the post (the clip
+ * stays in its project; the post becomes a text post that can take photos or a video of its own). */
+function PostClip({ clip, project, pieceId, text, title }: { clip: ClipSummary; project: string; pieceId: string; text: string; title: string }) {
   const made = clip.status === "ready" && clip.video_url && !clip.is_stale;
+  const setMedia = useSetPostMedia();
   return (
     <section aria-labelledby="post-clip" className="rounded-xl border border-border bg-card p-5">
-      <h3 id="post-clip" className="mb-3 text-sm font-semibold text-foreground">
-        Clip
-      </h3>
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <h3 id="post-clip" className="text-sm font-semibold text-foreground">
+          Clip
+        </h3>
+        <ConfirmDialog
+          trigger={
+            <button type="button" disabled={setMedia.isPending} className={buttonStyles({ variant: "ghost", size: "sm" })}>
+              <Trash2 aria-hidden="true" className="size-4" />
+              Remove from this post
+            </button>
+          }
+          title="Take the clip off this post?"
+          description="The post keeps its words and becomes a text post, which can take photos or a video of its own. The clip stays in its project."
+          confirmLabel="Remove the clip"
+          onConfirm={() => setMedia.mutate({ id: pieceId, assets: null })}
+        />
+      </div>
+      {setMedia.isError && (
+        <p role="alert" className="mb-3 text-sm text-pretty text-red-600">
+          {setMedia.error.message}
+        </p>
+      )}
       {made && (
         <video
           src={clip.video_url ?? undefined}
@@ -393,7 +415,7 @@ export default function ContentEditor() {
           {/* A post with no media of its own kind (a plan's note, a recording's text post) gets photos or a video here;
               a clip's post and a photo or flyer post show theirs. */}
           {ownMedia && <PostMedia piece={piece} text={body} />}
-          {!ownMedia && piece.clip && <PostClip clip={piece.clip} project={piece.project} text={body} title={piece.title} />}
+          {!ownMedia && piece.clip && <PostClip clip={piece.clip} project={piece.project} pieceId={piece.id} text={body} title={piece.title} />}
           {!ownMedia && piece.photos.length > 0 && (
             <section aria-labelledby="post-photos" className="rounded-xl border border-border bg-card p-5">
               <h3 id="post-photos" className="mb-3 text-sm font-semibold text-foreground">

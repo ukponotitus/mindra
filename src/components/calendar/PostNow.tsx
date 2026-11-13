@@ -9,6 +9,7 @@ import { ApiError } from "../../lib/api";
 import { useMarkPosted, useStorePiece } from "../../lib/calendar";
 import { cn } from "../../lib/cn";
 import { recordUse } from "../../lib/usage";
+import { canShareFiles } from "../../lib/clips";
 import { postPhotoFiles } from "../../lib/photos";
 import { platformInfo } from "../../lib/projects";
 import { useUpdatePiece } from "../../lib/content";
@@ -58,6 +59,45 @@ async function copy(text: string): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+/** On a computer: open the platform in a new tab with the post's text copied (or filled in, where the platform takes
+ * it), so a post with photos or a clip can be put up by hand after they're downloaded. */
+function OpenPlatform({ piece, onShared, variant }: { piece: ContentPiece; onShared: () => void; variant: "primary" | "secondary" }) {
+  const [message, setMessage] = useState("");
+  const info = platformInfo(piece.platform);
+  const link = PLATFORM_LINKS[piece.platform];
+  if (!link) return null;
+  return (
+    <>
+      <a
+        href={link.url(piece.body)}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={async () => {
+          const copied = await copy(piece.body);
+          recordUse("shared", "post", { piece: piece.id });
+          setMessage(
+            link.prefill
+              ? `${info.label} opened in a new tab with the text filled in. Add the downloaded ${piece.clip ? "video" : "photos"} there.`
+              : copied
+                ? `${info.label} opened in a new tab. The text is copied: paste it into a new post with the downloaded ${piece.clip ? "video" : "photos"}.`
+                : `${info.label} opened in a new tab. Copy the text from the post first.`,
+          );
+          onShared();
+        }}
+        className={buttonStyles({ variant, className: "w-full" })}
+      >
+        <ExternalLink aria-hidden="true" className="size-4" />
+        {link.prefill ? `Open ${info.label} with the text` : `Copy the text and open ${info.label}`}
+      </a>
+      {message && (
+        <p role="status" className="w-full text-sm text-pretty text-muted-foreground">
+          {message}
+        </p>
+      )}
+    </>
+  );
 }
 
 /** A text post: the phone's share menu, or on a computer the platform with the text filled in or copied. */
@@ -473,6 +513,8 @@ export default function PostNow({ piece, onPosted }: { piece: ContentPiece; onPo
       ) : (
         <TextPost piece={piece} onShared={() => setShared(true)} variant={shareVariant} />
       )}
+      {/* A computer that can't share files: after the download, the platform itself with the caption copied. */}
+      {media !== null && !canShareFiles() && <OpenPlatform piece={piece} onShared={() => setShared(true)} variant="secondary" />}
     </div>
   );
 
