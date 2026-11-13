@@ -6,10 +6,11 @@ import type { FontId } from "./studio";
 // graphic_posts.py): the words of each slide, written by the AI or by hand, a template, a size and a design, drawn on
 // the server into pictures that go on the post as its photos. Keep TEMPLATES, SIZES and LIMITS in step with graphics.py.
 
-export type GraphicTemplate = "quote" | "announcement" | "offer" | "tips" | "carousel";
+export type GraphicTemplate = "quote" | "announcement" | "offer" | "tips" | "prices" | "product" | "event" | "testimonial" | "hours" | "before_after" | "carousel";
 export type GraphicSize = "4:5" | "9:16" | "1:1";
 
-export type Slide = { label: string; title: string; text: string; photo: string };
+/** `photo2` is the second picture of a before and after. */
+export type Slide = { label: string; title: string; text: string; photo: string; photo2?: string };
 
 export type GraphicDesign = { background: string; accent: string; font: FontId; logo: boolean; footer: string };
 
@@ -29,12 +30,14 @@ export type Graphic = {
   working: boolean;
 };
 
-/** What each template is, and what its words are for (label, title, text). */
+/** What each template is, what its words are for (label, title, text), and which pictures it takes: none, one
+ * (`photo`), or two (`pair`, a before and after). */
 export const TEMPLATES: {
   id: GraphicTemplate;
   label: string;
   hint: string;
   fields: { label: string; title: string; text: string };
+  pictures?: "photo" | "pair";
 }[] = [
   {
     id: "quote",
@@ -47,12 +50,14 @@ export const TEMPLATES: {
     label: "Announcement or event",
     hint: "What's happening, with the details on their own lines.",
     fields: { label: "Tag, such as Save the date", title: "What's happening", text: "Details, one per line" },
+    pictures: "photo",
   },
   {
     id: "offer",
     label: "Offer or product",
     hint: "A product or service, its price and how to get it.",
     fields: { label: "Price or offer", title: "Name", text: "Why it's worth having" },
+    pictures: "photo",
   },
   {
     id: "tips",
@@ -61,10 +66,51 @@ export const TEMPLATES: {
     fields: { label: "Heading, such as 3 tips", title: "What it's about", text: "Items, one per line" },
   },
   {
+    id: "prices",
+    label: "Price list",
+    hint: "Items with their prices, one per line, such as “Wash and set — ₦4,000”.",
+    fields: { label: "Tag, such as Price list", title: "What the list is", text: "Items and prices, one per line" },
+  },
+  {
+    id: "product",
+    label: "Product spotlight",
+    hint: "A product's picture, its name and what people get from it.",
+    fields: { label: "Price or tag, such as New", title: "Name", text: "What people get, one per line" },
+    pictures: "photo",
+  },
+  {
+    id: "event",
+    label: "Event flyer",
+    hint: "The event's name, the date large, then the time, place and how to join.",
+    fields: { label: "Kind, such as Workshop", title: "The event", text: "Date first, then time, place and how to join, one per line" },
+    pictures: "photo",
+  },
+  {
+    id: "testimonial",
+    label: "Testimonial",
+    hint: "What a customer said, with their name and picture.",
+    fields: { label: "Heading (optional)", title: "What they said", text: "Who said it" },
+    pictures: "photo",
+  },
+  {
+    id: "hours",
+    label: "Opening hours",
+    hint: "Each day or run of days with its hours, such as “Monday to Friday: 8am to 6pm”.",
+    fields: { label: "Heading, such as We're open", title: "Opening hours, or the place", text: "Days and hours, one per line" },
+  },
+  {
+    id: "before_after",
+    label: "Before and after",
+    hint: "Two pictures side by side, with what changed.",
+    fields: { label: "Panel names, such as Before / After", title: "What changed", text: "How (optional)" },
+    pictures: "pair",
+  },
+  {
     id: "carousel",
     label: "Carousel slides",
     hint: "A cover, one point a slide, and a call to action last.",
     fields: { label: "Small label (optional)", title: "Title", text: "Text" },
+    pictures: "photo",
   },
 ];
 

@@ -36,7 +36,7 @@ const labelClass = "mb-1 block text-xs font-medium text-muted-foreground";
 
 type Draft = { template: GraphicTemplate; size: GraphicSize; design: GraphicDesign; slides: Slide[] };
 
-const EMPTY_SLIDE: Slide = { label: "", title: "", text: "", photo: "" };
+const EMPTY_SLIDE: Slide = { label: "", title: "", text: "", photo: "", photo2: "" };
 
 function draftOf(graphic: Graphic | null, fallback: Draft): Draft {
   if (!graphic || !graphic.template || graphic.slides.length === 0) return fallback;
@@ -87,8 +87,8 @@ function Swatches({ label, value, choices, onChange }: { label: string; value: s
   );
 }
 
-/** Choose a slide's picture from the workspace's photos. */
-function PhotoChoice({ value, onChange, number }: { value: string; onChange: (id: string) => void; number: number }) {
+/** Choose a slide's picture from the workspace's photos. `name` says which picture when a slide takes two. */
+function PhotoChoice({ value, onChange, number, name = "picture" }: { value: string; onChange: (id: string) => void; number: number; name?: string }) {
   const [open, setOpen] = useState(false);
   const assets = useStudioAssets();
   const photos = (assets.data?.results ?? []).filter((asset) => asset.kind === "image" && asset.status === "ready" && !asset.library && asset.source !== "graphic");
@@ -99,12 +99,12 @@ function PhotoChoice({ value, onChange, number }: { value: string; onChange: (id
         {chosen?.thumbnail_url && <img src={chosen.thumbnail_url} alt="" className="size-10 rounded-md object-cover" />}
         <button type="button" aria-expanded={open} onClick={() => setOpen((shown) => !shown)} className={buttonStyles({ variant: "secondary", size: "sm" })}>
           <ImagePlus aria-hidden="true" className="size-4" />
-          {chosen ? "Change the picture" : "Add a picture"}
+          {chosen ? `Change the ${name}` : name === "picture" ? "Add a picture" : `Add the ${name}`}
           <span className="sr-only"> for slide {number}</span>
         </button>
         {chosen && (
           <button type="button" onClick={() => onChange("")} className={buttonStyles({ variant: "ghost", size: "sm" })}>
-            Remove the picture
+            Remove the {name}
           </button>
         )}
       </div>
@@ -115,7 +115,7 @@ function PhotoChoice({ value, onChange, number }: { value: string; onChange: (id
           ) : photos.length === 0 ? (
             <p className="text-sm text-pretty text-muted-foreground">No photos yet. Upload some with “Add photos or a video”, or in the brand profile.</p>
           ) : (
-            <ul aria-label={`Photos for slide ${number}`} className="grid max-h-48 grid-cols-4 gap-1.5 overflow-y-auto sm:grid-cols-6">
+            <ul aria-label={`Photos for slide ${number}${name === "picture" ? "" : `, the ${name}`}`} className="grid max-h-48 grid-cols-4 gap-1.5 overflow-y-auto sm:grid-cols-6">
               {photos.map((asset) => (
                 <li key={asset.id}>
                   <button
@@ -390,9 +390,14 @@ export default function GraphicEditor({
                       </label>
                       <textarea id={`slide-${index}-text`} rows={3} value={slide.text} maxLength={LIMITS.text} onChange={(event) => setSlide(index, { text: event.target.value })} className={inputClass} />
                     </div>
-                    {(draft.template === "offer" || draft.template === "announcement" || (draft.template === "carousel" && index === 0)) && (
+                    {info.pictures === "pair" ? (
+                      <>
+                        <PhotoChoice number={index + 1} name="before picture" value={slide.photo} onChange={(photo) => setSlide(index, { photo })} />
+                        <PhotoChoice number={index + 1} name="after picture" value={slide.photo2 ?? ""} onChange={(photo2) => setSlide(index, { photo2 })} />
+                      </>
+                    ) : info.pictures === "photo" && (draft.template !== "carousel" || index === 0) ? (
                       <PhotoChoice number={index + 1} value={slide.photo} onChange={(photo) => setSlide(index, { photo })} />
-                    )}
+                    ) : null}
                   </div>
                 </li>
               ))}
