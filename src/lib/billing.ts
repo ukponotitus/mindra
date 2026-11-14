@@ -279,14 +279,16 @@ export function firstDays(days: number) {
 }
 
 /** The pricing cards' plans, for the landing page (no sign-in needed). */
+/** The plans for the landing page: the built-in copy until the API answers, and still when it doesn't. */
 export function usePricingPlans() {
-  return useQuery({
+  const query = useQuery({
     queryKey: ["billing", "plans"],
     queryFn: () => apiRequest<PlanList>("/api/billing/plans/"),
     placeholderData: BUILT_IN_LIST,
     staleTime: 10 * 60_000,
     retry: false,
   });
+  return { ...query, data: query.data ?? BUILT_IN_LIST };
 }
 
 /** The workspace's plan and usage. */
