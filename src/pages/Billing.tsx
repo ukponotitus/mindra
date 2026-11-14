@@ -4,8 +4,14 @@ import { Check, CreditCard, LoaderCircle, Minus } from "lucide-react";
 import ConfirmDialog from "../components/ui/ConfirmDialog";
 import { buttonStyles } from "../components/ui/button";
 import {
-  naira,
+  CURRENCIES,
+  chargedAs,
+  defaultCurrency,
+  fromPrice,
+  money,
+  planPrice,
   recordingAllowance,
+  rememberCurrency,
   useBilling,
   useChangeCard,
   useChangeRenewal,
@@ -14,6 +20,7 @@ import {
   type BillingInterval,
   type BillingOverview,
   type BillingPayment,
+  type Currency,
   type BillingSubscription,
   type PricingPlan,
 } from "../lib/billing";
@@ -50,7 +57,7 @@ function paidNote(billing: BillingOverview, subscription: BillingSubscription) {
   const end = when(subscription.period_end);
   if (subscription.status === "active") {
     const per = subscription.interval === "yearly" ? "a year" : "a month";
-    return `Paid with Paystack: ${naira(subscription.amount)} ${per}, renewing by itself on ${end}.`;
+    return `Paid with Paystack: ${money(subscription.amount, subscription.currency)} ${per}, renewing by itself on ${end}.`;
   }
   if (subscription.status === "cancelled") {
     return `Cancelled: your workspace keeps ${subscription.plan_name} until ${end}, then moves to the ${afterwards(billing)} plan. Nothing you've made is removed.`;
@@ -59,15 +66,16 @@ function paidNote(billing: BillingOverview, subscription: BillingSubscription) {
 }
 
 /** Where the plan comes from and how long it lasts, in a sentence. */
-function planNote(billing: BillingOverview) {
+function planNote(billing: BillingOverview, currency: Currency) {
   const until = billing.ends_at ? formatDayLong(new Date(billing.ends_at)) : "";
+  const from = fromPrice(billing.plans, currency) || "from a small monthly price";
   switch (billing.source) {
     case "beta":
       return billing.beta_ends_on
-        ? `Mindra's launch offer: everything is open, free, until ${dayText(billing.beta_ends_on, 1)}. After that your workspace moves to the Free plan, unless you choose a paid plan, from ${naira(5000)} a month. Nothing you've made is removed.`
+        ? `Mindra's launch offer: everything is open, free, until ${dayText(billing.beta_ends_on, 1)}. After that your workspace moves to the Free plan, unless you choose a paid plan, ${from}. Nothing you've made is removed.`
         : "Mindra's launch offer: everything is open, free.";
     case "trial":
-      return `Full access for your account's first week, until ${until}. After that your workspace moves to the Free plan, unless you choose a paid plan, from ${naira(5000)} a month. Nothing you've made is removed.`;
+      return `Full access for your account's first week, until ${until}. After that your workspace moves to the Free plan, unless you choose a paid plan, ${from}. Nothing you've made is removed.`;
     case "given":
       return until
         ? `Mindra gave your workspace this plan until ${until}. After that it's on the ${afterwards(billing)} plan.`
@@ -111,8 +119,9 @@ function Meter({ label, used, limit, detail }: { label: string; used: number; li
   );
 }
 
-function PlanCard({ plan, current, interval, action }: { plan: PricingPlan; current: boolean; interval: BillingInterval; action?: ReactNode }) {
-  const yearly = interval === "yearly" && plan.monthly_price > 0;
+function PlanCard({ plan, current, interval, currency, action }: { plan: PricingPlan; current: boolean; interval: BillingInterval; currency: Currency; action?: ReactNode }) {
+  const paid = plan.prices.USD.monthly > 0;
+  const yearly = interval === "yearly" && paid;
   return (
     <article
       className={cn(
@@ -130,11 +139,11 @@ function PlanCard({ plan, current, interval, action }: { plan: PricingPlan; curr
       </div>
       {plan.tagline && <p className="mt-1 min-h-10 text-sm text-pretty text-muted-foreground">{plan.tagline}</p>}
       <p className="mt-3 text-2xl font-semibold text-foreground tabular-nums">
-        {naira(yearly ? plan.yearly_price : plan.monthly_price)}
+        {money(planPrice(plan, currency, yearly ? "yearly" : "monthly"), currency)}
         <span className="ml-1 text-sm font-normal text-muted-foreground">{yearly ? "/year" : "/month"}</span>
       </p>
       <p className="mt-0.5 h-4 text-xs text-muted-foreground tabular-nums">
-        {plan.monthly_price > 0 ? (yearly ? "2 months free" : `or ${naira(plan.yearly_price)} a year (2 months free)`) : ""}
+        {paid ? (yearly ? "2 months free" : `or ${money(planPrice(plan, currency, "yearly"), currency)} a year (2 months free)`) : ""}
       </p>
       <ul className="mt-4 flex-1 space-y-2 text-sm">
         <li className="flex gap-2 text-foreground">
@@ -177,7 +186,7 @@ function PaymentList({ payments }: { payments: BillingPayment[] }) {
             </p>
           </div>
           <div className="min-w-0 sm:text-right">
-            <p className="text-sm font-medium text-foreground tabular-nums">{naira(payment.amount)}</p>
+            <p className="text-sm font-medium text-foreground tabular-nums">{money(payment.amount, payment.currency)}</p>
             <p className="text-xs break-all text-muted-foreground">
               {payment.card || payment.channel || "Paystack"} · {payment.reference}
             </p>
@@ -208,6 +217,7 @@ export default function Billing() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [notice, setNotice] = useState<Notice | null>(null);
   const [chosenInterval, setChosenInterval] = useState<BillingInterval | null>(null);
+  const [chosenCurrency, setChosenCurrency] = useState<Currency | null>(null);
   const returned = useRef(false);
 
   function check(reference: string) {
@@ -266,6 +276,8 @@ export default function Billing() {
   const { available, can_manage: canManage, subscription, invoices } = data.payments;
   const pay = available && canManage;
   const interval = chosenInterval ?? subscription?.interval ?? "monthly";
+  // Prices in the currency the plan is paid in, else the device's choice, else where the person is.
+  const currency = chosenCurrency ?? subscription?.priced_in ?? defaultCurrency();
   const busy = checkout.isPending || renewal.isPending || card.isPending;
   const actionError = [checkout.error, renewal.error, card.error].find(Boolean);
 
@@ -279,20 +291,22 @@ export default function Billing() {
 
   function choose(item: PricingPlan, period: BillingInterval) {
     fresh();
-    checkout.mutate({ workspace: data.workspace, plan: item.id, interval: period });
+    checkout.mutate({ workspace: data.workspace, plan: item.id, interval: period, currency });
   }
 
   /** The button on a paid plan's card: choose it, or switch to it from the plan paid for now. */
   function planAction(item: PricingPlan): ReactNode {
-    if (!pay || item.monthly_price === 0) return null;
-    const own = subscription?.plan === item.id && subscription.interval === interval;
+    if (!pay || item.prices.USD.monthly === 0) return null;
+    const own = subscription?.plan === item.id && subscription.interval === interval && subscription.priced_in === currency;
     if (own && subscription.status !== "past_due") return null;
     const label = own
       ? "Pay now"
       : !subscription
         ? `Choose ${item.name}`
         : subscription.plan === item.id
-          ? `Pay ${interval} instead`
+          ? subscription.interval === interval
+            ? `Pay in ${currency === "USD" ? "dollars" : "naira"} instead`
+            : `Pay ${interval} instead`
           : `Switch to ${item.name}`;
     const working = checkout.isPending && checkout.variables?.plan === item.id;
     const button = (onClick?: () => void) => (
@@ -307,13 +321,13 @@ export default function Billing() {
       </button>
     );
     if (!subscription || own) return button(() => choose(item, interval));
-    const price = interval === "yearly" ? item.yearly_price : item.monthly_price;
+    const price = planPrice(item, currency, interval);
     return (
       <ConfirmDialog
         tone="primary"
         trigger={button()}
         title={`${item.name}, paid ${interval}?`}
-        description={`You'll pay ${naira(price)} on Paystack's page, and ${item.name} starts once it's paid. Your ${subscription.plan_name} plan (${subscription.interval}) ends then, and what's left of its period isn't refunded.`}
+        description={`You'll pay ${chargedAs(price, currency, data)} on Paystack's page, and ${item.name} starts once it's paid. Your ${subscription.plan_name} plan (${subscription.interval}) ends then, and what's left of its period isn't refunded.`}
         confirmLabel="Continue to Paystack"
         cancelLabel="Not now"
         onConfirm={() => choose(item, interval)}
@@ -351,7 +365,7 @@ export default function Billing() {
             <h3 id="current-plan" className="text-lg font-semibold text-foreground">
               {plan.name} plan
             </h3>
-            <p className="mt-1 max-w-2xl text-sm text-pretty text-muted-foreground">{planNote(data)}</p>
+            <p className="mt-1 max-w-2xl text-sm text-pretty text-muted-foreground">{planNote(data, currency)}</p>
             {pay && subscription && (
               <div className="mt-4 flex flex-wrap gap-2">
                 {subscription.status === "cancelled" && (
@@ -508,6 +522,7 @@ export default function Billing() {
             )}
           </div>
           {pay && (
+            <div className="flex flex-wrap gap-2">
             <div role="group" aria-label="How often to pay" className="inline-flex rounded-lg bg-secondary p-1">
               {(
                 [
@@ -529,8 +544,33 @@ export default function Billing() {
                 </button>
               ))}
             </div>
+            <div role="group" aria-label="Currency" className="inline-flex rounded-lg bg-secondary p-1">
+              {CURRENCIES.map((option) => (
+                <button
+                  key={option.id}
+                  type="button"
+                  aria-pressed={currency === option.id}
+                  onClick={() => {
+                    setChosenCurrency(option.id);
+                    rememberCurrency(option.id);
+                  }}
+                  className={cn(
+                    "rounded-md px-3.5 py-1.5 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
+                    currency === option.id ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+            </div>
           )}
         </div>
+        {pay && currency === "USD" && !data.charge_usd && (
+          <p className="text-sm text-pretty text-muted-foreground">
+            Dollar prices are charged in naira on Paystack's page, at ₦{data.usd_ngn_rate.toLocaleString("en-NG")} to the dollar, so a card from anywhere works. Your bank converts it.
+          </p>
+        )}
         {actionError && (
           <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-pretty text-red-800">
             {actionError.message}
@@ -538,7 +578,7 @@ export default function Billing() {
         )}
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {data.plans.map((item) => (
-            <PlanCard key={item.id} plan={item} current={item.id === plan.id} interval={pay ? interval : "monthly"} action={planAction(item)} />
+            <PlanCard key={item.id} plan={item} current={item.id === plan.id} interval={pay ? interval : "monthly"} currency={currency} action={planAction(item)} />
           ))}
         </div>
         {!available && (

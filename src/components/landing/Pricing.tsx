@@ -4,14 +4,13 @@ import { Check, Minus, Tag } from "lucide-react";
 import { Link } from "react-router";
 import Reveal from "./Reveal";
 import SectionLabel from "./SectionLabel";
-import { firstDays, offerLastDay, recordingAllowance, usePricingPlans } from "../../lib/billing";
+import { CURRENCIES, defaultCurrency, firstDays, money, offerLastDay, planPrice, recordingAllowance, rememberCurrency, usePricingPlans, type Currency } from "../../lib/billing";
 import { useCtaLinks } from "./useCtaLinks";
 
-// Monthly prices in naira; yearly billing gives two months free. The plans come from the API (billing/plans.py, the
-// one list of prices and limits), shown from the built-in copy until it answers. Features Mindra doesn't have yet are
-// marked `soon`, so the cards never promise what isn't built.
-const naira = (amount: number) => amount.toLocaleString("en-NG");
-
+// Prices in US dollars, or in naira for Nigeria (the browser's time zone or language chooses, with a switch); yearly
+// billing gives two months free. The plans come from the API (billing/plans.py, the one list of prices and limits),
+// shown from the built-in copy until it answers. Features Mindra doesn't have yet are marked `soon`, so the cards
+// never promise what isn't built.
 function yearlyPerMonth(monthly: number) {
   return Math.round((monthly * 10) / 12);
 }
@@ -19,6 +18,11 @@ function yearlyPerMonth(monthly: number) {
 export default function Pricing() {
   const { startTo } = useCtaLinks();
   const [yearly, setYearly] = useState(false);
+  const [currency, setCurrency] = useState<Currency>(defaultCurrency);
+  const chooseCurrency = (chosen: Currency) => {
+    setCurrency(chosen);
+    rememberCurrency(chosen);
+  };
   const pricing = usePricingPlans().data;
   const plans = pricing?.plans ?? [];
   // The launch offer: every account has everything open, free, to its last day.
@@ -52,6 +56,7 @@ export default function Pricing() {
                   : "Launch offer: everything open, free"}
             </div>
           )}
+          <div className="flex flex-wrap items-center justify-center gap-3">
           <div role="group" aria-label="Billing period" className="relative flex rounded-full bg-card/[0.06] p-1 ring-1 ring-white/10">
             {[
               { label: "Monthly", value: false },
@@ -80,11 +85,29 @@ export default function Pricing() {
               );
             })}
           </div>
+          <div role="group" aria-label="Currency" className="flex rounded-full bg-card/[0.06] p-1 ring-1 ring-white/10">
+            {CURRENCIES.map((option) => {
+              const selected = currency === option.id;
+              return (
+                <button
+                  key={option.id}
+                  type="button"
+                  aria-pressed={selected}
+                  onClick={() => chooseCurrency(option.id)}
+                  className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${selected ? "bg-card text-black" : "text-white/60 hover:text-white"}`}
+                >
+                  {option.label}
+                </button>
+              );
+            })}
+          </div>
+          </div>
         </Reveal>
 
         <div className="mt-12 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {plans.map((plan, i) => {
-            const price = yearly ? yearlyPerMonth(plan.monthly_price) : plan.monthly_price;
+            const monthly = planPrice(plan, currency, "monthly");
+            const price = yearly ? yearlyPerMonth(monthly) : monthly;
             return (
               <Reveal key={plan.name} delay={i * 90}>
                 <div
@@ -102,23 +125,23 @@ export default function Pricing() {
                   </div>
                   {plan.tagline && <p className="mt-1.5 min-h-10 text-sm text-white/50">{plan.tagline}</p>}
                   <p className="mt-5 flex h-14 items-baseline overflow-hidden">
-                    <span className="text-[2.75rem] font-medium text-white">₦</span>
+                    <span className="text-[2.75rem] font-medium text-white">{currency === "USD" ? "$" : "₦"}</span>
                     <AnimatePresence mode="popLayout" initial={false}>
                       <motion.span
-                        key={price}
+                        key={`${currency}-${price}`}
                         initial={{ y: 40, opacity: 0 }}
                         animate={{ y: 0, opacity: 1 }}
                         exit={{ y: -40, opacity: 0 }}
                         transition={{ duration: 0.2, ease: "easeOut" }}
                         className="text-[2.75rem] font-medium text-white tabular-nums"
                       >
-                        {naira(price)}
+                        {price.toLocaleString("en-NG")}
                       </motion.span>
                     </AnimatePresence>
                     <span className="ml-1.5 text-sm text-white/40">/month</span>
                   </p>
                   <p className="mt-1 h-4 text-xs text-white/40 tabular-nums">
-                    {plan.monthly_price > 0 && yearly ? `₦${naira(plan.yearly_price)} paid once a year` : ""}
+                    {monthly > 0 && yearly ? `${money(planPrice(plan, currency, "yearly"), currency)} paid once a year` : ""}
                   </p>
                   <p className="mt-5 text-sm font-medium text-[#B4A9FF]">{recordingAllowance(plan.hours_per_month)}</p>
                   <ul className="mt-5 flex-1 space-y-3">
@@ -154,7 +177,7 @@ export default function Pricing() {
         </div>
 
         <p className="mx-auto mt-10 max-w-2xl text-center text-sm text-white/35">
-          Prices in naira.
+          {currency === "USD" ? "Prices in US dollars; in Nigeria, in naira." : "Prices in naira for Nigeria; in US dollars elsewhere."}
           {inBeta && (lastDay ? ` Every account has everything open, free, until ${lastDay}; the plans apply after that.` : " The plans apply after the launch offer.")}{" "}
           Agency plans for teams running many brands are on the way.
         </p>

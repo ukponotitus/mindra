@@ -35,7 +35,7 @@ const groups = [
     icon: Hammer,
     items: [
       "Automatic posting to Facebook, Instagram, TikTok and X: built, waiting on each platform's approval",
-      "Paying for plans online, in naira: built, being tested",
+      "Paying for plans online, in dollars or naira: built, being tested",
     ],
   },
   {

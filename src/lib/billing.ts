@@ -7,12 +7,20 @@ import { apiRequest } from "./api";
 
 export type PricingPlanId = "beta" | "free" | "creator" | "pro" | "teams";
 
+/** Plans are priced in US dollars, with a naira price for Nigeria. */
+export type Currency = "USD" | "NGN";
+export const CURRENCIES: { id: Currency; label: string }[] = [
+  { id: "USD", label: "$ USD" },
+  { id: "NGN", label: "₦ NGN" },
+];
+
+export type PlanPrices = Record<Currency, { monthly: number; yearly: number }>;
+
 export type PricingPlan = {
   id: PricingPlanId;
   name: string;
-  /** Naira a month; a year is `yearly_price` (ten months). */
-  monthly_price: number;
-  yearly_price: number;
+  /** A month and a year (ten months) in each currency. */
+  prices: PlanPrices;
   /** Null: no limit. */
   hours_per_month: number | null;
   max_recording_minutes: number | null;
@@ -36,6 +44,9 @@ export type PricingPlan = {
 
 export type PlanList = {
   plans: PricingPlan[];
+  /** Whether Paystack charges a dollar price in dollars; otherwise in naira at `usd_ngn_rate`. */
+  charge_usd: boolean;
+  usd_ngn_rate: number;
   in_beta: boolean;
   beta_ends_on: string | null;
   /** How long a new account has Full access once the launch offer is over (0: none). */
@@ -50,8 +61,10 @@ export type BillingSubscription = {
   plan: PricingPlanId;
   plan_name: string;
   interval: BillingInterval;
-  /** Naira a period. */
+  /** A period's price in `currency`, from the `priced_in` price list (a dollar price may be charged in naira). */
   amount: number;
+  currency: Currency;
+  priced_in: Currency;
   status: "active" | "cancelled" | "past_due";
   /** The end of the period paid for. */
   period_end: string | null;
@@ -114,9 +127,52 @@ export type BillingOverview = PlanList & {
   };
 };
 
-/** "₦12,000". */
-export function naira(amount: number): string {
-  return `₦${amount.toLocaleString("en-NG")}`;
+/** "₦32,000" or "$29". */
+export function money(amount: number, currency: Currency | string): string {
+  const whole = amount.toLocaleString("en-NG", { maximumFractionDigits: 2 });
+  return currency === "USD" ? `$${whole}` : `₦${whole}`;
+}
+
+const CURRENCY_KEY = "mindra.currency";
+
+/** The currency to show prices in: the one chosen on this device, else naira in Nigeria (the browser's time zone or
+ * language) and dollars everywhere else. */
+export function defaultCurrency(): Currency {
+  try {
+    const chosen = localStorage.getItem(CURRENCY_KEY);
+    if (chosen === "USD" || chosen === "NGN") return chosen;
+  } catch {
+    // Blocked storage: the guess below.
+  }
+  if (typeof Intl === "undefined" || typeof navigator === "undefined") return "USD";
+  const zone = Intl.DateTimeFormat().resolvedOptions().timeZone ?? "";
+  const nigerian = zone === "Africa/Lagos" || navigator.languages?.some((language) => language.toUpperCase().endsWith("-NG"));
+  return nigerian ? "NGN" : "USD";
+}
+
+export function rememberCurrency(currency: Currency) {
+  try {
+    localStorage.setItem(CURRENCY_KEY, currency);
+  } catch {
+    // Not kept, that's all.
+  }
+}
+
+/** A plan's price for the period in the currency. */
+export function planPrice(plan: PricingPlan, currency: Currency, interval: BillingInterval): number {
+  return interval === "yearly" ? plan.prices[currency].yearly : plan.prices[currency].monthly;
+}
+
+/** The cheapest paid plan's monthly price, as "from $9 a month"; "" without plans. */
+export function fromPrice(plans: PricingPlan[] | undefined, currency: Currency): string {
+  const paid = (plans ?? []).map((plan) => plan.prices[currency].monthly).filter((price) => price > 0);
+  return paid.length ? `from ${money(Math.min(...paid), currency)} a month` : "";
+}
+
+/** What a dollar price is charged as: "$29" once Paystack takes dollars, else "$29, charged as ₦40,600". */
+export function chargedAs(amount: number, currency: Currency, list: Pick<PlanList, "charge_usd" | "usd_ngn_rate">): string {
+  if (currency === "USD" && !list.charge_usd) return `${money(amount, "USD")}, charged as ${money(amount * list.usd_ngn_rate, "NGN")}`;
+  return money(amount, currency);
 }
 
 /** "30 recording minutes a month", "5 recording hours a month". */
@@ -132,8 +188,7 @@ export const BUILT_IN_PLANS: PricingPlan[] = [
   {
     id: "free",
     name: "Free",
-    monthly_price: 0,
-    yearly_price: 0,
+    prices: { USD: { monthly: 0, yearly: 0 }, NGN: { monthly: 0, yearly: 0 } },
     hours_per_month: 0.5,
     max_recording_minutes: 30,
     connected_accounts: 1,
@@ -159,8 +214,7 @@ export const BUILT_IN_PLANS: PricingPlan[] = [
   {
     id: "creator",
     name: "Creator",
-    monthly_price: 5000,
-    yearly_price: 50000,
+    prices: { USD: { monthly: 9, yearly: 90 }, NGN: { monthly: 10000, yearly: 100000 } },
     hours_per_month: 5,
     max_recording_minutes: 120,
     connected_accounts: 3,
@@ -169,7 +223,7 @@ export const BUILT_IN_PLANS: PricingPlan[] = [
     posts_per_month: 100,
     clips_per_month: 15,
     picture_projects_per_month: 25,
-    ai_images_per_month: 40,
+    ai_images_per_month: 20,
     tagline: "Create and publish consistently",
     features: [
       { text: "100 AI-generated posts", soon: false, included: true },
@@ -186,8 +240,7 @@ export const BUILT_IN_PLANS: PricingPlan[] = [
   {
     id: "pro",
     name: "Pro",
-    monthly_price: 12000,
-    yearly_price: 120000,
+    prices: { USD: { monthly: 29, yearly: 290 }, NGN: { monthly: 32000, yearly: 320000 } },
     hours_per_month: 15,
     max_recording_minutes: 180,
     connected_accounts: 10,
@@ -196,7 +249,7 @@ export const BUILT_IN_PLANS: PricingPlan[] = [
     posts_per_month: 300,
     clips_per_month: 50,
     picture_projects_per_month: 100,
-    ai_images_per_month: 150,
+    ai_images_per_month: 100,
     tagline: "Automate your content workflow",
     features: [
       { text: "300 AI-generated posts", soon: false, included: true },
@@ -214,8 +267,7 @@ export const BUILT_IN_PLANS: PricingPlan[] = [
   {
     id: "teams",
     name: "Organisation",
-    monthly_price: 25000,
-    yearly_price: 250000,
+    prices: { USD: { monthly: 79, yearly: 790 }, NGN: { monthly: 78000, yearly: 780000 } },
     hours_per_month: 30,
     max_recording_minutes: 180,
     connected_accounts: 20,
@@ -224,7 +276,7 @@ export const BUILT_IN_PLANS: PricingPlan[] = [
     posts_per_month: 750,
     clips_per_month: 100,
     picture_projects_per_month: 200,
-    ai_images_per_month: 400,
+    ai_images_per_month: 200,
     tagline: "Manage content across your organisation",
     features: [
       { text: "750 AI-generated posts", soon: false, included: true },
@@ -240,7 +292,7 @@ export const BUILT_IN_PLANS: PricingPlan[] = [
   },
 ];
 
-const BUILT_IN_LIST: PlanList = { plans: BUILT_IN_PLANS, in_beta: true, beta_ends_on: null, new_account_days: 0 };
+const BUILT_IN_LIST: PlanList = { plans: BUILT_IN_PLANS, charge_usd: false, usd_ngn_rate: 1400, in_beta: true, beta_ends_on: null, new_account_days: 0 };
 
 /** The launch offer's last day ("15 November"), from `beta_ends_on`, the first day after it; null when it has no end. */
 export function offerLastDay(betaEndsOn: string | null): string | null {
@@ -305,7 +357,7 @@ const BILLING_KEY = ["billing"];
 /** Pay for a plan: goes to Paystack's checkout page, which comes back to /billing with the payment's reference. */
 export function useCheckout() {
   return useMutation({
-    mutationFn: async (choice: { workspace: number; plan: PricingPlanId; interval: BillingInterval }) => {
+    mutationFn: async (choice: { workspace: number; plan: PricingPlanId; interval: BillingInterval; currency: Currency }) => {
       const { url } = await apiRequest<{ url: string }>("/api/billing/checkout/", { method: "POST", body: choice });
       window.location.assign(url);
       // Stay busy while the browser leaves for Paystack.

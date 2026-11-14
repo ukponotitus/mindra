@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { MessageCircleQuestion, Plus } from "lucide-react";
-import { firstDays, freeAllowances, usePricingPlans, useOfferLastDay } from "../../lib/billing";
+import { defaultCurrency, firstDays, freeAllowances, fromPrice, useOfferLastDay, usePricingPlans } from "../../lib/billing";
 import { cn } from "../../lib/cn";
 import Reveal from "./Reveal";
 import SectionLabel from "./SectionLabel";
@@ -82,8 +82,7 @@ const questions = [
 /** Is it free, and what happens after the launch offer, in the API's own dates and allowances. */
 function offerQuestions(lastDay: string | null, plans: ReturnType<typeof usePricingPlans>["data"]) {
   const free = freeAllowances(plans?.plans.find((plan) => plan.id === "free"));
-  const prices = (plans?.plans ?? []).map((plan) => plan.monthly_price).filter((price) => price > 0);
-  const from = prices.length ? `₦${Math.min(...prices).toLocaleString("en-NG")} a month` : "a small monthly price";
+  const from = fromPrice(plans?.plans, defaultCurrency()).replace(/^from /, "") || "a small monthly price";
   const newDays = plans?.new_account_days ?? 0;
   if (lastDay) {
     return [
