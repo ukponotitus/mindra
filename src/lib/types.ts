@@ -16,6 +16,8 @@ export type User = {
   email: string;
   first_name: string;
   last_name: string;
+  /** False for an account made with Google that hasn't set a password. */
+  has_password: boolean;
   workspaces: WorkspaceMembership[];
 };
 

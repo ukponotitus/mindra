@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { ShieldCheck } from "lucide-react";
 import { Link } from "react-router";
 import LegalLayout from "../components/landing/LegalLayout";
-import { COMPANY_NAME, CONTACT_EMAIL } from "../lib/legal";
+import { COMPANY_ADDRESS, COMPANY_FULL, CONTACT_EMAIL } from "../lib/legal";
 
 function Table({ head, rows }: { head: string[]; rows: ReactNode[][] }) {
   return (
@@ -39,7 +39,7 @@ export default function PrivacyPage() {
       <p>
         Mindra helps organisations and creators turn their recordings, photos, flyers and plans into posts, clips and short
         videos, plan when they go out, post them to the accounts they connect, and see how they did. This policy explains what
-        Mindra collects, why, who helps us run it, where it goes, how long we keep it, and your rights. {COMPANY_NAME} runs
+        Mindra collects, why, who helps us run it, where it goes, how long we keep it, and your rights. {COMPANY_FULL}, runs
         Mindra (“we”).
       </p>
       <p>
@@ -51,7 +51,10 @@ export default function PrivacyPage() {
       <ul>
         <li>
           <strong>Your account:</strong> your name, email address and password, and when you confirmed you’re 18 or older.
-          Passwords are stored as a one-way hash, so nobody at Mindra can read them.
+          Passwords are stored as a one-way hash, so nobody at Mindra can read them. If you choose “Continue with Google”,
+          Google tells Mindra your name, your email address, that Google has confirmed it, and your Google account’s ID.
+          Mindra keeps the name, the email address and the ID so it can sign you in next time, and nothing else: it gets no
+          access to your Google account, your contacts or your files, and keeps none of Google’s tokens from signing in.
         </li>
         <li>
           <strong>What you upload:</strong> video and audio recordings, photos, flyers, content plans (pasted or as a file),
@@ -296,7 +299,7 @@ export default function PrivacyPage() {
         rows={[
           ["Render", "Hosts our servers and database, in Frankfurt, Germany", "Everything stored in Mindra", "United States"],
           ["Cloudflare", "Serves the website and short links; stores files (R2)", "Files; visitors’ IP address and browser details", "United States"],
-          ["Google", "AI pictures, the website’s font, YouTube", "Picture descriptions and the photos you choose for them; visitors’ IP address; YouTube posts", "United States"],
+          ["Google", "AI pictures, the website’s font, YouTube, signing in with Google", "Picture descriptions and the photos you choose for them; visitors’ IP address; YouTube posts; that you signed in to Mindra, if you use “Continue with Google”", "United States"],
           ["Anthropic", "AI writing and reading, and the assistant", "Transcripts, photos, flyers, plans, brand profile; your questions to the assistant, campaigns, Planner, results and what it reads to answer", "United States"],
           ["Deepgram", "Transcription", "The audio of your recordings", "United States"],
           ["ElevenLabs", "Voice-overs in Automations, if you use them", "The script", "United States"],
@@ -395,7 +398,8 @@ export default function PrivacyPage() {
 
       <h2>Contact</h2>
       <p>
-        {COMPANY_NAME} runs Mindra. For privacy questions and requests, email {email}.
+        {COMPANY_FULL}, runs Mindra. Its registered office is {COMPANY_ADDRESS}. For privacy questions and requests, email{" "}
+        {email}.
       </p>
     </LegalLayout>
   );

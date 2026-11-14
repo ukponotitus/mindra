@@ -153,6 +153,7 @@ export default function Settings() {
 
           <Card icon={KeyRound} title="Password">
             <p className="mb-4 text-sm text-pretty text-muted-foreground">
+              {user.has_password === false && "You sign in with Google, so this account has no password yet. To sign in with one as well: "}
               We'll email a link to <strong className="font-medium wrap-anywhere text-foreground">{user.email}</strong> where you can choose a new password.
             </p>
             {resetState === "sent" ? (

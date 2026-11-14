@@ -1,7 +1,7 @@
 import { FileText } from "lucide-react";
 import { Link } from "react-router";
 import LegalLayout from "../components/landing/LegalLayout";
-import { COMPANY_NAME, CONTACT_EMAIL, GOVERNING_COUNTRY } from "../lib/legal";
+import { COMPANY_FULL, COMPANY_NAME, CONTACT_EMAIL, GOVERNING_COUNTRY } from "../lib/legal";
 
 export default function TermsPage() {
   const email = <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>;
@@ -9,7 +9,7 @@ export default function TermsPage() {
   return (
     <LegalLayout title="Terms of Service" label="Terms" icon={FileText}>
       <p>
-        These terms are the agreement between you and {COMPANY_NAME} (“we”) for using Mindra. By creating an account, you
+        These terms are the agreement between you and {COMPANY_FULL} (“we”), for using Mindra. By creating an account, you
         agree to them. Read them with our <Link to="/privacy">Privacy Policy</Link>, which explains how we handle your data.
       </p>
 

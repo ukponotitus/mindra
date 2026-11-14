@@ -4,6 +4,7 @@ import { ArrowLeft, Check } from "lucide-react";
 import { Link, Navigate, useLocation, useNavigate, useSearchParams } from "react-router";
 import { useAuth } from "../auth/context";
 import BrandMark from "../components/BrandMark";
+import GoogleButton from "../components/GoogleButton";
 import PasswordInput from "../components/ui/PasswordInput";
 import { buttonStyles } from "../components/ui/button";
 import { ApiError, apiRequest, type FieldErrors } from "../lib/api";
@@ -20,7 +21,16 @@ interface Props {
 }
 
 /** `GET /api/auth/signup-options/`: whether sign-up needs an invite code (it never reveals the codes). */
-type SignupOptions = { invite_required: boolean };
+type SignupOptions = { invite_required: boolean; google?: boolean };
+
+/** Why "Continue with Google" didn't sign the person in (`/login?google=`, from the API's callback). */
+const GOOGLE_PROBLEMS: Record<string, string> = {
+  cancelled: "You left Google's sign-in before it finished. Nothing was changed.",
+  expired: "Signing in with Google took too long. Try again.",
+  unverified: "Google hasn't confirmed that email address is yours. Confirm it with Google, or sign up with your email and a password.",
+  off: "Signing in with Google isn't available right now. Use your email and password.",
+  failed: "Couldn't sign you in with Google. Try again, or use your email and password.",
+};
 
 const copy: Record<Mode, { tabTitle: string; title: string; subtitle: string; submit: string }> = {
   login: { tabTitle: "Log in", title: "Welcome back", subtitle: "Log in to your Mindra workspace.", submit: "Log In" },
@@ -120,7 +130,7 @@ export default function AuthPage({ mode }: Props) {
   const signupOptions = useQuery({
     queryKey: ["signup-options"],
     queryFn: () => apiRequest<SignupOptions>("/api/auth/signup-options/"),
-    enabled: mode === "signup",
+    enabled: mode === "signup" || mode === "login",
     staleTime: 5 * 60_000,
   });
 
@@ -198,6 +208,8 @@ export default function AuthPage({ mode }: Props) {
         : newDays
           ? `Everything is open, free, for your ${firstDays(newDays)}.`
           : copy[mode].subtitle;
+  const googleOffered = (mode === "login" || mode === "signup") && signupOptions.data?.google === true;
+  const googleProblem = mode === "login" ? searchParams.get("google") : null;
   const resetLinkMissing = mode === "reset" && (!uid || !token);
   const passwordHint = mode !== "login" ? "At least 8 characters, not too common." : undefined;
 
@@ -275,10 +287,26 @@ export default function AuthPage({ mode }: Props) {
                   Your account was deleted, with everything that was only yours. We’ve emailed you to confirm.
                 </p>
               )}
+              {googleProblem && !error && (
+                <p role="alert" className="mb-5 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-pretty text-red-800">
+                  {GOOGLE_PROBLEMS[googleProblem] ?? GOOGLE_PROBLEMS.failed}
+                </p>
+              )}
               {error && (
                 <p role="alert" className="mb-5 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-pretty text-red-800">
                   {error}
                 </p>
+              )}
+
+              {googleOffered && (
+                <div className="mb-6">
+                  <GoogleButton next={mode === "login" ? from : undefined} />
+                  <div className="mt-6 flex items-center gap-3 text-xs text-muted-foreground">
+                    <span aria-hidden="true" className="h-px flex-1 bg-border" />
+                    or with your email
+                    <span aria-hidden="true" className="h-px flex-1 bg-border" />
+                  </div>
+                </div>
               )}
 
               <div className="mb-6 space-y-4">

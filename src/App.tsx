@@ -8,6 +8,7 @@ import PageErrorBoundary from "./components/PageErrorBoundary";
 import { ApiError } from "./lib/api";
 import { useRecordVisits } from "./lib/visits";
 import AuthPage from "./pages/Auth";
+import GoogleSignIn from "./pages/GoogleSignIn";
 import DataDeletionPage from "./pages/DataDeletion";
 import LandingPage from "./pages/Landing";
 import PrivacyPage from "./pages/Privacy";
@@ -107,6 +108,7 @@ export default function App() {
               <Routes>
                 <Route path="/" element={<LandingPage />} />
                 <Route path="/login" element={<AuthPage key="login" mode="login" />} />
+                <Route path="/login/google" element={<GoogleSignIn />} />
                 <Route path="/signup" element={<AuthPage key="signup" mode="signup" />} />
                 <Route path="/forgot-password" element={<AuthPage key="forgot" mode="forgot" />} />
                 <Route path="/reset-password" element={<AuthPage key="reset" mode="reset" />} />

@@ -8,13 +8,18 @@ import { buttonStyles } from "../ui/button";
 import PasswordInput from "../ui/PasswordInput";
 
 // A copy of what Mindra holds about the person (the API's /api/auth/export/), and deleting their account with every
-// workspace that's only theirs (/api/auth/delete-account/, after their password).
+// workspace that's only theirs (/api/auth/delete-account/, after their password; someone who signed up with Google and
+// has no password types their email address instead).
 
 export default function YourData() {
   const { user, signOut } = useAuth();
   const [downloading, setDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState("");
   const [password, setPassword] = useState("");
+  const [typedEmail, setTypedEmail] = useState("");
+  // An account made with Google has no password to ask for.
+  const hasPassword = user?.has_password !== false;
+  const confirmed = hasPassword ? Boolean(password) : typedEmail.trim().toLowerCase() === (user?.email ?? "").toLowerCase() && Boolean(user);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
 
@@ -40,7 +45,7 @@ export default function YourData() {
     setDeleting(true);
     setDeleteError("");
     try {
-      await apiRequest<null>("/api/auth/delete-account/", { method: "POST", body: { password } });
+      await apiRequest<null>("/api/auth/delete-account/", { method: "POST", body: hasPassword ? { password } : { confirm_email: typedEmail.trim() } });
       await signOut();
       // A fresh load, so nothing of the account stays in memory; the login page says it's done.
       window.location.replace("/login?account=deleted");
@@ -81,19 +86,31 @@ export default function YourData() {
           has more.
         </p>
         <label htmlFor="delete-password" className="mb-1.5 block text-sm font-medium text-foreground">
-          Your password
+          {hasPassword ? "Your password" : "Type your email address to confirm"}
         </label>
         <div className="flex flex-col gap-2 sm:flex-row">
-          <PasswordInput
-            id="delete-password"
-            autoComplete="current-password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            className="h-10 w-full rounded-lg border border-border bg-card px-3 text-sm text-foreground outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20 sm:max-w-xs"
-          />
+          {hasPassword ? (
+            <PasswordInput
+              id="delete-password"
+              autoComplete="current-password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              className="h-10 w-full rounded-lg border border-border bg-card px-3 text-sm text-foreground outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20 sm:max-w-xs"
+            />
+          ) : (
+            <input
+              id="delete-password"
+              type="email"
+              autoComplete="off"
+              placeholder={user?.email}
+              value={typedEmail}
+              onChange={(event) => setTypedEmail(event.target.value)}
+              className="h-10 w-full rounded-lg border border-border bg-card px-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20 sm:max-w-xs"
+            />
+          )}
           <ConfirmDialog
             trigger={
-              <button type="button" disabled={!password || deleting} className={buttonStyles({ variant: "danger-outline" })}>
+              <button type="button" disabled={!confirmed || deleting} className={buttonStyles({ variant: "danger-outline" })}>
                 <Trash2 aria-hidden="true" className="size-4" />
                 {deleting ? "Deleting…" : "Delete my account"}
               </button>
