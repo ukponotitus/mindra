@@ -110,3 +110,14 @@ export function useMakeItemVideo() {
     onSuccess: changed,
   });
 }
+
+/** Remove items from the Content Studio and their calendar for good, each with its post unless that has gone out. Ones
+ * the server is still working on are left (`skipped`, with why in `detail`). */
+export function useRemoveItems() {
+  const changed = useQueueChanged();
+  return useMutation({
+    mutationFn: (items: string[]) =>
+      apiRequest<{ removed: number; skipped: number; detail: string }>("/api/studio-queue/remove/", { method: "POST", body: { items } }),
+    onSuccess: changed,
+  });
+}

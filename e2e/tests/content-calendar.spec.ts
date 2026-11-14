@@ -59,11 +59,12 @@ test("draft a content calendar, change an item, approve it and see it planned", 
   // post; they can be changed and made again.
   await main.getByRole("listitem").filter({ hasText: "Why sunscreen every day" }).getByRole("link", { name: "Open in Content Studio" }).click();
   await expect(page).toHaveURL(/\/content-studio\?item=/);
-  await expect(main.getByRole("heading", { name: /Ready to make/ })).toBeVisible();
+  await expect(main.getByRole("tab", { name: /Ready to make/ })).toHaveAttribute("aria-selected", "true");
   await expect(main.getByRole("button", { name: /^Make all \d+ posts$/ })).toBeVisible();
   const card = main.getByRole("listitem").filter({ hasText: "Why sunscreen every day" });
   await card.getByRole("button", { name: "Make the post" }).click();
-  await expect(main.getByRole("heading", { name: /In production/ })).toBeVisible({ timeout: 30_000 });
+  // The tab follows the item opened from its plan as it moves on.
+  await expect(main.getByRole("tab", { name: /In production/ })).toHaveAttribute("aria-selected", "true", { timeout: 30_000 });
   await card.getByRole("button", { name: "Make the slides" }).click();
   await expect(card.getByRole("button", { name: "Change the slides" })).toBeVisible({ timeout: 30_000 });
   await expect(card.getByRole("button", { name: "Approve" })).toBeVisible();
@@ -85,4 +86,17 @@ test("draft a content calendar, change an item, approve it and see it planned", 
   await expect(main.getByRole("link", { name: /ready for review|waiting for photos/ })).toBeVisible();
   await main.getByRole("link", { name: "Plan next month" }).click();
   await expect(main.getByRole("checkbox", { name: /Plan from what worked/ })).toBeChecked();
+
+  // Anything in the Content Studio can be removed for good: one with its post, or everything in a tab.
+  await page.goto("/content-studio?tab=review");
+  await main.getByRole("button", { name: /^Remove “Why sunscreen every day”/ }).click();
+  await page.getByRole("alertdialog").getByRole("button", { name: "Remove" }).click();
+  await expect(main.getByText("Why sunscreen every day")).toHaveCount(0);
+  await main.getByRole("tab", { name: /Ready to make/ }).click();
+  const removeAll = main.getByRole("button", { name: /^Remove all \d+$/ });
+  if (await removeAll.isVisible()) {
+    await removeAll.click();
+    await page.getByRole("alertdialog").getByRole("button", { name: /^Remove all/ }).click();
+    await expect(main.getByText("Nothing to make yet")).toBeVisible();
+  }
 });

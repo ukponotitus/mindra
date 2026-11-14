@@ -1,9 +1,11 @@
-import { useEffect, useState, type ReactNode } from "react";
-import { Check, Clapperboard, ImagePlus, LayoutTemplate, LoaderCircle, PenLine } from "lucide-react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { Tabs } from "@base-ui/react/tabs";
+import { Check, Clapperboard, ImagePlus, LayoutTemplate, LoaderCircle, PenLine, Trash2 } from "lucide-react";
 import { Link, useSearchParams } from "react-router";
 import GraphicEditor from "../components/content/GraphicEditor";
 import PlatformBadge from "../components/content/PlatformBadge";
 import SeePlans from "../components/SeePlans";
+import ConfirmDialog from "../components/ui/ConfirmDialog";
 import { buttonStyles } from "../components/ui/button";
 import { ApiError } from "../lib/api";
 import { formatLabel } from "../lib/calendars";
@@ -15,23 +17,53 @@ import {
   useMakeItemGraphic,
   useMakeItemVideo,
   useMakePost,
+  useRemoveItems,
   useStudioQueue,
   type StudioItem,
 } from "../lib/studioQueue";
 
 // The Content Studio (Phase 5): every approved brief, with its post made from it, reviewed and approved. Approved posts
-// are planned at their time in the Planner and go out by themselves or with a reminder.
+// are planned at their time in the Planner and go out by themselves or with a reminder. Each stage is a tab (`?tab=`), and
+// anything can be removed for good, one at a time or a whole tab.
 
 function when(item: StudioItem) {
   return new Date(item.scheduled_for).toLocaleString(undefined, { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
 }
 
-const GROUPS: { id: string; title: string; hint: string; statuses: string[] }[] = [
-  { id: "make", title: "Ready to make", hint: "Their briefs are approved. Mindra writes each post from its brief.", statuses: ["plan_approved"] },
-  { id: "production", title: "In production", hint: "Written, and waiting for what their format needs: pictures or a video, which Mindra can make from the brief.", statuses: ["in_production"] },
-  { id: "review", title: "Ready for review", hint: "Read each post, change it in the editor if you like, and approve it.", statuses: ["ready"] },
-  { id: "approved", title: "Approved", hint: "Planned at their time in the Planner. Changing one sends it back for review.", statuses: ["content_approved"] },
+const GROUPS: { id: string; title: string; hint: string; empty: string; statuses: string[] }[] = [
+  {
+    id: "make",
+    title: "Ready to make",
+    hint: "Their briefs are approved. Mindra writes each post from its brief.",
+    empty: "Nothing is waiting to be made. Briefs show up here as soon as they're approved.",
+    statuses: ["plan_approved"],
+  },
+  {
+    id: "production",
+    title: "In production",
+    hint: "Written, and waiting for what their format needs: pictures or a video, which Mindra can make from the brief.",
+    empty: "Nothing is waiting for pictures or a video.",
+    statuses: ["in_production"],
+  },
+  {
+    id: "review",
+    title: "Ready for review",
+    hint: "Read each post, change it in the editor if you like, and approve it.",
+    empty: "Nothing is waiting for your review.",
+    statuses: ["ready"],
+  },
+  {
+    id: "approved",
+    title: "Approved",
+    hint: "Planned at their time in the Planner. Changing one sends it back for review.",
+    empty: "No approved posts are waiting to go out.",
+    statuses: ["content_approved"],
+  },
 ];
+
+function groupOf(item: StudioItem) {
+  return GROUPS.find((group) => group.statuses.includes(item.status))?.id;
+}
 
 const SCHEDULE_WORDS: Record<string, string> = {
   planned: "Planned",
@@ -66,6 +98,7 @@ function Card({ item, chosen }: { item: StudioItem; chosen: boolean }) {
   const approve = useApprovePost();
   const makeGraphic = useMakeItemGraphic();
   const makeVideo = useMakeItemVideo();
+  const remove = useRemoveItems();
   const [error, setError] = useState<unknown>(null);
   const [editing, setEditing] = useState(false);
 
@@ -141,13 +174,40 @@ function Card({ item, chosen }: { item: StudioItem; chosen: boolean }) {
 
   return (
     <li id={`item-${item.id}`} className={cn("scroll-mt-20 rounded-xl border bg-card p-4", chosen ? "border-primary ring-2 ring-primary/20" : "border-border")}>
-      <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-        <span className="font-medium text-foreground">{when(item)}</span>
-        <PlatformBadge platform={item.platform} />
-        <span>{formatLabel(item.format)}</span>
-        <span className="truncate">· {item.calendar_name}</span>
-        {item.post && item.status === "content_approved" && (
-          <span className="rounded-full bg-emerald-50 px-2 py-0.5 font-medium text-emerald-700">{SCHEDULE_WORDS[item.post.schedule_status] ?? "Approved"}</span>
+      <div className="flex items-start gap-2">
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 text-xs text-muted-foreground">
+          <span className="font-medium text-foreground">{when(item)}</span>
+          <PlatformBadge platform={item.platform} />
+          <span>{formatLabel(item.format)}</span>
+          <span className="truncate">· {item.calendar_name}</span>
+          {item.post && item.status === "content_approved" && (
+            <span className="rounded-full bg-emerald-50 px-2 py-0.5 font-medium text-emerald-700">{SCHEDULE_WORDS[item.post.schedule_status] ?? "Approved"}</span>
+          )}
+        </div>
+        {!working && (
+          <ConfirmDialog
+            trigger={
+              <button
+                type="button"
+                disabled={remove.isPending}
+                aria-label={`Remove “${item.topic}”`}
+                title="Remove"
+                className="-mt-1 -mr-1 grid size-8 shrink-0 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-red-600 focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-50"
+              >
+                {remove.isPending ? spinner : <Trash2 aria-hidden="true" className="size-4" />}
+              </button>
+            }
+            title="Remove this from the Content Studio?"
+            description={
+              item.status === "content_approved"
+                ? `“${item.topic}” leaves its content calendar, and its approved post is deleted, so it leaves the Planner and won't go out. This can't be undone.`
+                : item.post
+                  ? `“${item.topic}” leaves its content calendar, and the post written for it is deleted. This can't be undone.`
+                  : `“${item.topic}” and its brief leave the content calendar. This can't be undone.`
+            }
+            confirmLabel="Remove"
+            onConfirm={() => run(() => remove.mutateAsync([item.id]))}
+          />
         )}
       </div>
       <p className="mt-1.5 font-medium text-foreground">{item.topic}</p>
@@ -200,13 +260,27 @@ export default function ContentStudio() {
   const queue = useStudioQueue();
   const items = queue.data ?? [];
   const makeAll = useMakeAll();
-  // ?item=<id>: the one opened from its plan, shown and marked.
-  const [params] = useSearchParams();
+  const removeAll = useRemoveItems();
+  // ?item=<id>: the one opened from its plan, shown and marked; its tab is open, and follows it as it moves on.
+  // ?tab=: the tab someone chose. Otherwise the first tab with something in it, as the page loaded.
+  const [params, setParams] = useSearchParams();
   const chosen = params.get("item");
-  const found = items.some((item) => item.id === chosen);
+  const chosenItem = items.find((item) => item.id === chosen);
+  const firstFilled = useRef<string | null>(null);
+  if (queue.data && firstFilled.current === null) {
+    firstFilled.current = GROUPS.find((group) => items.some((item) => group.statuses.includes(item.status)))?.id ?? "make";
+  }
+  const asked = GROUPS.find((group) => group.id === params.get("tab"))?.id;
+  const tab = asked ?? (chosenItem && groupOf(chosenItem)) ?? firstFilled.current ?? "make";
+  const found = Boolean(chosenItem);
   useEffect(() => {
     if (found) document.getElementById(`item-${chosen}`)?.scrollIntoView({ block: "center" });
-  }, [found, chosen]);
+  }, [found, chosen, tab]);
+  const choose = (value: string) => {
+    removeAll.reset();
+    makeAll.reset();
+    setParams({ tab: value }, { replace: true });
+  };
 
   return (
     <div className="space-y-6">
@@ -236,38 +310,83 @@ export default function ContentStudio() {
           </Link>
         </div>
       ) : (
-        GROUPS.map((group) => {
-          const list = items.filter((item) => group.statuses.includes(item.status));
-          if (list.length === 0) return null;
-          return (
-            <section key={group.id} aria-labelledby={`studio-${group.id}`}>
-              <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
-                <div>
-                  <h3 id={`studio-${group.id}`} className="font-semibold text-foreground">
-                    {group.title} <span className="text-sm font-normal text-muted-foreground tabular-nums">({list.length})</span>
-                  </h3>
-                  <p className="text-sm text-muted-foreground">{group.hint}</p>
+        <Tabs.Root value={tab} onValueChange={(value) => choose(String(value))}>
+          <Tabs.List aria-label="Content studio" className="mb-5 inline-flex max-w-full gap-1 overflow-x-auto rounded-xl bg-muted p-1">
+            {GROUPS.map((group) => (
+              <Tabs.Tab
+                key={group.id}
+                value={group.id}
+                className="shrink-0 rounded-lg px-3.5 py-1.5 text-sm font-medium whitespace-nowrap text-muted-foreground transition-colors outline-none hover:text-foreground focus-visible:outline-2 focus-visible:outline-primary data-[active]:bg-card data-[active]:text-foreground data-[active]:shadow-sm"
+              >
+                {group.title}{" "}
+                <span className="ml-1 font-normal text-muted-foreground tabular-nums">{items.filter((item) => group.statuses.includes(item.status)).length}</span>
+              </Tabs.Tab>
+            ))}
+          </Tabs.List>
+          {GROUPS.map((group) => {
+            const list = items.filter((item) => group.statuses.includes(item.status));
+            const toMake = list.filter((item) => !item.writing).length;
+            const removable = list.filter((item) => !inProgress(item));
+            return (
+              <Tabs.Panel key={group.id} value={group.id} className="outline-none">
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                  <p className="text-sm text-pretty text-muted-foreground">{group.hint}</p>
+                  <div className="flex flex-wrap gap-2">
+                    {group.id === "make" && toMake > 0 && (
+                      <button type="button" onClick={() => makeAll.mutate()} disabled={makeAll.isPending} className={buttonStyles({ variant: "secondary", size: "sm" })}>
+                        {makeAll.isPending ? spinner : <PenLine aria-hidden="true" className="size-4" />}
+                        Make all {toMake} posts
+                      </button>
+                    )}
+                    {/* Approved posts are planned to go out, so those are removed one at a time. */}
+                    {group.id !== "approved" && removable.length > 1 && (
+                      <ConfirmDialog
+                        trigger={
+                          <button type="button" disabled={removeAll.isPending} className={buttonStyles({ variant: "danger-outline", size: "sm" })}>
+                            {removeAll.isPending ? spinner : <Trash2 aria-hidden="true" className="size-4" />}
+                            Remove all {removable.length}
+                          </button>
+                        }
+                        title={`Remove all ${removable.length} from “${group.title}”?`}
+                        description={
+                          group.id === "make"
+                            ? "They and their briefs leave their content calendars. This can't be undone."
+                            : "They leave their content calendars, and the posts written for them are deleted. This can't be undone."
+                        }
+                        confirmLabel={`Remove all ${removable.length}`}
+                        onConfirm={() => removeAll.mutate(removable.map((item) => item.id))}
+                      />
+                    )}
+                  </div>
                 </div>
-                {group.id === "make" && list.some((item) => !item.writing) && (
-                  <button type="button" onClick={() => makeAll.mutate()} disabled={makeAll.isPending} className={buttonStyles({ variant: "secondary", size: "sm" })}>
-                    {makeAll.isPending ? <LoaderCircle aria-hidden="true" className="size-4 animate-spin motion-reduce:animate-none" /> : <PenLine aria-hidden="true" className="size-4" />}
-                    Make all {list.filter((item) => !item.writing).length} posts
-                  </button>
+                {group.id === "make" && makeAll.isError && (
+                  <p role="alert" className="mb-3 text-sm text-pretty text-red-600">
+                    {makeAll.error.message} <SeePlans error={makeAll.error} />
+                  </p>
                 )}
-              </div>
-              {group.id === "make" && makeAll.isError && (
-                <p role="alert" className="mb-3 text-sm text-pretty text-red-600">
-                  {makeAll.error.message} <SeePlans error={makeAll.error} />
-                </p>
-              )}
-              <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                {list.map((item) => (
-                  <Card key={item.id} item={item} chosen={item.id === chosen} />
-                ))}
-              </ul>
-            </section>
-          );
-        })
+                {removeAll.isError && (
+                  <p role="alert" className="mb-3 text-sm text-pretty text-red-600">
+                    {removeAll.error.message}
+                  </p>
+                )}
+                {removeAll.data && (
+                  <p role="status" className="mb-3 text-sm text-pretty text-muted-foreground">
+                    Removed {removeAll.data.removed}.{removeAll.data.skipped > 0 && ` ${removeAll.data.skipped} left: ${removeAll.data.detail}`}
+                  </p>
+                )}
+                {list.length === 0 ? (
+                  <p className="rounded-xl border border-dashed border-border bg-card p-8 text-center text-sm text-muted-foreground">{group.empty}</p>
+                ) : (
+                  <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                    {list.map((item) => (
+                      <Card key={item.id} item={item} chosen={item.id === chosen} />
+                    ))}
+                  </ul>
+                )}
+              </Tabs.Panel>
+            );
+          })}
+        </Tabs.Root>
       )}
     </div>
   );
