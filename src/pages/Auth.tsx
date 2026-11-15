@@ -273,7 +273,7 @@ export default function AuthPage({ mode }: Props) {
           <p className={cn("mt-2 text-sm text-pretty text-muted-foreground", mode === "signup" ? "mb-5" : "mb-8")}>{subtitle}</p>
           {mode === "signup" && (
             <p className="mb-6 rounded-lg border border-primary/30 bg-primary/10 px-4 py-3 text-sm text-pretty text-foreground">
-              <strong className="font-semibold">{offer.short}.</strong> {offer.extras && `${offer.extras}. `}No card needed.
+              {offer.form}
             </p>
           )}
 

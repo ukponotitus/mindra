@@ -292,7 +292,22 @@ export const BUILT_IN_PLANS: PricingPlan[] = [
   },
 ];
 
-const BUILT_IN_LIST: PlanList = { plans: BUILT_IN_PLANS, charge_usd: false, usd_ngn_rate: 1400, in_beta: true, beta_ends_on: null, new_account_days: 0 };
+// The launch offer's end as the backend has it (its `BETA_ENDS_ON`, the first day after the offer), so the landing
+// page names the date at once, before the API answers and when it doesn't. It lapses by itself on that day; keep it in
+// step when the offer is moved.
+const BUILT_IN_BETA_ENDS_ON = "2026-11-23";
+const builtInOfferOn = () => {
+  const [year, month, date] = BUILT_IN_BETA_ENDS_ON.split("-").map(Number);
+  return new Date() < new Date(year, month - 1, date);
+};
+const BUILT_IN_LIST: PlanList = {
+  plans: BUILT_IN_PLANS,
+  charge_usd: false,
+  usd_ngn_rate: 1400,
+  in_beta: builtInOfferOn(),
+  beta_ends_on: builtInOfferOn() ? BUILT_IN_BETA_ENDS_ON : null,
+  new_account_days: 0,
+};
 
 /** The launch offer's last day ("15 November"), from `beta_ends_on`, the first day after it; null when it has no end. */
 export function offerLastDay(betaEndsOn: string | null): string | null {
@@ -307,9 +322,11 @@ export function useOfferLastDay(): string | null {
   return plans?.in_beta ? offerLastDay(plans.beta_ends_on) : null;
 }
 
-/** The sign-up offer in words, for the landing page and the sign-up form: what a free account gets each month (the
- * Free plan's own numbers, from the API) and, while the launch offer is on, until when everything is open. */
-export function useSignupOffer(): { headline: string; short: string; extras: string; detail: string } {
+/** The sign-up offer in words, for the landing page and the sign-up form. While the launch offer is on it leads:
+ * everything free until its last day, then what a free account gets each month. After it, the Free plan's monthly
+ * allowances lead. Dates and numbers are the API's. `form` is the sign-up form's note, under a subtitle that
+ * already gives the launch offer's date. */
+export function useSignupOffer(): { headline: string; short: string; detail: string; form: string } {
   const plans = usePricingPlans().data;
   const free = plans.plans.find((plan) => plan.id === "free");
   const lastDay = plans.in_beta ? offerLastDay(plans.beta_ends_on) : null;
@@ -318,11 +335,20 @@ export function useSignupOffer(): { headline: string; short: string; extras: str
     free?.clips_per_month ? `${free.clips_per_month} video clips` : "",
     free?.ai_images_per_month ? `${free.ai_images_per_month} AI images` : "",
   ].filter(Boolean);
+  const monthly = posts ? [`${posts} AI-written posts`, ...more].join(", ").replace(/, ([^,]*)$/, " and $1") : "";
+  if (lastDay) {
+    return {
+      headline: `Sign up now: everything is free until ${lastDay}`,
+      short: `Everything free until ${lastDay}`,
+      detail: posts ? `After that, ${posts} AI-written posts free every month. No card needed.` : "No card needed.",
+      form: monthly ? `After that you keep ${monthly} free every month. No card needed.` : "No card needed.",
+    };
+  }
   return {
     headline: posts ? `Sign up free and get ${posts} AI-written posts every month` : "Sign up free and start posting today",
     short: posts ? `${posts} free AI-written posts every month` : "Free to start, no card needed",
-    extras: more.length ? `Plus ${more.join(" and ")} a month` : "",
-    detail: lastDay ? `Everything is unlocked until ${lastDay}. No card needed.` : "No card needed.",
+    detail: more.length ? `Plus ${more.join(" and ")} a month. No card needed.` : "No card needed.",
+    form: monthly ? `Free every month: ${monthly}. No card needed.` : "No card needed.",
   };
 }
 

@@ -5,8 +5,9 @@ import { useSignupOffer } from "../../lib/billing";
 import { cn } from "../../lib/cn";
 import { useCtaLinks } from "./useCtaLinks";
 
-/** The hero's offer, as a banner that's a link to sign-up: what a free account gets each month, and while the launch
- * offer is on, until when everything is open. The numbers are the API's (`useSignupOffer`), never typed in. */
+/** The hero's offer, as a banner that's a link to sign-up: while the launch offer is on, that everything is free
+ * until its last day; after it, what a free account gets each month. The date and numbers are the API's
+ * (`useSignupOffer`), never typed in. */
 export default function SignupOffer() {
   const { startTo } = useCtaLinks();
   const offer = useSignupOffer();
@@ -54,7 +55,7 @@ export function StickyOffer() {
       <div className="mx-auto flex max-w-2xl items-center gap-2 rounded-2xl border border-white/15 bg-[#0C0C10]/95 py-2.5 pr-2 pl-4 shadow-lg backdrop-blur-xl">
         <p className="min-w-0 flex-1 text-sm leading-snug font-medium text-pretty text-white">
           {offer.short}
-          <span className="hidden text-white/60 sm:inline"> · {offer.detail}</span>
+          <span className="hidden text-white/60 sm:inline"> {offer.detail}</span>
         </p>
         <Link to={startTo} className="shrink-0 rounded-full bg-[#B4A9FF] px-4 py-2.5 text-sm font-semibold text-[#0B0B1A] transition-colors hover:bg-[#C9C1FF]">
           Sign up free
