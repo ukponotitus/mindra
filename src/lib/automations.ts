@@ -177,6 +177,9 @@ export type Character = {
   description: string;
   picture: string | null;
   picture_url: string | null;
+  /** A picture Mindra is drawing for the character from its description, or the last one that couldn't be drawn. */
+  drawing: "" | "making" | "failed";
+  drawing_error: string;
   voice_id: string;
   voice_name: string;
   position: number;
@@ -213,7 +216,8 @@ export type AutomationDetail = Automation & {
   upcoming: string[];
   runs: Run[];
   approved_once: boolean;
-  services: { voice: boolean; writing: boolean; tiktok_public: boolean };
+  /** What Mindra is set up for. `pictures`: AI pictures (characters and scenes drawn by Mindra). */
+  services: { voice: boolean; writing: boolean; pictures?: boolean; tiktok_public: boolean };
   can_post_automatically: boolean;
 };
 
@@ -294,6 +298,8 @@ export type Scene = {
   script: string;
   on_screen_text: string;
   visual_prompt: string;
+  /** The automation's characters in the picture, by name. */
+  characters?: string[];
   picture_url: string | null;
   start: number;
   end: number;
@@ -600,7 +606,9 @@ export function useAutomation(id: string | undefined) {
     queryKey: automationKey(id ?? ""),
     queryFn: () => apiRequest<AutomationDetail>(`/api/automations/${id}/`),
     enabled: Boolean(id),
-    refetchInterval: (query) => (query.state.data?.runs.some(runIsWorking) ? 5000 : false),
+    // While a video is made, or a character's picture is drawn.
+    refetchInterval: (query) =>
+      query.state.data?.runs.some(runIsWorking) ? 5000 : query.state.data?.characters.some((character) => character.drawing === "making") ? 4000 : false,
   });
 }
 
@@ -755,6 +763,29 @@ export function useCharacterAction(id: string) {
           ? apiRequest<Character[]>(`/api/automations/${id}/characters/${change.character}/`, { method: "PATCH", body: change.body })
           : apiRequest<void>(`/api/automations/${id}/characters/${change.character}/`, { method: "DELETE" }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: automationKey(id) }),
+  });
+}
+
+/** Has Mindra draw the character's picture from its description (again); the automation polls until it's made. */
+export function useDrawCharacter(id: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (character: number) => apiRequest<Character[]>(`/api/automations/${id}/characters/${character}/picture/`, { method: "POST" }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: automationKey(id) }),
+  });
+}
+
+/** Draws one scene's picture again while its video waits for approval (`note`: what to change), then the video is
+ * made again with it. */
+export function useRedoScene(id: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ scene, note }: { scene: number; note: string }) =>
+      apiRequest<RunDetail>(`/api/automations/runs/${id}/scenes/${scene}/redo/`, { method: "POST", body: { note } }),
+    onSuccess: (run) => {
+      queryClient.setQueryData(runKey(run.id), run);
+      queryClient.invalidateQueries({ queryKey: ["automations"], refetchType: "active" });
+    },
   });
 }
 

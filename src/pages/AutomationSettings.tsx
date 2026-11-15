@@ -58,6 +58,8 @@ const SETUP_STEPS = [
 ] as const;
 type StepId = (typeof SETUP_STEPS)[number]["id"];
 const STEP_FOR_FIELD: Record<string, StepId> = { content: "content", video: "video", platforms: "platforms", schedule: "schedule" };
+// What's sorted out on the setup page, not here: the field and the part of that page to open.
+const ON_SETUP: Record<string, { hash: string; label: string }> = { characters: { hash: "characters", label: "Add characters in the setup" } };
 
 function errorText(error: unknown): string {
   if (!error) return "";
@@ -168,11 +170,12 @@ function Choices<T extends string>({ label, value, options, onChange }: { label:
   );
 }
 
-function ProblemList({ problems, go }: { problems: Problem[]; go?: (step: StepId) => void }) {
+function ProblemList({ problems, go, automation }: { problems: Problem[]; go?: (step: StepId) => void; automation?: string }) {
   return (
     <ul className="space-y-1.5">
       {problems.map((problem) => {
         const step = STEP_FOR_FIELD[problem.field];
+        const setup = ON_SETUP[problem.field];
         return (
           <li key={`${problem.field}-${problem.message}`} className="flex gap-2 text-sm text-pretty text-amber-900">
             <CircleAlert aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
@@ -186,6 +189,14 @@ function ProblemList({ problems, go }: { problems: Problem[]; go?: (step: StepId
                   </button>
                 </>
               )}
+              {automation && setup && (
+                <>
+                  {" "}
+                  <Link to={`/automations/${automation}/setup#${setup.hash}`} className="font-medium underline underline-offset-2">
+                    {setup.label}
+                  </Link>
+                </>
+              )}
             </span>
           </li>
         );
@@ -196,12 +207,13 @@ function ProblemList({ problems, go }: { problems: Problem[]; go?: (step: StepId
 
 /** This step's own problems, from the API, at its top. */
 function StepProblems({ automation, field }: { automation: AutomationDetail; field: string }) {
-  const found = automation.problems.filter((problem) => problem.field === field);
+  // What's set up elsewhere (characters) is said on the content step, with where to go.
+  const found = automation.problems.filter((problem) => problem.field === field || (field === "content" && ON_SETUP[problem.field]));
   if (!found.length) return null;
   return (
     <div className="space-y-2 rounded-xl border border-amber-200 bg-amber-50 p-4">
       <p className="text-xs font-medium text-amber-900">Needed before it can be switched on (checked each time you save)</p>
-      <ProblemList problems={found} />
+      <ProblemList problems={found} automation={automation.id} />
     </div>
   );
 }
@@ -988,7 +1000,7 @@ function ReviewStep({ automation, go }: { automation: AutomationDetail; go: (ste
       {automation.problems.length > 0 ? (
         <section className="space-y-2 rounded-xl border border-amber-200 bg-amber-50 p-4">
           <h3 className="text-sm font-semibold text-amber-900">Before it can be switched on</h3>
-          <ProblemList problems={automation.problems} go={go} />
+          <ProblemList problems={automation.problems} go={go} automation={automation.id} />
         </section>
       ) : (
         <p className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-pretty text-emerald-800">

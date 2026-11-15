@@ -129,9 +129,9 @@ export function CheckRow({ label, checked, onChange, disabled }: { label: string
   );
 }
 
-export function Section({ title, hint, children, className }: { title: string; hint?: string; children: React.ReactNode; className?: string }) {
+export function Section({ title, hint, children, className, id }: { title: string; hint?: string; children: React.ReactNode; className?: string; id?: string }) {
   return (
-    <section className={cn("rounded-xl border border-border bg-card p-5", className)}>
+    <section id={id} className={cn("scroll-mt-20 rounded-xl border border-border bg-card p-5", className)}>
       <h3 className="font-semibold text-foreground">{title}</h3>
       {hint && <p className="mt-1 text-sm text-pretty text-muted-foreground">{hint}</p>}
       <div className="mt-4">{children}</div>

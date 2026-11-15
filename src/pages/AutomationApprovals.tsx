@@ -1,11 +1,12 @@
+import { useId, useState } from "react";
 import { ChevronLeft, Inbox, LoaderCircle } from "lucide-react";
 import { Link, Navigate, useSearchParams } from "react-router";
 import EmptyState from "../components/EmptyState";
 import { ErrorNote } from "../components/automations/parts";
-import { Thumb } from "../components/automations/widgets";
+import { inputClass, Thumb } from "../components/automations/widgets";
 import { buttonStyles } from "../components/ui/button";
 import { ApiError } from "../lib/api";
-import { useAutomationsEnabled, useRun, useRunAction, useRuns, type Run, type RunDetail } from "../lib/automations";
+import { useAutomationsEnabled, useRedoScene, useRun, useRunAction, useRuns, type Run, type RunDetail } from "../lib/automations";
 import { formatScheduled } from "../lib/calendar";
 import { cn } from "../lib/cn";
 import { Player, ScriptApproval, TikTokApproval, VideoApproval } from "./AutomationRun";
@@ -52,26 +53,75 @@ function QueueList({ runs, current }: { runs: Run[]; current: string }) {
   );
 }
 
-/** The video's scenes, when the run has them (the new pipeline makes them; older videos have none). Redoing one on
- * its own comes with the next phase. */
+/** The video's scenes, when its pictures were drawn for it (older videos, and ones made from the workspace's own
+ * photos, have none). Choosing one shows its picture and words; "Draw this scene again" draws only its picture again
+ * (with what to change, when said) and makes the video again with it. */
 function Scenes({ run }: { run: RunDetail }) {
+  const redo = useRedoScene(run.id);
+  const [chosen, setChosen] = useState<number | null>(null);
+  const [note, setNote] = useState("");
+  const ids = useId();
   if (!run.scenes.length) return null;
+  const scene = run.scenes.find((item) => item.id === chosen) ?? null;
   return (
     <div className="rounded-xl border border-border bg-card p-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h3 className="font-semibold text-foreground">Scenes</h3>
-        <p className="text-sm text-muted-foreground tabular-nums">Redoing one scene uses about {run.redo_credits} credits</p>
+        <p className="text-sm text-muted-foreground tabular-nums">Choose a scene to draw its picture again · about {run.redo_credits} credits each</p>
       </div>
       <ol className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-6" aria-label="Scenes">
-        {run.scenes.map((scene) => (
-          <li key={scene.id} className={cn("overflow-hidden rounded-lg border", scene.status === "redo" ? "border-amber-300" : scene.status === "failed" ? "border-red-300" : "border-border")}>
-            {scene.picture_url ? <img src={scene.picture_url} alt="" className="h-14 w-full object-cover" /> : <span aria-hidden="true" className="block h-14 bg-secondary" />}
-            <span className="block px-2 py-1.5 text-xs text-foreground tabular-nums">
-              {scene.position + 1} · {scene.label || scene.on_screen_text || "Scene"}
-            </span>
+        {run.scenes.map((item) => (
+          <li key={item.id}>
+            <button
+              type="button"
+              aria-pressed={item.id === chosen}
+              onClick={() => {
+                setChosen(item.id === chosen ? null : item.id);
+                setNote("");
+                redo.reset();
+              }}
+              className={cn(
+                "block w-full overflow-hidden rounded-lg border text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
+                item.id === chosen ? "border-primary ring-2 ring-primary/20" : item.status === "failed" ? "border-red-300" : "border-border hover:border-primary/40",
+              )}
+            >
+              {item.picture_url ? <img src={item.picture_url} alt="" className="h-14 w-full object-cover" /> : <span aria-hidden="true" className="block h-14 bg-secondary" />}
+              <span className="block px-2 py-1.5 text-xs text-foreground tabular-nums">
+                {item.position + 1} · {item.label || item.on_screen_text || "Scene"}
+              </span>
+            </button>
           </li>
         ))}
       </ol>
+      {scene && (
+        <form
+          className="mt-4 grid gap-4 border-t border-border pt-4 sm:grid-cols-[12rem_minmax(0,1fr)]"
+          onSubmit={(event) => {
+            event.preventDefault();
+            redo.mutate({ scene: scene.id, note: note.trim() }, { onSuccess: () => setChosen(null) });
+          }}
+        >
+          {scene.picture_url ? <img src={scene.picture_url} alt={`Scene ${scene.position + 1}'s picture`} className="w-full rounded-lg object-cover" /> : <span aria-hidden="true" className="block h-28 rounded-lg bg-secondary" />}
+          <div className="min-w-0 space-y-3">
+            <p className="text-sm text-pretty text-foreground">{scene.script}</p>
+            {scene.visual_prompt && <p className="text-xs text-pretty text-muted-foreground">The picture: {scene.visual_prompt}</p>}
+            <div>
+              <label htmlFor={`${ids}-note`} className="mb-1 block text-sm font-medium text-foreground">
+                What should change? (optional)
+              </label>
+              <input id={`${ids}-note`} value={note} onChange={(event) => setNote(event.target.value)} maxLength={500} placeholder="e.g. Make it daytime, with the ball in front" className={inputClass} />
+            </div>
+            {redo.error && <ErrorNote>{redo.error instanceof ApiError ? redo.error.message : "Mindra couldn't start drawing it. Try again."}</ErrorNote>}
+            <div className="flex flex-wrap items-center gap-3">
+              <button type="submit" disabled={redo.isPending} className={buttonStyles({ variant: "secondary", size: "sm" })}>
+                {redo.isPending && <LoaderCircle aria-hidden="true" className="size-4 animate-spin" />}
+                Draw this scene again
+              </button>
+              <p className="text-xs text-pretty text-muted-foreground">The other scenes stay as they are. The video is made again and comes back here for your approval.</p>
+            </div>
+          </div>
+        </form>
+      )}
     </div>
   );
 }

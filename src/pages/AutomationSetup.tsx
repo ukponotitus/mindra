@@ -17,6 +17,7 @@ import {
   useAutomationsEnabled,
   useAutomationSummary,
   useCharacterAction,
+  useDrawCharacter,
   useRemoveTopic,
   useStartRun,
   useUpdateAutomation,
@@ -46,7 +47,7 @@ const LEADS: [number, string][] = [
 ];
 const VISUAL_SOURCES: Record<VisualSource, { label: string; detail: string }> = {
   library: { label: "My photos and clips", detail: "Chosen from your uploads, in More settings." },
-  ai_images: { label: "AI pictures for each scene", detail: "Made in the art style below. Needs AI pictures switched on." },
+  ai_images: { label: "AI pictures for each scene", detail: "Mindra draws a picture for each part of the script, in the art style below." },
   ai_video: { label: "AI video clips for each scene", detail: "Moving footage for every scene. The dearest and slowest." },
 };
 
@@ -129,7 +130,17 @@ function ProblemList({ problems }: { problems: Problem[] }) {
       {problems.map((problem) => (
         <li key={`${problem.field}-${problem.message}`} className="flex gap-2 text-sm text-amber-900">
           <CircleAlert aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
-          {problem.message}
+          <span>
+            {problem.message}
+            {problem.field === "characters" && (
+              <>
+                {" "}
+                <a href="#characters" className="font-medium underline underline-offset-2">
+                  Add one
+                </a>
+              </>
+            )}
+          </span>
         </li>
       ))}
     </ul>
@@ -233,22 +244,42 @@ function Queue({ automation, source }: { automation: AutomationDetail; source: S
 
 function CharacterCard({ automation, character }: { automation: AutomationDetail; character: Character }) {
   const act = useCharacterAction(automation.id);
+  const draw = useDrawCharacter(automation.id);
+  const drawing = character.drawing === "making" || draw.isPending;
+  const canDraw = automation.services.pictures === true && Boolean(character.kind || character.description);
+  const problem = draw.error ? errorText(draw.error) : character.drawing === "failed" ? character.drawing_error : "";
   return (
-    <li className="flex items-center gap-3 rounded-lg border border-border p-3">
-      {character.picture_url ? (
-        <img src={character.picture_url} alt="" className="size-14 shrink-0 rounded-lg object-cover" />
-      ) : (
-        <span aria-hidden="true" className="grid size-14 shrink-0 place-items-center rounded-lg bg-primary/10 text-lg font-semibold text-primary">
-          {character.name.slice(0, 1)}
+    <li className="rounded-lg border border-border p-3">
+      <div className="flex items-center gap-3">
+        {character.picture_url ? (
+          <img src={character.picture_url} alt={`${character.name}'s picture`} className="size-20 shrink-0 rounded-lg object-cover" />
+        ) : (
+          <span aria-hidden="true" className="grid size-20 shrink-0 place-items-center rounded-lg bg-primary/10 text-xl font-semibold text-primary">
+            {drawing ? <LoaderCircle className="size-5 animate-spin" /> : character.name.slice(0, 1)}
+          </span>
+        )}
+        <span className="min-w-0 flex-1">
+          <span className="block font-medium text-foreground">{character.name}</span>
+          <span className="block truncate text-sm text-muted-foreground">{[character.kind, character.voice_name ? `${character.voice_name} voice` : "no voice yet"].filter(Boolean).join(" · ")}</span>
+          <span role="status" className="mt-1 block text-xs text-muted-foreground">
+            {drawing ? (
+              "Drawing the picture… about half a minute"
+            ) : canDraw ? (
+              <button type="button" onClick={() => draw.mutate(character.id)} className="font-medium text-primary hover:underline">
+                {character.picture_url ? "Draw again" : "Draw a picture"}
+              </button>
+            ) : !character.picture_url && automation.services.pictures !== true ? (
+              "AI pictures aren't switched on yet"
+            ) : !character.picture_url ? (
+              "Say what they are to get a picture"
+            ) : null}
+          </span>
         </span>
-      )}
-      <span className="min-w-0 flex-1">
-        <span className="block font-medium text-foreground">{character.name}</span>
-        <span className="block truncate text-sm text-muted-foreground">{[character.kind, character.voice_name ? `${character.voice_name} voice` : "no voice yet"].filter(Boolean).join(" · ")}</span>
-      </span>
-      <button type="button" onClick={() => act.mutate({ action: "remove", character: character.id })} disabled={act.isPending} aria-label={`Remove ${character.name}`} className={buttonStyles({ variant: "ghost", size: "icon", className: "size-8" })}>
-        <Trash2 aria-hidden="true" className="size-4" />
-      </button>
+        <button type="button" onClick={() => act.mutate({ action: "remove", character: character.id })} disabled={act.isPending} aria-label={`Remove ${character.name}`} className={buttonStyles({ variant: "ghost", size: "icon", className: "size-8 self-start" })}>
+          <Trash2 aria-hidden="true" className="size-4" />
+        </button>
+      </div>
+      {problem && !drawing && <p className="mt-2 text-xs text-pretty text-red-700">{problem}</p>}
     </li>
   );
 }
@@ -439,7 +470,15 @@ function SetupForm({ automation: saved }: { automation: AutomationDetail }) {
         )}
 
         {kids && (
-          <Section title="Characters" hint="Each character keeps the same look and voice in every episode.">
+          <Section
+            id="characters"
+            title="Characters"
+            hint={
+              automation.services.pictures
+                ? "Describe each character and Mindra draws them. Their picture is used for every scene, so they look the same in every episode."
+                : "Each character keeps the same look and voice in every episode."
+            }
+          >
             <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
               {automation.characters.map((character) => (
                 <CharacterCard key={character.id} automation={automation} character={character} />
@@ -715,6 +754,12 @@ export default function AutomationSetup() {
   const enabled = useAutomationsEnabled();
   const { automationId } = useParams();
   const automation = useAutomation(automationId);
+  // A link to a part of the page (More settings' "Add characters in the setup") opens at it once the page is there.
+  const loaded = automation.isSuccess;
+  useEffect(() => {
+    const id = window.location.hash.slice(1);
+    if (loaded && id) document.getElementById(id)?.scrollIntoView();
+  }, [loaded]);
   if (!enabled) return <Navigate to="/dashboard" replace />;
 
   return (

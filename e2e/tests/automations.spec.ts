@@ -21,6 +21,8 @@ test("set up a kids cartoon automation from a template, and see it on the dashbo
   await page.getByLabel("What they are").fill("Bunny");
   await page.getByRole("button", { name: "Add", exact: true }).click();
   await expect(page.getByText("Bunny · no voice yet")).toBeVisible();
+  // Mindra draws characters where AI pictures are on; here they're off, and the card says so.
+  await expect(page.getByText("AI pictures aren't switched on yet")).toBeVisible();
   await page.getByRole("radio", { name: /Approve the final video only/ }).click();
   await expect(page.getByRole("radio", { name: /Approve the final video only/ })).toBeChecked();
   // It saves by itself a moment later.
@@ -28,6 +30,13 @@ test("set up a kids cartoon automation from a template, and see it on the dashbo
   await page.reload();
   await expect(page.getByText("Bunny · no voice yet")).toBeVisible();
   await expect(page.getByRole("radio", { name: /Approve the final video only/ })).toBeChecked();
+  // Without a character, More settings says where to add one, and the link opens the setup at its characters.
+  await page.getByRole("button", { name: "Remove Benny" }).click();
+  await expect(page.getByText("Bunny · no voice yet")).toBeHidden();
+  await page.goto(page.url().replace("/setup", "/settings?step=content"));
+  await page.getByRole("link", { name: "Add characters in the setup" }).click();
+  await page.waitForURL(/\/setup#characters$/);
+  await expect(page.getByRole("heading", { name: "Characters" })).toBeInViewport();
   await page.goto("/automations");
   await expect(page.getByText("Kids cartoon", { exact: false }).first()).toBeVisible();
   await page.goto("/automations/approvals");
