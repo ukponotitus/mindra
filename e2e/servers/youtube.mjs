@@ -1,5 +1,6 @@
 // A stand-in for the YouTube Data API, for the journey tests (backend.sh points the API at it): a Short's comments,
-// with one more each time they're read after the first, its title and numbers. Nothing here leaves the machine.
+// with one more each time they're read after the first, its title and numbers, and a public channel with its videos
+// to start an automation from. Nothing here leaves the machine.
 import http from "node:http";
 
 const port = Number(process.argv[2] ?? 8130);
@@ -38,6 +39,19 @@ function threads() {
   return { items };
 }
 
+// A channel to start an automation from (the API's automations/channel.py): 12 six-minute videos, out on Mondays
+// and Thursdays at 16:00 UTC, the newest watched least.
+const CHANNEL = "UCstandin0000000000000001";
+const channelVideos = Array.from({ length: 12 }, (_, index) => {
+  const published = new Date(Date.UTC(2026, 10, 9, 16) - (Math.floor(index / 2) * 7 + (index % 2 ? 4 : 0)) * 86_400_000);
+  return {
+    id: `history${String(index).padStart(4, "0")}`,
+    snippet: { title: `A history story, part ${index + 1}`, description: "A story from history.", tags: ["history"], publishedAt: published.toISOString(), channelId: CHANNEL },
+    contentDetails: { duration: "PT6M10S" },
+    statistics: { viewCount: String(1000 + index * 250) },
+  };
+});
+
 http
   .createServer((request, response) => {
     const url = new URL(request.url, `http://127.0.0.1:${port}`);
@@ -47,6 +61,16 @@ http
     };
     if (url.pathname === "/youtube/v3/commentThreads") return send(200, threads());
     if (url.pathname === "/youtube/v3/comments") return send(200, { items: [] });
+    if (url.pathname === "/youtube/v3/channels") {
+      const known = url.searchParams.get("id") === CHANNEL || url.searchParams.get("forHandle") === "@historytold";
+      return send(200, {
+        items: known
+          ? [{ id: CHANNEL, snippet: { title: "History Told", description: "Stories from history.", customUrl: "@historytold" }, contentDetails: { relatedPlaylists: { uploads: "UUstandin" } } }]
+          : [],
+      });
+    }
+    if (url.pathname === "/youtube/v3/playlistItems") return send(200, { items: channelVideos.map((video) => ({ contentDetails: { videoId: video.id } })) });
+    if (url.pathname === "/youtube/v3/videos" && (url.searchParams.get("part") ?? "").includes("contentDetails")) return send(200, { items: channelVideos });
     if (url.pathname === "/youtube/v3/videos") {
       return send(200, {
         items: [{ id: url.searchParams.get("id"), snippet: { title: "Sunscreen every day #shorts", channelId: "UC-standin" }, statistics: { viewCount: "120", likeCount: "9", commentCount: "3" } }],

@@ -17,6 +17,8 @@ export GEMINI_API_KEY= ANTHROPIC_API_KEY= DEEPGRAM_API_KEY= ELEVENLABS_API_KEY= 
 export SENTRY_DSN= EMAIL_HOST= BETA_INVITE_CODES= VAPID_PRIVATE_KEY= VAPID_PUBLIC_KEY=
 export FRONTEND_URL="http://127.0.0.1:$APP_PORT" API_URL="http://127.0.0.1:$API_PORT" CORS_ALLOWED_ORIGINS="http://127.0.0.1:$APP_PORT"
 export AUTOMATIONS_WORKSPACES='*'
+# Starting an automation from a channel's link, read from the stand-in YouTube with a made-up key.
+export AUTOMATIONS_FROM_CHANNEL=1 YOUTUBE_API_KEY=stand-in
 # YouTube is the stand-in (only honoured with DEBUG), and comments can be refreshed again at once.
 export YOUTUBE_API_URL="http://127.0.0.1:$YOUTUBE_PORT/youtube/v3" COMMENTS_REFRESH_MINUTES=0
 # A key made for each run (backend.sh), so seeded accounts' stand-in tokens can be stored encrypted.

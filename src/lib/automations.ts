@@ -159,6 +159,8 @@ export type Automation = {
   waiting: number;
   failed: number;
   last_run: LastRun | null;
+  /** Empty unless it was started from a channel. */
+  modelled_on: Partial<ModelledOn>;
   created_at: string;
   updated_at: string;
 };
@@ -614,12 +616,68 @@ function useStore() {
 export function useCreateAutomation() {
   const store = useStore();
   return useMutation({
-    mutationFn: (body: { preset: string; name?: string }) =>
+    mutationFn: (body: { preset: string; name?: string } & Partial<Omit<ChannelSuggestion, "preset" | "name">> & { modelled_on?: ModelledOn }) =>
       apiRequest<AutomationDetail>("/api/automations/", {
         method: "POST",
         body: { ...body, time_zone: Intl.DateTimeFormat().resolvedOptions().timeZone },
       }),
     onSuccess: store,
+  });
+}
+
+/** The YouTube channel an automation was started from: all that's kept of it. */
+export type ModelledOn = { name: string; url: string };
+
+/** The draft Mindra suggests from a channel: sent back as it is to make the automation. */
+export type ChannelSuggestion = {
+  preset: string;
+  name: string;
+  config: ConfigChanges;
+  weekdays: number[];
+  /** "17:00", or "" when the channel's videos show no usual time. */
+  post_time: string;
+  topics: string[];
+};
+
+/** What Mindra found on a channel's public page (nothing of it is saved) and what it suggests. `written` is false
+ * when the AI couldn't describe it, and `note` says why: the length, shape and schedule still come. */
+export type ChannelModel = {
+  channel: ModelledOn & { handle: string };
+  found: {
+    videos: number;
+    typical_seconds: number;
+    short: boolean;
+    per_week: number | null;
+    weekdays: number[];
+    post_time: string;
+    top: { title: string; url: string; views: number | null; seconds: number }[];
+    summary?: string;
+    title_style?: string;
+  };
+  suggestion: ChannelSuggestion;
+  written: boolean;
+  note: string;
+};
+
+/** Whether an automation can be started from a YouTube channel's link (the API's AUTOMATIONS_FROM_CHANNEL). */
+export function useChannelStart(enabled = true) {
+  const query = useQuery({
+    queryKey: ["automations", "channel"],
+    queryFn: () => apiRequest<{ available: boolean }>("/api/automations/channel/"),
+    staleTime: Infinity,
+    enabled,
+  });
+  return query.data?.available === true;
+}
+
+/** Reads a channel's public details and returns the automation Mindra suggests from them. */
+export function useReadChannel() {
+  return useMutation({
+    mutationFn: (url: string) =>
+      apiRequest<ChannelModel>("/api/automations/channel/", {
+        method: "POST",
+        body: { url, time_zone: Intl.DateTimeFormat().resolvedOptions().timeZone },
+      }),
   });
 }
 

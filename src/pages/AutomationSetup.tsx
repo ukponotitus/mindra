@@ -400,6 +400,15 @@ function SetupForm({ automation: saved }: { automation: AutomationDetail }) {
           </p>
         </div>
         {error && <ErrorNote>{error}</ErrorNote>}
+        {automation.modelled_on.url && (
+          <p className="text-sm text-pretty text-muted-foreground">
+            Modelled on{" "}
+            <a href={automation.modelled_on.url} target="_blank" rel="noreferrer" className="font-medium text-primary hover:underline">
+              {automation.modelled_on.name}
+            </a>{" "}
+            on YouTube: the same kind of videos, on new topics of your own. Check the topics, look and voice below before you switch it on.
+          </p>
+        )}
 
         {create ? (
           <Section title="Where do the scripts come from?" hint="Each scheduled day, Mindra takes the next item from the queue below.">

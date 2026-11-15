@@ -223,6 +223,17 @@ export default function AutomationDetail() {
             <PlatformMarks platforms={data.platforms} drafts={data.mode === "draft"} />
             <span aria-hidden="true">·</span>
             <span>{scheduleSummary(data)}</span>
+            {data.modelled_on.url && (
+              <>
+                <span aria-hidden="true">·</span>
+                <span>
+                  Modelled on{" "}
+                  <a href={data.modelled_on.url} target="_blank" rel="noreferrer" className="font-medium text-primary hover:underline">
+                    {data.modelled_on.name}
+                  </a>
+                </span>
+              </>
+            )}
             {data.status === "active" && data.next_slot && (
               <>
                 <span aria-hidden="true">·</span>

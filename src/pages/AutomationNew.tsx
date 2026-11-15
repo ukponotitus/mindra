@@ -1,22 +1,25 @@
 import { Check, ChevronLeft, LoaderCircle, Plus } from "lucide-react";
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router";
+import StartFromChannel from "../components/automations/StartFromChannel";
 import { ErrorNote } from "../components/automations/parts";
 import { Stepper, Tag, tagTone, TEMPLATE_ICONS } from "../components/automations/widgets";
 import { buttonStyles } from "../components/ui/button";
 import { ApiError } from "../lib/api";
-import { useAutomationsEnabled, useCreateAutomation, usePresets } from "../lib/automations";
+import { useAutomationsEnabled, useChannelStart, useCreateAutomation, usePresets } from "../lib/automations";
 import { cn } from "../lib/cn";
 
 export const SETUP_STEPS = ["Template", "Script", "Look and voice", "Schedule", "Review and posting"];
 
 /** New automation, step 1: which kind of videos it makes. Every template runs the same steps; choosing one makes a
- * draft (nothing runs) and opens its setup. */
+ * draft (nothing runs) and opens its setup. Where the API offers it, "Start from a channel" drafts one from a YouTube
+ * channel's link instead. */
 export default function AutomationNew() {
   const enabled = useAutomationsEnabled();
   const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
   const presets = usePresets();
   const create = useCreateAutomation();
+  const fromChannel = useChannelStart(enabled);
   const chosen = params.get("template");
   const templates = (presets.data ?? []).filter((preset) => !preset.hidden);
   const template = templates.find((preset) => preset.id === chosen) ?? null;
@@ -44,6 +47,13 @@ export default function AutomationNew() {
         <h3 className="text-2xl font-semibold text-balance text-foreground">What kind of videos should this make?</h3>
         <p className="mt-1 text-sm text-pretty text-muted-foreground">Every template runs the same steps. You can change the look, voice and schedule next.</p>
       </div>
+
+      {fromChannel && (
+        <>
+          <StartFromChannel presets={templates} />
+          <p className="text-sm font-medium text-muted-foreground">Or choose a template</p>
+        </>
+      )}
 
       {presets.isError && <ErrorNote>{presets.error.message}</ErrorNote>}
       {create.error && <ErrorNote>{create.error instanceof ApiError ? create.error.message : "Mindra couldn't start the automation. Try again."}</ErrorNote>}
