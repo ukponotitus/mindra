@@ -12,6 +12,7 @@ import {
 import { Captions, ChevronRight, PenLine, type LucideIcon } from "lucide-react";
 import { Link } from "react-router";
 import { useOfferLastDay } from "../../lib/billing";
+import SignupOffer from "./SignupOffer";
 import Phone from "./hero/Phone";
 import PostsScreen from "./hero/PostsScreen";
 import RecordScreen from "./hero/RecordScreen";
@@ -191,15 +192,21 @@ export default function Hero() {
       }}
       className="relative overflow-hidden bg-black text-white"
     >
-      <div className="relative mx-auto max-w-6xl px-6 pt-32 text-center sm:pt-36">
-        <motion.a
-          {...enter(0)}
-          href="#roadmap"
-          className="group inline-flex items-center gap-1 rounded-full border border-white/15 bg-card/[0.06] py-1.5 pr-3 pl-4 text-[13px] font-medium text-white/80 transition-colors hover:bg-card/10"
-        >
-          {lastDay ? `Free in full until ${lastDay}` : "Now open to everyone"}
-          <ChevronRight aria-hidden="true" className="size-3.5 text-white/50 transition-transform group-hover:translate-x-0.5" />
-        </motion.a>
+      <div className="relative mx-auto max-w-6xl px-6 pt-24 text-center sm:pt-36">
+        {signedIn ? (
+          <motion.a
+            {...enter(0)}
+            href="#roadmap"
+            className="group inline-flex items-center gap-1 rounded-full border border-white/15 bg-card/[0.06] py-1.5 pr-3 pl-4 text-[13px] font-medium text-white/80 transition-colors hover:bg-card/10"
+          >
+            {lastDay ? `Free in full until ${lastDay}` : "Now open to everyone"}
+            <ChevronRight aria-hidden="true" className="size-3.5 text-white/50 transition-transform group-hover:translate-x-0.5" />
+          </motion.a>
+        ) : (
+          <motion.div {...enter(0)}>
+            <SignupOffer />
+          </motion.div>
+        )}
 
         <h1 className="mt-7 text-[2.6rem] leading-[1.04] font-semibold text-balance sm:text-6xl lg:text-[5.2rem]">
           <motion.span {...enter(1)} className="block">
@@ -212,12 +219,12 @@ export default function Hero() {
 
         <motion.p {...enter(3)} className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-pretty text-white/60 sm:text-[21px]">
           Turn videos, audio, text, images and content plans into platform-ready posts, captions and short videos with AI.
-          Organise everything in one workspace, schedule your content and publish to supported social platforms.
+          <span className="hidden sm:inline"> Organise everything in one workspace, schedule your content and publish to supported social platforms.</span>
         </motion.p>
 
         <motion.div {...enter(4)} className="mt-9 flex flex-col items-center justify-center gap-5 sm:flex-row sm:gap-9">
           <Link to={startTo} className="rounded-full bg-card px-8 py-3.5 text-[15px] font-semibold text-black transition-colors hover:bg-card/85">
-            {signedIn ? "Open your workspace" : "Start creating for free"}
+            {signedIn ? "Open your workspace" : "Sign up free"}
           </Link>
           <a href="#how" className="group inline-flex items-center gap-1 text-[15px] font-medium text-[#B4A9FF] transition-colors hover:text-white">
             See how Mindra works

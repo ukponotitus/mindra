@@ -307,6 +307,25 @@ export function useOfferLastDay(): string | null {
   return plans?.in_beta ? offerLastDay(plans.beta_ends_on) : null;
 }
 
+/** The sign-up offer in words, for the landing page and the sign-up form: what a free account gets each month (the
+ * Free plan's own numbers, from the API) and, while the launch offer is on, until when everything is open. */
+export function useSignupOffer(): { headline: string; short: string; extras: string; detail: string } {
+  const plans = usePricingPlans().data;
+  const free = plans.plans.find((plan) => plan.id === "free");
+  const lastDay = plans.in_beta ? offerLastDay(plans.beta_ends_on) : null;
+  const posts = free?.posts_per_month;
+  const more = [
+    free?.clips_per_month ? `${free.clips_per_month} video clips` : "",
+    free?.ai_images_per_month ? `${free.ai_images_per_month} AI images` : "",
+  ].filter(Boolean);
+  return {
+    headline: posts ? `Sign up free and get ${posts} AI-written posts every month` : "Sign up free and start posting today",
+    short: posts ? `${posts} free AI-written posts every month` : "Free to start, no card needed",
+    extras: more.length ? `Plus ${more.join(" and ")} a month` : "",
+    detail: lastDay ? `Everything is unlocked until ${lastDay}. No card needed.` : "No card needed.",
+  };
+}
+
 function hoursText(value: number) {
   if (value < 1) return `${Math.round(value * 60)} minutes`;
   return `${value} hour${value === 1 ? "" : "s"}`;

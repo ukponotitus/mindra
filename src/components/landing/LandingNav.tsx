@@ -71,6 +71,10 @@ export default function LandingNav() {
           </Link>
         </div>
 
+        {/* On phones the sign-up button stays in sight beside the menu. */}
+        <Link to={startTo} className="relative mr-1 ml-auto rounded-full bg-card px-4 py-2 text-sm font-semibold text-[#0B0B1A] md:hidden">
+          {signedIn ? "Open app" : "Sign up free"}
+        </Link>
         <button
           className="relative mr-1 grid size-10 place-items-center text-white md:hidden"
           onClick={() => setMenuOpen((open) => !open)}

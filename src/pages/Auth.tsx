@@ -9,7 +9,8 @@ import PasswordInput from "../components/ui/PasswordInput";
 import { buttonStyles } from "../components/ui/button";
 import { ApiError, apiRequest, type FieldErrors } from "../lib/api";
 import { recordSignup } from "../lib/visits";
-import { firstDays, offerLastDay, usePricingPlans } from "../lib/billing";
+import { firstDays, offerLastDay, usePricingPlans, useSignupOffer } from "../lib/billing";
+import { inAppBrowser } from "../lib/browser";
 import { cn } from "../lib/cn";
 import type { AuthResponse } from "../lib/types";
 import { useDocumentTitle } from "../lib/useDocumentTitle";
@@ -199,6 +200,7 @@ export default function AuthPage({ mode }: Props) {
   };
 
   const { title, submit: submitLabel } = copy[mode];
+  const offer = useSignupOffer();
   const newDays = !pricing?.in_beta && pricing?.new_account_days ? pricing.new_account_days : 0;
   const subtitle =
     mode !== "signup"
@@ -208,7 +210,10 @@ export default function AuthPage({ mode }: Props) {
         : newDays
           ? `Everything is open, free, for your ${firstDays(newDays)}.`
           : copy[mode].subtitle;
-  const googleOffered = (mode === "login" || mode === "signup") && signupOptions.data?.google === true;
+  const googleAvailable = (mode === "login" || mode === "signup") && signupOptions.data?.google === true;
+  // Google refuses its sign-in inside another app's browser (Facebook's, Instagram's), where many visitors arrive.
+  const insideApp = inAppBrowser();
+  const googleOffered = googleAvailable && !insideApp;
   const googleProblem = mode === "login" ? searchParams.get("google") : null;
   const resetLinkMissing = mode === "reset" && (!uid || !token);
   const passwordHint = mode !== "login" ? "At least 8 characters, not too common." : undefined;
@@ -265,7 +270,12 @@ export default function AuthPage({ mode }: Props) {
           </div>
 
           <h1 className="text-2xl font-semibold text-balance text-foreground">{title}</h1>
-          <p className="mt-2 mb-8 text-sm text-pretty text-muted-foreground">{subtitle}</p>
+          <p className={cn("mt-2 text-sm text-pretty text-muted-foreground", mode === "signup" ? "mb-5" : "mb-8")}>{subtitle}</p>
+          {mode === "signup" && (
+            <p className="mb-6 rounded-lg border border-primary/30 bg-primary/10 px-4 py-3 text-sm text-pretty text-foreground">
+              <strong className="font-semibold">{offer.short}.</strong> {offer.extras && `${offer.extras}. `}No card needed.
+            </p>
+          )}
 
           {resetSentTo ? (
             <p role="status" className="mb-6 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-pretty text-emerald-800">
@@ -307,6 +317,13 @@ export default function AuthPage({ mode }: Props) {
                     <span aria-hidden="true" className="h-px flex-1 bg-border" />
                   </div>
                 </div>
+              )}
+
+              {googleAvailable && insideApp && (
+                <p className="mb-6 text-sm text-pretty text-muted-foreground">
+                  {mode === "signup" ? "Sign up" : "Log in"} with your email here. To use Google instead, open this page in your phone&apos;s browser (the menu at
+                  the top, then &quot;Open in browser&quot;): Google doesn&apos;t allow its sign-in inside another app.
+                </p>
               )}
 
               <div className="mb-6 space-y-4">

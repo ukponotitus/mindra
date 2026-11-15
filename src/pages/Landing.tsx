@@ -12,6 +12,7 @@ import LandingNav from "../components/landing/LandingNav";
 import PlatformMarquee from "../components/landing/PlatformMarquee";
 import Pricing from "../components/landing/Pricing";
 import Roadmap from "../components/landing/Roadmap";
+import { StickyOffer } from "../components/landing/SignupOffer";
 import { useDocumentTitle } from "../lib/useDocumentTitle";
 
 // The page tells one story, top to bottom: what Mindra does (hero), why it matters,
@@ -56,6 +57,7 @@ export default function LandingPage() {
           <FinalCta />
         </main>
         <LandingFooter />
+        <StickyOffer />
       </div>
     </MotionConfig>
   );
