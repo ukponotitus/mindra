@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router";
 import { API_URL } from "./api";
+import { pixelBrowserId } from "./metaPixel";
 
 // Traction: a small note of each page someone looks at, for the founder's Traffic page in the admin (the backend's
 // analytics/traffic.py). The website's pages go by name; every signed-in page is "the app", sent once per visit; and
@@ -12,6 +13,10 @@ import { API_URL } from "./api";
 const PUBLIC_PAGES = new Set(["/", "/login", "/signup", "/forgot-password", "/reset-password", "/privacy", "/terms", "/data-deletion", "/unsubscribe"]);
 const APP_SENT = "mindra.visit.app";
 const CAMPAIGN = "mindra.visit.campaign";
+// The site that sent the person at the start of the visit ("-" for none), and Meta's ad click id from the address
+// they arrived on (fbclid), both kept for the visit and sent with a sign-up (`signupAttribution`).
+const FIRST_REFERRER = "mindra.visit.referrer";
+const AD_CLICK = "mindra.visit.fbc";
 
 function remember(key: string, value: string) {
   try {
@@ -32,6 +37,8 @@ function recall(key: string): string {
 /** The ad's UTM tags from the address someone arrived on, kept for the rest of the visit. */
 function campaign(search: string): Record<string, string> {
   const params = new URLSearchParams(search);
+  const click = params.get("fbclid")?.trim();
+  if (click) remember(AD_CLICK, `fb.1.${Date.now()}.${click.slice(0, 200)}`);
   const tags: Record<string, string> = {};
   for (const name of ["utm_source", "utm_medium", "utm_campaign"]) {
     const value = params.get(name)?.trim();
@@ -65,6 +72,28 @@ export function recordVisit(page: string, search = "") {
   }
 }
 
+/** The site that sent the person at the start of the visit, kept for the visit (later pages are referred by Mindra). */
+function firstReferrer(): string {
+  const kept = recall(FIRST_REFERRER);
+  if (kept) return kept === "-" ? "" : kept;
+  let external = "";
+  try {
+    external = document.referrer && new URL(document.referrer).host !== window.location.host ? document.referrer : "";
+  } catch {
+    external = "";
+  }
+  remember(FIRST_REFERRER, external || "-");
+  return external;
+}
+
+/** What a sign-up sends about where the person came from (the backend's analytics/signups.py), and, only with their
+ * agreement to Meta's ad measurement, Meta's ad click id and browser id. */
+export function signupAttribution(adsConsent: boolean) {
+  const tags = typeof window === "undefined" ? {} : campaign(window.location.search);
+  const ids = adsConsent ? { fbc: recall(AD_CLICK), fbp: pixelBrowserId() } : {};
+  return { referrer: typeof document === "undefined" ? "" : firstReferrer(), ...tags, ads_consent: adsConsent, ...ids };
+}
+
 /** A sign-up completed, so the admin's Traffic page can count it against where the person came from. */
 export function recordSignup() {
   recordVisit("/signed-up");
@@ -76,6 +105,7 @@ export function useRecordVisits() {
   useEffect(() => {
     const page = pathname.length > 1 ? pathname.replace(/\/$/, "") : pathname;
     if (PUBLIC_PAGES.has(page)) {
+      firstReferrer();
       recordVisit(page, search);
     } else if (page.startsWith("/l/")) {
       // A short link: the API counts the click itself.

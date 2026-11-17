@@ -13,6 +13,7 @@ import { Captions, ChevronRight, PenLine, type LucideIcon } from "lucide-react";
 import { Link } from "react-router";
 import { useOfferLastDay } from "../../lib/billing";
 import SignupOffer from "./SignupOffer";
+import { useAudience } from "./audience";
 import Phone from "./hero/Phone";
 import PostsScreen from "./hero/PostsScreen";
 import RecordScreen from "./hero/RecordScreen";
@@ -169,6 +170,7 @@ function Stage({ progress, pointerX, pointerY }: StageProps) {
 export default function Hero() {
   const { signedIn, startTo } = useCtaLinks();
   const lastDay = useOfferLastDay();
+  const copy = useAudience();
   const section = useRef<HTMLElement>(null);
   const onScreen = useInView(section);
   const { scrollYProgress } = useScroll({ target: section, offset: ["start start", "end start"] });
@@ -210,16 +212,16 @@ export default function Hero() {
 
         <h1 className="mt-7 text-[2.6rem] leading-[1.04] font-semibold text-balance sm:text-6xl lg:text-[5.2rem]">
           <motion.span {...enter(1)} className="block">
-            One platform to create,
+            {copy.headline[0]}
           </motion.span>
           <motion.span {...enter(2)} className="block text-white/50">
-            repurpose and publish your content.
+            {copy.headline[1]}
           </motion.span>
         </h1>
 
         <motion.p {...enter(3)} className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-pretty text-white/60 sm:text-[21px]">
-          Turn videos, audio, text, images and content plans into platform-ready posts, captions and short videos with AI.
-          <span className="hidden sm:inline"> Organise everything in one workspace, schedule your content and publish to supported social platforms.</span>
+          {copy.lead}
+          <span className="hidden sm:inline"> {copy.more}</span>
         </motion.p>
 
         <motion.div {...enter(4)} className="mt-9 flex flex-col items-center justify-center gap-5 sm:flex-row sm:gap-9">

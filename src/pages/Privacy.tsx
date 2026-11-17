@@ -111,7 +111,10 @@ export default function PrivacyPage() {
           state or region. With it goes a visitor number that is a scrambled mix of the day, your IP address and your browser,
           which changes every day and can’t be turned back into either, so Mindra can count how many people came on a day
           without following anyone from one day to the next. Mindra doesn’t keep your IP address or set any cookie for this,
-          doesn’t count programs or link previews, and only its own staff see these counts.
+          doesn’t count programs, link previews or Meta’s servers checking a link, and only its own staff see these counts.
+          When you sign up, your account keeps where you came from: the site that sent you, the advertising tags in the
+          address you arrived on, and your kind of device, so Mindra can see which of its links bring people who stay and
+          pay.
         </li>
         <li>
           <strong>Reminders:</strong> if you turn on phone notifications, your browser’s push address for that device.
@@ -293,6 +296,27 @@ export default function PrivacyPage() {
         comment is no longer on YouTube. If you commented on someone’s video and want to ask about it, email {email}.
       </p>
 
+      <h2 id="ads">Measuring Mindra’s ads</h2>
+      <p>
+        Mindra advertises on Facebook and Instagram. When you sign up you can choose, with a box that stays unticked unless
+        you tick it, to let Meta know you signed up, so we can see which of our ads work and Meta can show them to people
+        like you. Only if you tick it:
+      </p>
+      <ul>
+        <li>your browser loads Meta’s pixel, which sets Meta’s cookie (_fbp) and tells Meta you signed up;</li>
+        <li>
+          Mindra’s server tells Meta about your sign-up and, later, your workspace’s first payment (its amount and
+          currency). With them go your email address scrambled one way (hashed), so Meta can match it to a Meta account
+          without receiving the address itself, the ad click number from the link you arrived by, the pixel’s browser
+          number, and for the sign-up your IP address and browser details.
+        </li>
+      </ul>
+      <p>
+        If you don’t tick it, nothing about you goes to Meta. Meta uses what it receives under its own{" "}
+        <a href="https://www.facebook.com/privacy/policy/">Privacy Policy</a>. To change your mind later, write to {email}{" "}
+        and we’ll send nothing more about you to Meta.
+      </p>
+
       <h2>Who helps us run Mindra</h2>
       <p>We send each of these companies only what its part of the work needs:</p>
       <Table
@@ -305,6 +329,7 @@ export default function PrivacyPage() {
           ["Deepgram", "Transcription", "The audio of your recordings", "United States"],
           ["ElevenLabs", "Voice-overs in Automations, if you use them", "The script", "United States"],
           ["Jamendo", "Music search and previews", "Your searches; listeners’ IP address", "Luxembourg"],
+          ["Meta", "Measuring Mindra’s own ads on Facebook and Instagram, only if you agree at sign-up", "That you signed up, and your first payment’s amount; your email address hashed, the ad’s click number, the pixel’s browser number, and for the sign-up your IP address and browser", "United States and Ireland"],
           ["LinkedIn and TikTok, and Meta and X once available", "Sign-in and publishing", "The posts you publish, with their photos or video", "United States, or as each platform states"],
           ["Paystack", "Payments", "Your email address, the plan, amount, a reference and your workspace’s number", "Nigeria"],
           ["Resend", "Account and reminder emails", "Your email address; reminder emails include the post’s text", "United States"],
@@ -346,6 +371,7 @@ export default function PrivacyPage() {
           ["Counts for a Mindra short link", "The workspace is deleted. The link keeps working after its post is deleted, since it may still be shared"],
           ["Conversations with the assistant", "You delete them, or your account"],
           ["Feedback you send", "You delete your account"],
+          ["Where your account came from, and whether you agreed to Meta’s ad measurement", "You delete your account"],
           ["When you last used Mindra, and the follow-up emails sent to you", "You delete your account"],
           ["Payment records", "The workspace is deleted. Paystack keeps its own records, under its privacy policy"],
           ["Database backups", "Up to 7 days after the data is deleted"],
@@ -376,7 +402,8 @@ export default function PrivacyPage() {
         Mindra keeps your sign-in in your browser’s local storage, so you stay signed in until you log out, and remembers there
         an unfinished upload (so it can continue), your light or dark choice, which sidebar groups are open, and whether the
         assistant’s panel is open with which conversation, and for the visit any advertising tags from the address you
-        arrived on. We don’t use advertising or analytics cookies, and the visit counts above use none. Your browser
+        arrived on. We don’t use analytics cookies, and the visit counts above use none. Meta’s advertising cookie (_fbp) is
+        set only if you tick “let Meta know I signed up” when you sign up. Your browser
         connects to Google Fonts for the website’s font, and to Jamendo when you preview a song.
       </p>
 

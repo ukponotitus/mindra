@@ -7,7 +7,9 @@ import { buttonStyles } from "../components/ui/button";
 import { ApiError, apiRequest, type FieldErrors } from "../lib/api";
 import type { AuthResponse } from "../lib/types";
 import { useDocumentTitle } from "../lib/useDocumentTitle";
-import { recordSignup } from "../lib/visits";
+import { trackSignup } from "../lib/metaPixel";
+import { recordSignup, signupAttribution } from "../lib/visits";
+import MetaAdsChoice from "../components/MetaAdsChoice";
 
 // Where the API sends the browser back from Google (`/login/google#code=`): the one-time code is exchanged for a
 // sign-in (`POST /api/auth/google/finish/`). Someone Mindra knows is signed in at once. A new person confirms they're
@@ -33,6 +35,7 @@ export default function GoogleSignIn() {
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [busy, setBusy] = useState(false);
   const [adult, setAdult] = useState(false);
+  const [metaAds, setMetaAds] = useState(false);
   const [inviteCode, setInviteCode] = useState("");
   const [password, setPassword] = useState("");
   const [done, setDone] = useState(false);
@@ -50,7 +53,10 @@ export default function GoogleSignIn() {
       }
       setDone(true);
       signIn(answer);
-      if (answer.created) recordSignup();
+      if (answer.created) {
+        recordSignup();
+        if (metaAds) trackSignup(answer.user.id);
+      }
       navigate(answer.next || "/dashboard", { replace: true });
     } catch (caught) {
       const apiError = caught instanceof ApiError ? caught : new ApiError(0, "Something went wrong. Try again.");
@@ -82,7 +88,11 @@ export default function GoogleSignIn() {
     } else if (!adult) {
       setFieldErrors({ confirms_age: ["Confirm that you're 18 or older."] });
     } else {
-      void send({ confirms_age: true, ...(step.invite_required ? { invite_code: inviteCode.trim() } : {}) });
+      void send({
+        confirms_age: true,
+        ...(step.invite_required ? { invite_code: inviteCode.trim() } : {}),
+        attribution: signupAttribution(metaAds),
+      });
     }
   };
 
@@ -222,6 +232,7 @@ export default function GoogleSignIn() {
                 )}
               </div>
             )}
+            {step.step === "signup" && <MetaAdsChoice checked={metaAds} onChange={setMetaAds} />}
 
             <button type="submit" disabled={busy || (step.step === "link" && !password)} className={buttonStyles({ size: "lg", className: "w-full" })}>
               {busy ? "Please wait…" : step.step === "signup" ? "Create Account" : "Connect and log in"}

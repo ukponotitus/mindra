@@ -4,7 +4,8 @@
 // redirect to where the link goes. /v is the website's note that a page was looked at (src/lib/visits.ts), passed to
 // the API's /api/visits/ with the country, the state or region, and a visitor id: a hash of the day, the visitor's
 // address and browser (and VISITOR_SALT, a secret, when one is set), so the API counts a person once a day without
-// ever seeing their address. Nothing else about the visitor is passed on.
+// ever seeing their address, and the number of the network the visit came from (its ASN), so the API can leave out
+// Meta's own servers checking a link posted on Facebook. Nothing else about the visitor is passed on.
 
 // What the API needs to tell a person's click from a link preview or a browser's prefetch.
 // The Referer says which site sent the click; the API keeps its site only, as a count.
@@ -33,6 +34,8 @@ async function recordVisit(request, env, ctx) {
   if (country) headers.set("X-Mindra-Country", country);
   const region = request.cf?.region;
   if (region) headers.set("X-Mindra-Region", region);
+  const network = request.cf?.asn;
+  if (network) headers.set("X-Mindra-ASN", String(network));
   headers.set("X-Mindra-Visitor", await visitorId(request, agent, env));
   const sending = fetch(`${env.API_URL}/api/visits/`, { method: "POST", headers, body }).catch(() => undefined);
   // The visitor's page doesn't wait for the API.

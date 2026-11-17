@@ -1,15 +1,18 @@
-import { useCallback, useReducer, useState } from "react";
+import { useCallback, useMemo, useReducer, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Bookmark, ChevronLeft, Flag, Mic, Quote, Scissors, Settings2, SlidersHorizontal } from "lucide-react";
+import { useAudience } from "../audience";
 import { useLoop } from "../playback";
 import Ribbon from "./Ribbon";
 
-// Each sentence, and the moment Mindra flags once it has been said.
-const sentences = [
-  { text: "Worry does not empty tomorrow of its trouble.", moment: { icon: Flag, label: "Hook", at: "12:31" } },
-  { text: "It empties today of its strength.", moment: { icon: Quote, label: "Quote", at: "12:40" } },
-  { text: "So pray about it, then trust God with the timing.", moment: { icon: Scissors, label: "Clip", at: "12:52" } },
+// The moment Mindra flags once each sentence has been said (the sentences are the audience's, src/…/audience.ts).
+const MOMENTS = [
+  { icon: Flag, label: "Hook", at: "12:31" },
+  { icon: Quote, label: "Quote", at: "12:40" },
+  { icon: Scissors, label: "Clip", at: "12:52" },
 ];
+
+type Sentence = { text: string; moment: (typeof MOMENTS)[number] };
 
 const PAUSE_WORDS = 5; // How long a finished sentence stays before the next begins, in word-ticks.
 
@@ -22,7 +25,7 @@ interface Speech {
 }
 
 /** One word-tick: show the next word, flag the moment when a sentence ends, move on after a pause. */
-function speak(state: Speech): Speech {
+const speakWith = (sentences: Sentence[]) => (state: Speech): Speech => {
   const words = sentences[state.sentence].text.split(" ").length;
   if (state.shown >= words + PAUSE_WORDS) return { ...state, sentence: (state.sentence + 1) % sentences.length, shown: 0 };
   const shown = state.shown + 1;
@@ -33,15 +36,18 @@ function speak(state: Speech): Speech {
     moments: [{ id: state.nextId, index: state.sentence }, ...state.moments].slice(0, 2),
     nextId: state.nextId + 1,
   };
-}
+};
 
 function clock(seconds: number) {
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${pad(Math.floor(seconds / 3600))}:${pad(Math.floor((seconds % 3600) / 60))}:${pad(seconds % 60)}`;
 }
 
-/** The centre phone: a sermon being recorded, the words appearing as they're spoken and the best moments flagged. */
+/** The centre phone: a talk being recorded, the words appearing as they're spoken and the best moments flagged. */
 export default function RecordScreen() {
+  const copy = useAudience();
+  const sentences = useMemo(() => copy.sentences.map((text, i) => ({ text, moment: MOMENTS[i] })), [copy.sentences]);
+  const speak = useMemo(() => speakWith(sentences), [sentences]);
   const [speech, tick] = useReducer(speak, { sentence: 0, shown: 0, moments: [], nextId: 0 });
   const [seconds, setSeconds] = useState(768);
   useLoop(tick, 230);
@@ -57,7 +63,7 @@ export default function RecordScreen() {
     <div className="relative flex h-full flex-col pt-12 text-white">
       <div className="flex items-center justify-between px-5">
         <ChevronLeft aria-hidden="true" className="size-5 text-white/80" />
-        <span className="text-[13px] font-semibold">Sunday Service</span>
+        <span className="text-[13px] font-semibold">{copy.recordingTitle}</span>
         <Settings2 aria-hidden="true" className="size-[18px] text-white/80" />
       </div>
       <div className="mt-2 flex justify-center">

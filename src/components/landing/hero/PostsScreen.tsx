@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Check, ChevronLeft, Copy, MessageCircle, Play, Quote } from "lucide-react";
+import { useAudience } from "../audience";
 import { useLoop } from "../playback";
 
 const card = {
@@ -12,8 +13,9 @@ const card = {
   }),
 };
 
-/** The right phone: what one sermon became, ready to post. */
+/** The right phone: what one recording became, ready to post. */
 export default function PostsScreen() {
+  const copy = useAudience();
   // Counts seconds; for the last two of every six the button shows it has copied, as if someone just tapped it.
   const [seconds, setSeconds] = useState(0);
   useLoop(
@@ -40,7 +42,9 @@ export default function PostsScreen() {
             <div className="absolute top-4 left-1/2 size-9 -translate-x-1/2 rounded-full bg-card/20" />
             <div className="absolute top-[52px] left-1/2 h-14 w-20 -translate-x-1/2 rounded-t-[2rem] bg-card/10" />
             <p className="absolute inset-x-2 bottom-2 text-center text-[11px] leading-tight font-extrabold">
-              Fear is loud. <span className="rounded bg-[#FACC15] px-0.5 text-black">Faith</span> is louder.
+              {copy.reel[0]}
+              <span className="rounded bg-[#FACC15] px-0.5 text-black">{copy.reel[1]}</span>
+              {copy.reel[2]}
             </p>
             <span className="absolute top-2 right-2 grid size-6 place-items-center rounded-full bg-black/40">
               <Play aria-hidden="true" className="size-3 translate-x-px fill-white" />
@@ -56,14 +60,14 @@ export default function PostsScreen() {
             <span className="text-[11px] font-semibold">WhatsApp broadcast</span>
           </div>
           <p className="rounded-xl rounded-tl-sm bg-[#005C4B] px-2.5 py-2 text-[10.5px] leading-snug text-white/90">
-            Missed Sunday? Three lessons on waiting without worry, plus a 40-second clip 🙏
+            {copy.whatsapp}
           </p>
         </motion.div>
 
         <motion.div custom={2} variants={card} className="rounded-2xl bg-[#6D5EF5] p-3">
           <Quote aria-hidden="true" className="mb-1.5 size-4 text-white/70" />
-          <p className="text-[12px] leading-snug font-bold">Worry empties today of its strength.</p>
-          <p className="mt-1.5 text-[9px] font-medium text-white/75">Quote card · Facebook</p>
+          <p className="text-[12px] leading-snug font-bold">{copy.card}</p>
+          <p className="mt-1.5 text-[9px] font-medium text-white/75">{copy.cardLabel}</p>
         </motion.div>
       </motion.div>
 

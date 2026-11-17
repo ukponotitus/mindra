@@ -2,22 +2,16 @@ import { useCallback, useState } from "react";
 import { motion } from "framer-motion";
 import { ChevronLeft, Play, Search, Share } from "lucide-react";
 import { cn } from "../../../lib/cn";
+import { useAudience } from "../audience";
 import { useLoop } from "../playback";
-
-const lines = [
-  ["0:05", "Good morning, church! You can be seated."],
-  ["1:12", "Today I want to talk about waiting."],
-  ["2:03", "The title of my message is “Waiting Without Worry.”"],
-  ["3:45", "Has your worrying moved that email one inch closer?"],
-  ["4:20", "Worry empties today of its strength."],
-  ["5:02", "Turn with me to Philippians chapter four."],
-];
 
 /** The left phone: the timestamped transcript, with the highlight gliding to the line being played. */
 export default function TranscriptScreen() {
+  const { transcript: lines, speaker } = useAudience();
+  const count = lines.length;
   const [active, setActive] = useState(3);
   useLoop(
-    useCallback(() => setActive((i) => (i + 1) % lines.length), []),
+    useCallback(() => setActive((i) => (i + 1) % count), [count]),
     1800,
   );
 
@@ -32,7 +26,7 @@ export default function TranscriptScreen() {
         <Search aria-hidden="true" className="size-3.5" />
         Search transcript
       </div>
-      <p className="mt-4 px-5 text-[10px] font-medium text-white/40">Pastor David Okon</p>
+      <p className="mt-4 px-5 text-[10px] font-medium text-white/40">{speaker}</p>
       <div className="mt-2 flex-1 space-y-1 px-3">
         {lines.map(([time, text], i) => (
           <div key={time} className="relative flex gap-2.5 rounded-xl px-2.5 py-2">

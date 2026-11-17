@@ -8,7 +8,9 @@ import GoogleButton from "../components/GoogleButton";
 import PasswordInput from "../components/ui/PasswordInput";
 import { buttonStyles } from "../components/ui/button";
 import { ApiError, apiRequest, type FieldErrors } from "../lib/api";
-import { recordSignup } from "../lib/visits";
+import { trackSignup } from "../lib/metaPixel";
+import { recordSignup, signupAttribution } from "../lib/visits";
+import MetaAdsChoice from "../components/MetaAdsChoice";
 import { firstDays, offerLastDay, usePricingPlans, useSignupOffer } from "../lib/billing";
 import { inAppBrowser } from "../lib/browser";
 import { cn } from "../lib/cn";
@@ -123,6 +125,7 @@ export default function AuthPage({ mode }: Props) {
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [resetSentTo, setResetSentTo] = useState("");
   const [adult, setAdult] = useState(false);
+  const [metaAds, setMetaAds] = useState(false);
   const [inviteCode, setInviteCode] = useState("");
   const [inviteAsked, setInviteAsked] = useState(false);
 
@@ -180,9 +183,19 @@ export default function AuthPage({ mode }: Props) {
       } else if (mode === "signup") {
         const [firstName = "", ...rest] = name.trim().split(/\s+/);
         const invite = askInviteCode ? { invite_code: inviteCode.trim() } : {};
-        const body = { email, password, first_name: firstName, last_name: rest.join(" "), confirms_age: adult, ...invite };
-        signIn(await apiRequest<AuthResponse>("/api/auth/register/", { method: "POST", body }));
+        const body = {
+          email,
+          password,
+          first_name: firstName,
+          last_name: rest.join(" "),
+          confirms_age: adult,
+          ...invite,
+          attribution: signupAttribution(metaAds),
+        };
+        const answer = await apiRequest<AuthResponse>("/api/auth/register/", { method: "POST", body });
+        signIn(answer);
         recordSignup();
+        if (metaAds) trackSignup(answer.user.id);
         navigate("/dashboard", { replace: true });
       } else {
         signIn(await apiRequest<AuthResponse>("/api/auth/login/", { method: "POST", body: { email, password } }));
@@ -448,6 +461,7 @@ export default function AuthPage({ mode }: Props) {
                   )}
                 </div>
               )}
+              {mode === "signup" && <MetaAdsChoice checked={metaAds} onChange={setMetaAds} />}
 
               <button type="submit" disabled={submitting} className={buttonStyles({ size: "lg", className: "w-full" })}>
                 {submitting ? "Please wait…" : submitLabel}

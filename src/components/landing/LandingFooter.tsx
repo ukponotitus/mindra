@@ -1,4 +1,5 @@
 import { Link } from "react-router";
+import { COMPANY_ADDRESS, COMPANY_NAME, COMPANY_NUMBER, CONTACT_EMAIL } from "../../lib/legal";
 import Logo from "./Logo";
 import { useCtaLinks } from "./useCtaLinks";
 
@@ -79,8 +80,12 @@ export default function LandingFooter() {
           </nav>
         </div>
         <div className="mt-16 flex flex-col gap-2 border-t border-white/10 pt-6 text-xs text-white/45 sm:flex-row sm:justify-between">
-          <span>© {new Date().getFullYear()} Mindra. All rights reserved.</span>
-          <span>Made for people who create every week.</span>
+          <span>
+            © {new Date().getFullYear()} {COMPANY_NAME} ({COMPANY_NUMBER}). Mindra is a product of {COMPANY_NAME}.
+          </span>
+          <span>
+            {COMPANY_ADDRESS} · {CONTACT_EMAIL}
+          </span>
         </div>
       </div>
     </footer>
