@@ -158,8 +158,9 @@ export default function PrivacyPage() {
       </p>
       <ul>
         <li>
-          <strong>Writing and reading</strong> run on Anthropic’s Claude API. Under Anthropic’s commercial terms, what
-          Mindra sends it isn’t used to train its models.
+          <strong>Writing and reading</strong> run on Anthropic’s Claude API or, while Claude isn’t available, on Google’s
+          Gemini API on its paid service. Under both companies’ commercial terms, what Mindra sends isn’t used to train
+          their models.
         </li>
         <li>
           <strong>AI pictures</strong> are made with Google’s Gemini API on its paid service, from the description you
@@ -299,7 +300,7 @@ export default function PrivacyPage() {
         rows={[
           ["Render", "Hosts our servers and database, in Frankfurt, Germany", "Everything stored in Mindra", "United States"],
           ["Cloudflare", "Serves the website and short links; stores files (R2)", "Files; visitors’ IP address and browser details", "United States"],
-          ["Google", "AI pictures, the website’s font, YouTube, signing in with Google", "Picture descriptions and the photos you choose for them; visitors’ IP address; YouTube posts; that you signed in to Mindra, if you use “Continue with Google”", "United States"],
+          ["Google", "AI pictures, writing and reading while Claude isn’t available, the website’s font, YouTube, signing in with Google", "Picture descriptions and the photos you choose for them; what posts are written from, while Gemini writes them; visitors’ IP address; YouTube posts; that you signed in to Mindra, if you use “Continue with Google”", "United States"],
           ["Anthropic", "AI writing and reading, and the assistant", "Transcripts, photos, flyers, plans, brand profile; your questions to the assistant, campaigns, Planner, results and what it reads to answer", "United States"],
           ["Deepgram", "Transcription", "The audio of your recordings", "United States"],
           ["ElevenLabs", "Voice-overs in Automations, if you use them", "The script", "United States"],
