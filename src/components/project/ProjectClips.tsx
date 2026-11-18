@@ -6,6 +6,7 @@ import ShareButton from "../content/ShareButton";
 import ClipPosts from "./ClipPosts";
 import NewClipDialog from "./NewClipDialog";
 import TrimBar from "./TrimBar";
+import ReduceNoise from "../ReduceNoise";
 import SeePlans from "../SeePlans";
 import { buttonStyles } from "../ui/button";
 import { cn } from "../../lib/cn";
@@ -428,6 +429,15 @@ function ClipEditor({ clip, project }: { clip: Clip; project: Project }) {
               );
             })}
           </div>
+        </fieldset>
+        <fieldset>
+          <legend className="text-sm font-medium text-foreground">Sound</legend>
+          <ReduceNoise
+            className="mt-2"
+            checked={clip.clean_audio}
+            disabled={update.isPending}
+            onChange={(checked) => update.mutate({ id: clip.id, clean_audio: checked })}
+          />
         </fieldset>
         {update.isError && (
           <p role="alert" className="text-sm text-red-600">

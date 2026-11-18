@@ -56,7 +56,7 @@ export type VerticalUploadState = { fraction: number; transfer: UploadProgress |
 export function useMakeVertical(onUpload: (state: VerticalUploadState) => void) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ file, name, mode }: { file: File; name: string; mode: VerticalMode }) => {
+    mutationFn: async ({ file, name, mode, cleanAudio }: { file: File; name: string; mode: VerticalMode; cleanAudio: boolean }) => {
       const options = await queryClient.ensureQueryData(uploadOptionsQuery).catch(() => undefined);
       onUpload({ fraction: 0, transfer: null, phase: null });
       if (options?.direct_upload) {
@@ -72,7 +72,7 @@ export function useMakeVertical(onUpload: (state: VerticalUploadState) => void) 
         const { key } = await upload.start();
         const created = await apiRequest<VerticalVideo>("/api/vertical-videos/", {
           method: "POST",
-          body: { source_key: key, mode, ...(name ? { name } : {}) },
+          body: { source_key: key, mode, clean_audio: cleanAudio, ...(name ? { name } : {}) },
         });
         forgetSavedUpload(file, "vertical");
         return created;
@@ -80,6 +80,7 @@ export function useMakeVertical(onUpload: (state: VerticalUploadState) => void) 
       const form = new FormData();
       form.append("source_file", file);
       form.append("mode", mode);
+      form.append("clean_audio", cleanAudio ? "true" : "false");
       if (name) form.append("name", name);
       return uploadWithProgress<VerticalVideo>("/api/vertical-videos/", form, (fraction) =>
         onUpload({ fraction, transfer: null, phase: null }),
@@ -89,12 +90,15 @@ export function useMakeVertical(onUpload: (state: VerticalUploadState) => void) 
   });
 }
 
-/** Make it again, the same way or with another mode. */
+/** Make it again, the same way or with another mode or noise setting. */
 export function useMakeAgain() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, mode }: { id: string; mode?: VerticalMode }) =>
-      apiRequest<VerticalVideo>(`/api/vertical-videos/${id}/make/`, { method: "POST", body: mode ? { mode } : {} }),
+    mutationFn: ({ id, mode, cleanAudio }: { id: string; mode?: VerticalMode; cleanAudio?: boolean }) =>
+      apiRequest<VerticalVideo>(`/api/vertical-videos/${id}/make/`, {
+        method: "POST",
+        body: { ...(mode ? { mode } : {}), ...(cleanAudio !== undefined ? { clean_audio: cleanAudio } : {}) },
+      }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: listKey }),
   });
 }

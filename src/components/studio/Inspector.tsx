@@ -29,6 +29,7 @@ import {
   type Weight,
 } from "../../lib/studio"
 import { buttonStyles } from "../ui/button"
+import ReduceNoise from "../ReduceNoise"
 import * as edit from "./edits"
 import { EFFECT_FILTERS } from "./Preview"
 import { areaClass, fieldClass, labelClass, panelClass } from "./styles"
@@ -541,6 +542,14 @@ export default function Inspector({
                   />
                 </div>
               </div>
+            )}
+            {sounding && (
+              <ReduceNoise
+                checked={scene.clean_audio === true}
+                disabled={scene.muted}
+                note="You'll hear it in the made video; the preview plays the sound as recorded."
+                onChange={(checked) => set({ clean_audio: checked }, "cleanAudio")}
+              />
             )}
             <p className="text-[11px] text-muted-foreground tabular-nums">
               Shows from {formatSeconds(starts[index])} to{" "}

@@ -3,6 +3,7 @@ import { LoaderCircle, RectangleVertical, RotateCw, Trash2, Upload, Video } from
 import EmptyState from "../components/EmptyState";
 import ShareButton from "../components/content/ShareButton";
 import MediaPreview from "../components/project/MediaPreview";
+import ReduceNoise from "../components/ReduceNoise";
 import ConfirmDialog from "../components/ui/ConfirmDialog";
 import { buttonStyles } from "../components/ui/button";
 import { ApiError } from "../lib/api";
@@ -54,6 +55,7 @@ function NewVerticalVideo() {
   const [name, setName] = useState("");
   const [problem, setProblem] = useState("");
   const [dragging, setDragging] = useState(false);
+  const [cleanAudio, setCleanAudio] = useState(false);
   const [upload, setUpload] = useState<VerticalUploadState | null>(null);
   const make = useMakeVertical(setUpload);
   const ids = useId();
@@ -101,7 +103,7 @@ function NewVerticalVideo() {
       return;
     }
     make.mutate(
-      { file, name: name.trim(), mode: "fit" },
+      { file, name: name.trim(), mode: "fit", cleanAudio },
       {
         onSuccess: () => {
           setFile(null);
@@ -243,6 +245,7 @@ function NewVerticalVideo() {
           with the speaker instead, make a short-form clip from the video&apos;s Clips tab.
         </p>
       </div>
+      <ReduceNoise checked={cleanAudio} onChange={setCleanAudio} disabled={busy} />
 
       {error && (
         <p role="alert" className="rounded-lg bg-red-50 px-4 py-3 text-sm text-pretty text-red-700">
@@ -296,7 +299,11 @@ function VerticalVideoCard({ video }: { video: VerticalVideo }) {
           {video.duration_seconds ? ` · ${formatDuration(video.duration_seconds)}` : ""}
           {ready && video.width && video.height ? ` · ${video.width}×${video.height}` : ""}
         </p>
-        {modeLabel && <p className="mt-0.5 text-xs text-muted-foreground">{modeLabel}</p>}
+        {(modeLabel || video.clean_audio) && (
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            {[modeLabel, video.clean_audio ? "Background noise reduced" : ""].filter(Boolean).join(" · ")}
+          </p>
+        )}
 
         {working && (
           <div className="mt-3">
@@ -348,6 +355,17 @@ function VerticalVideoCard({ video }: { video: VerticalVideo }) {
             >
               <RotateCw aria-hidden="true" className="size-4" />
               Try again
+            </button>
+          )}
+          {ready && !working && (
+            <button
+              type="button"
+              disabled={makeAgain.isPending}
+              onClick={() => makeAgain.mutate({ id: video.id, cleanAudio: !video.clean_audio })}
+              title={video.clean_audio ? "Make it again with the sound as recorded" : "Make it again with the background noise turned down"}
+              className={buttonStyles({ variant: "ghost", size: "sm", className: "h-auto min-h-9 whitespace-normal text-left" })}
+            >
+              {video.clean_audio ? "Sound as recorded" : "Reduce background noise"}
             </button>
           )}
           {/* One made before the whole picture was the only way: it can be made again that way. */}

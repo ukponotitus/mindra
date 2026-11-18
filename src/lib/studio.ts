@@ -49,6 +49,9 @@ export type Scene = {
   volume: number
   /** Video only: remove its original soundtrack while keeping added music. */
   muted: boolean
+  /** Video only: its own sound with the background noise reduced when the video is made (the backend fills it in;
+   * the preview plays it as recorded). */
+  clean_audio?: boolean
   /** A colour scene's colour, and the bars around a "contain" picture. */
   color: string
   /** What a placeholder needs ("A photo of the choir"), or a note. */

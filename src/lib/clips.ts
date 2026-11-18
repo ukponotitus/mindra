@@ -25,11 +25,14 @@ export type Clip = {
   shape: ClipShape;
   /** Short form only; long form keeps the whole picture as recorded. */
   framing: ClipFraming;
+  /** "Reduce background noise": the sound is cleaned when the clip is made. */
+  clean_audio: boolean;
   /** Made by someone choosing the times, rather than suggested by Mindra. */
   custom: boolean;
   status: ClipStatus;
   error: string;
-  /** Rendered, but trimmed, restyled, reshaped or reframed since: render again to update the video. */
+  /** Rendered, but trimmed, restyled, reshaped, reframed or its noise setting changed since: render again to update
+   * the video. */
   is_stale: boolean;
   /** The Motion Studio project whose video this clip carries (studio/posting.py), or null for a clip of a recording. */
   studio_project: string | null;
@@ -208,7 +211,7 @@ export function useClipWords(clip: Pick<Clip, "id" | "start" | "end">, enabled =
 export function useUpdateClip() {
   const store = useStoreClip();
   return useMutation({
-    mutationFn: ({ id, ...changes }: { id: string } & Partial<Pick<Clip, "start" | "end" | "title" | "caption" | "caption_style" | "shape" | "framing">>) =>
+    mutationFn: ({ id, ...changes }: { id: string } & Partial<Pick<Clip, "start" | "end" | "title" | "caption" | "caption_style" | "shape" | "framing" | "clean_audio">>) =>
       apiRequest<Clip>(`/api/clips/${id}/`, { method: "PATCH", body: changes }),
     onSuccess: store,
   });

@@ -259,13 +259,31 @@ function TikTokFields(props: Props) {
             </option>
           ))}
         </select>
-        {info.audited === false && (
+        {info.audited === false && !info.account_public && (
           <p className="mt-1.5 text-xs text-pretty text-muted-foreground">
             Until TikTok approves Mindra, posts go up as “Only you”, and the TikTok account must be set to private. You can
             change who sees a post in TikTok afterwards.
           </p>
         )}
       </div>
+      {info.audited === false && info.account_public && (
+        <div role="alert" className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-pretty text-amber-900">
+          <p className="font-medium">This TikTok account is public</p>
+          <p className="mt-1">
+            Until TikTok approves Mindra, TikTok only takes Mindra's posts on a private account. In the TikTok app, open
+            Profile, then the menu at the top, Settings and privacy, Privacy, and turn on Private account. You can make it
+            public again once the post is up.
+          </p>
+          <button
+            type="button"
+            onClick={() => creator.refetch()}
+            disabled={creator.isFetching}
+            className="mt-2 rounded font-medium text-amber-900 underline underline-offset-2 hover:no-underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-60"
+          >
+            {creator.isFetching ? "Checking…" : "I've made it private: check again"}
+          </button>
+        </div>
+      )}
       <fieldset className="space-y-2">
         <legend className="mb-1 text-sm font-medium text-foreground">Let others</legend>
         <Check

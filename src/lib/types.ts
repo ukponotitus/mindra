@@ -188,6 +188,8 @@ export type VerticalVideo = {
   workspace: number;
   name: string;
   mode: VerticalMode;
+  /** "Reduce background noise": changed only by making it again, so it's also how the video was (or is being) made. */
+  clean_audio: boolean;
   source_filename: string;
   status: VerticalStatus;
   progress: number;
@@ -382,6 +384,9 @@ export type TikTokCreator = {
   username: string;
   avatar_url: string;
   privacy_level_options: TikTokPrivacy[];
+  /** Whether the TikTok account itself is public (TikTok offers it "Everyone"). Until the audit, TikTok refuses
+   * Mindra's posts to a public account. */
+  account_public?: boolean;
   comment_disabled: boolean;
   duet_disabled: boolean;
   stitch_disabled: boolean;
